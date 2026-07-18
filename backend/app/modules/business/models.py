@@ -4,6 +4,13 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.shared.enums.business import BusinessStatus
 from app.shared.models.base import BaseModel
+from sqlalchemy.orm import relationship
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.modules.membership.models import Membership
+    from app.modules.invitation.models import Invitation
 
 
 class Business(BaseModel):
@@ -60,4 +67,11 @@ class Business(BaseModel):
         ),
         default=BusinessStatus.ACTIVE,
         nullable=False,
+    )
+    memberships: Mapped[list["Membership"]] = relationship(
+    back_populates="business",
+    )
+
+    invitations: Mapped[list["Invitation"]] = relationship(
+    back_populates="business",
     )

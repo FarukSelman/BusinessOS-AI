@@ -8,22 +8,21 @@ app = FastAPI(
     version=settings.PROJECT_VERSION,
 )
 
-app.include_router(api_router)
+app.include_router(
+    api_router,
+    prefix=settings.API_V1_PREFIX,
+)
 
 
-@app.get("/", tags=["Root"])
+@app.get("/")
 def root():
-
     return {
-        "project": settings.PROJECT_NAME,
-        "version": settings.PROJECT_VERSION,
-        "status": "running",
+        "message": "BusinessOS AI API"
     }
 
 
-@app.get("/health", tags=["Health"])
+@app.get("/health")
 def health():
-
     return {
-        "status": "healthy",
+        "status": "ok"
     }

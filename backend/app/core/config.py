@@ -20,9 +20,26 @@ class Settings(BaseSettings):
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
 
+    # ==========================
+    # Mail
+    # ==========================
+
+    MAIL_USERNAME: str = ""
+    MAIL_PASSWORD: str = ""
+
+    MAIL_FROM: str = ""
+    MAIL_FROM_NAME: str = "BusinessOS AI"
+
+    MAIL_SERVER: str = "sandbox.smtp.mailtrap.io"
+    MAIL_PORT: int = 2525
+
+    MAIL_USE_TLS: bool = True
+    MAIL_USE_SSL: bool = False
+
     model_config = SettingsConfigDict(
         env_file=".env",
-        case_sensitive=True
+        case_sensitive=True,
+        extra="ignore",   # Tanınmayan env değişkenlerini görmezden gel
     )
 
 

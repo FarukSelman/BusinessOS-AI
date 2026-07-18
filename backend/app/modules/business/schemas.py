@@ -1,26 +1,70 @@
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from datetime import datetime
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl
 
 from app.shared.enums.business import BusinessStatus
 
 
 class BusinessCreate(BaseModel):
-    name: str = Field(min_length=2, max_length=150)
+    """Schema for creating a business."""
 
-    industry: str = Field(min_length=2, max_length=100)
+    name: str = Field(
+        min_length=2,
+        max_length=150,
+    )
+
+    industry: str = Field(
+        min_length=2,
+        max_length=100,
+    )
 
     email: EmailStr
 
-    phone: str = Field(min_length=5, max_length=30)
+    phone: str = Field(
+        min_length=5,
+        max_length=30,
+    )
 
-    website: str | None = None
+    website: HttpUrl | None = None
 
-    logo_url: str | None = None
+    logo_url: HttpUrl | None = None
+
+
+class BusinessUpdate(BaseModel):
+    """Schema for updating a business."""
+
+    name: str | None = Field(
+        default=None,
+        min_length=2,
+        max_length=150,
+    )
+
+    industry: str | None = Field(
+        default=None,
+        min_length=2,
+        max_length=100,
+    )
+
+    email: EmailStr | None = None
+
+    phone: str | None = Field(
+        default=None,
+        min_length=5,
+        max_length=30,
+    )
+
+    website: HttpUrl | None = None
+
+    logo_url: HttpUrl | None = None
 
 
 class BusinessResponse(BaseModel):
+    """Schema returned from the API."""
+
     model_config = ConfigDict(from_attributes=True)
 
-    id: str
+    id: UUID
 
     name: str
 
@@ -32,8 +76,12 @@ class BusinessResponse(BaseModel):
 
     phone: str
 
-    website: str | None
+    website: HttpUrl | None
 
-    logo_url: str | None
+    logo_url: HttpUrl | None
 
     status: BusinessStatus
+
+    created_at: datetime
+
+    updated_at: datetime
