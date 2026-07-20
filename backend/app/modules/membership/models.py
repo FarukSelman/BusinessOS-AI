@@ -46,4 +46,4 @@ class Membership(BaseModel):
 
     business: Mapped["Business"] = relationship(
         back_populates="memberships",
-    )
+    ) 

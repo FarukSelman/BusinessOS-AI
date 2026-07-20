@@ -1,25 +1,26 @@
 import re
-import unicodedata
 
 
-def generate_slug(text: str) -> str:
-    """
-    Converts text into URL friendly slug.
+def generate_slug(value: str) -> str:
 
-    Example:
+    value = value.lower()
 
-    Business OS AI
+    value = re.sub(
+        r"[^a-z0-9\s-]",
+        "",
+        value,
+    )
 
-    ->
+    value = re.sub(
+        r"\s+",
+        "-",
+        value,
+    )
 
-    business-os-ai
-    """
+    value = re.sub(
+        r"-+",
+        "-",
+        value,
+    )
 
-    text = unicodedata.normalize("NFKD", text)
-    text = text.encode("ascii", "ignore").decode("ascii")
-    text = text.lower()
-
-    text = re.sub(r"[^a-z0-9]+", "-", text)
-    text = re.sub(r"-+", "-", text)
-
-    return text.strip("-")
+    return value.strip("-")

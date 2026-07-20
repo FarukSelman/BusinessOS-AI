@@ -1,36 +1,61 @@
 from uuid import UUID
 
-from app.core.exceptions import BadRequestException
+from app.core.exceptions import (
+    ConflictException,
+    NotFoundException,
+)
+from app.db.unit_of_work import UnitOfWork
 from app.modules.business.models import Business
 from app.modules.business.repository import BusinessRepository
-from app.modules.business.schemas import BusinessCreate, BusinessUpdate
+from app.modules.business.schemas import (
+    BusinessCreate,
+    BusinessUpdate,
+)
 from app.shared.utils.slug import generate_slug
+from app.modules.membership.models import Membership
+from app.modules.membership.repository import MembershipRepository
+from app.shared.enums.membership import MembershipRole
 
 
 class BusinessService:
-    """
-    Business business logic layer.
-    """
 
-    def __init__(self, repository: BusinessRepository):
+    def __init__(
+        self,
+        repository: BusinessRepository,
+        membership_repository: MembershipRepository,
+        uow: UnitOfWork,
+    ):
         self.repository = repository
+        self.membership_repository = membership_repository
+        self.uow = uow
 
-    # ----------------------------
-    # Create
-    # ----------------------------
+    # --------------------------------------------------
+    # CREATE
+    # --------------------------------------------------
 
-    def create(self, data: BusinessCreate) -> Business:
+    def create(
+        self,
+        data: BusinessCreate,
+        user_id: UUID,
+    ) -> Business:
 
-        if self.repository.get_by_email(data.email):
-            raise BadRequestException(
-                "Business email already exists."
+        slug = generate_slug(
+            data.name,
+        )
+
+        if self.repository.exists_by_slug(
+            slug,
+        ):
+
+            raise ConflictException(
+                "Business slug already exists.",
             )
-
-        slug = generate_slug(data.name)
-
-        if self.repository.get_by_slug(slug):
-            raise BadRequestException(
-                "Business slug already exists."
+        
+        if self.repository.exists_by_email(
+            data.email,
+        ):
+            raise ConflictException(
+                "Business email already exists.",
             )
 
         business = Business(
@@ -43,29 +68,71 @@ class BusinessService:
             logo_url=str(data.logo_url) if data.logo_url else None,
         )
 
-        return self.repository.create(business)
+        with self.uow:
 
-    # ----------------------------
-    # Read
-    # ----------------------------
+            self.repository.create(
+                business,
+            )
 
-    def get(self, business_id: UUID) -> Business:
+            self.uow.flush()
 
-        business = self.repository.get(business_id)
+            membership = Membership(
+                user_id=user_id,
+                business_id=business.id,
+                role=MembershipRole.OWNER,
+            )
 
-        if business is None:
-            raise BadRequestException(
-                "Business not found."
+            self.membership_repository.create(
+                membership,
+            )
+
+            self.uow.flush()
+
+            self.uow.refresh(
+                business,
             )
 
         return business
 
-    def list(self) -> list[Business]:
-        return self.repository.get_all()
+    # --------------------------------------------------
+    # LIST
+    # --------------------------------------------------
 
-    # ----------------------------
-    # Update
-    # ----------------------------
+    def list(
+        self,
+        page: int = 1,
+        size: int = 20,
+    ) -> list[Business]:
+
+        return self.repository.list_paginated(
+            page=page,
+            size=size,
+        )
+
+    # --------------------------------------------------
+    # GET
+    # --------------------------------------------------
+
+    def get(
+        self,
+        business_id: UUID,
+    ) -> Business:
+
+        business = self.repository.get(
+            business_id,
+        )
+
+        if business is None:
+
+            raise NotFoundException(
+                "Business not found.",
+            )
+
+        return business
+
+    # --------------------------------------------------
+    # UPDATE
+    # --------------------------------------------------
 
     def update(
         self,
@@ -73,62 +140,62 @@ class BusinessService:
         data: BusinessUpdate,
     ) -> Business:
 
-        business = self.get(business_id)
+        business = self.get(
+            business_id,
+        )
 
-        update_data = data.model_dump(exclude_unset=True)
+        update_data = data.model_dump(
+            exclude_unset=True,
+        )
 
-        # Email kontrolü
-        if "email" in update_data:
-
-            existing = self.repository.get_by_email(
-                update_data["email"]
-            )
-
-            if existing and existing.id != business.id:
-                raise BadRequestException(
-                    "Business email already exists."
-                )
-
-        # İsim değiştiyse slug üret
-        if "name" in update_data:
-
-            new_slug = generate_slug(
-                update_data["name"]
-            )
+        if "slug" in update_data:
 
             existing = self.repository.get_by_slug(
-                new_slug
+                update_data["slug"],
             )
 
             if existing and existing.id != business.id:
-                raise BadRequestException(
-                    "Business slug already exists."
+
+                raise ConflictException(
+                    "Business slug already exists.",
                 )
 
-            business.slug = new_slug
+        for key, value in update_data.items():
 
-        # HttpUrl -> str dönüşümü
-        if "website" in update_data and update_data["website"]:
-            update_data["website"] = str(update_data["website"])
+            if key in ["website", "logo_url"] and value:
+                value = str(value)
 
-        if "logo_url" in update_data and update_data["logo_url"]:
-            update_data["logo_url"] = str(update_data["logo_url"])
+            setattr(
+                business,
+                key,
+                value,
+            )
 
-        # Alanları güncelle
-        for field, value in update_data.items():
-            setattr(business, field, value)
+        with self.uow:
 
-        return self.repository.update(business)
+            self.uow.flush()
 
-    # ----------------------------
-    # Delete
-    # ----------------------------
+            self.uow.refresh(
+                business,
+            )
+
+        return business
+
+    # --------------------------------------------------
+    # DELETE
+    # --------------------------------------------------
 
     def delete(
         self,
         business_id: UUID,
     ) -> None:
 
-        business = self.get(business_id)
+        business = self.get(
+            business_id,
+        )
 
-        self.repository.delete(business)
+        with self.uow:
+
+            self.repository.delete(
+                business,
+            )

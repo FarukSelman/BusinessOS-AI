@@ -1,108 +1,86 @@
-from uuid import UUID
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.db.base_repository import BaseRepository
 from app.modules.business.models import Business
 
 
-class BusinessRepository:
+class BusinessRepository(
+    BaseRepository[Business]
+):
 
-    def __init__(self, db: Session):
-        self.db = db
-
-    # ----------------------------
-    # Create
-    # ----------------------------
-
-    def create(self, business: Business) -> Business:
-
-        self.db.add(business)
-        self.db.commit()
-        self.db.refresh(business)
-
-        return business
-
-    # ----------------------------
-    # Read
-    # ----------------------------
-
-    def get_by_id(
+    def __init__(
         self,
-        business_id: UUID,
-    ) -> Business | None:
-
-        statement = select(Business).where(
-            Business.id == business_id,
-            Business.is_deleted == False,
+        db: Session,
+    ):
+        super().__init__(
+            db=db,
+            model=Business,
         )
 
-        return self.db.scalar(statement)
-
-    def get(
-        self,
-        business_id: UUID,
-    ) -> Business | None:
-
-        return self.get_by_id(business_id)
-
-    def get_all(self) -> list[Business]:
-
-        statement = select(Business).where(
-            Business.is_deleted == False
-        )
-
-        return list(
-            self.db.scalars(statement).all()
-        )
-
-    def get_by_email(
-        self,
-        email: str,
-    ) -> Business | None:
-
-        statement = select(Business).where(
-            Business.email == email,
-            Business.is_deleted == False,
-        )
-
-        return self.db.scalar(statement)
 
     def get_by_slug(
         self,
         slug: str,
     ) -> Business | None:
 
-        statement = select(Business).where(
-            Business.slug == slug,
-            Business.is_deleted == False,
+        statement = (
+            select(self.model)
+            .where(
+                self.model.slug == slug,
+                self.model.is_deleted.is_(False),
+            )
         )
 
         return self.db.scalar(statement)
 
-    # ----------------------------
-    # Update
-    # ----------------------------
 
-    def update(
+    def exists_by_slug(
         self,
-        business: Business,
-    ) -> Business:
+        slug: str,
+    ) -> bool:
 
-        self.db.commit()
-        self.db.refresh(business)
+        return (
+            self.get_by_slug(slug)
+            is not None
+        )
 
-        return business
 
-    # ----------------------------
-    # Delete (Soft Delete)
-    # ----------------------------
-
-    def delete(
+    def list_paginated(
         self,
-        business: Business,
-    ) -> None:
+        page: int = 1,
+        size: int = 20,
+    ) -> list[Business]:
 
-        business.is_deleted = True
+        statement = (
+            select(self.model)
+            .where(
+                self.model.is_deleted.is_(False),
+            )
+            .order_by(
+                self.model.created_at.desc(),
+            )
+            .offset(
+                (page - 1) * size
+            )
+            .limit(size)
+        )
 
-        self.db.commit()
+        return list(
+            self.db.scalars(statement).all()
+        )
+    
+    def exists_by_email(
+        self,
+        email: str,
+    ) -> bool:
+
+        statement = (
+            select(self.model)
+            .where(
+                self.model.email == email,
+                self.model.is_deleted.is_(False),
+            )
+        )
+
+        return self.db.scalar(statement) is not None

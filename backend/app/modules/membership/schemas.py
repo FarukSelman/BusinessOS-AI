@@ -6,10 +6,6 @@ from pydantic import BaseModel, ConfigDict
 from app.shared.enums.membership import MembershipRole
 
 
-# -----------------------
-# User Mini
-# -----------------------
-
 class UserMiniResponse(BaseModel):
     model_config = ConfigDict(
         from_attributes=True,
@@ -21,10 +17,6 @@ class UserMiniResponse(BaseModel):
     email: str
 
 
-# -----------------------
-# Business Mini
-# -----------------------
-
 class BusinessMiniResponse(BaseModel):
     model_config = ConfigDict(
         from_attributes=True,
@@ -35,21 +27,34 @@ class BusinessMiniResponse(BaseModel):
     slug: str
 
 
-# -----------------------
-# Create
-# -----------------------
+# ---------------------------------------------------------
+# CREATE
+# ---------------------------------------------------------
 
 class MembershipCreate(BaseModel):
+
     user_id: UUID
-    business_id: UUID
+
     role: MembershipRole = MembershipRole.EMPLOYEE
 
 
-# -----------------------
-# Response
-# -----------------------
+
+# ---------------------------------------------------------
+# UPDATE ROLE
+# ---------------------------------------------------------
+
+class MembershipUpdate(BaseModel):
+
+    role: MembershipRole
+
+
+
+# ---------------------------------------------------------
+# RESPONSE
+# ---------------------------------------------------------
 
 class MembershipResponse(BaseModel):
+
     model_config = ConfigDict(
         from_attributes=True,
     )

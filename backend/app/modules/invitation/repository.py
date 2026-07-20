@@ -1,37 +1,27 @@
+from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
+from app.db.base_repository import BaseRepository
 from app.modules.invitation.models import Invitation
 from app.shared.enums.invitation import InvitationStatus
 
 
-class InvitationRepository:
+class InvitationRepository(BaseRepository[Invitation]):
 
     def __init__(
         self,
         db: Session,
     ):
-        self.db = db
-
-    def create(
-        self,
-        invitation: Invitation,
-    ) -> Invitation:
-
-        self.db.add(invitation)
-
-        self.db.commit()
-
-        self.db.refresh(invitation)
-
-        self.db.refresh(
-            invitation,
-            attribute_names=[
-                "business",
-            ],
+        super().__init__(
+            db=db,
+            model=Invitation,
         )
 
-        return invitation
+    # --------------------------------------------------
+    # Queries
+    # --------------------------------------------------
 
     def get_by_token(
         self,
@@ -39,13 +29,15 @@ class InvitationRepository:
     ) -> Invitation | None:
 
         statement = (
-            select(Invitation)
+            select(self.model)
             .options(
-                joinedload(Invitation.business),
+                joinedload(
+                    self.model.business,
+                ),
             )
             .where(
-                Invitation.token == token,
-                Invitation.is_deleted.is_(False),
+                self.model.token == token,
+                self.model.is_deleted.is_(False),
             )
         )
 
@@ -53,85 +45,84 @@ class InvitationRepository:
 
     def get_pending_invitation(
         self,
-        business_id,
+        business_id: UUID,
         email: str,
     ) -> Invitation | None:
 
         statement = (
-            select(Invitation)
+            select(self.model)
             .where(
-                Invitation.business_id == business_id,
-                Invitation.email == email,
-                Invitation.status == InvitationStatus.PENDING,
-                Invitation.is_deleted.is_(False),
+                self.model.business_id == business_id,
+                self.model.email == email,
+                self.model.status == InvitationStatus.PENDING,
+                self.model.is_deleted.is_(False),
             )
         )
 
         return self.db.scalar(statement)
 
+    def exists_pending(
+        self,
+        business_id: UUID,
+        email: str,
+    ) -> bool:
+
+        return (
+            self.get_pending_invitation(
+                business_id=business_id,
+                email=email,
+            )
+            is not None
+        )
+
     def get_business_invitations(
         self,
-        business_id,
+        business_id: UUID,
+        page: int = 1,
+        size: int = 20,
     ) -> list[Invitation]:
 
         statement = (
-            select(Invitation)
+            select(self.model)
             .options(
-                joinedload(Invitation.business),
+                joinedload(
+                    self.model.business,
+                ),
             )
             .where(
-                Invitation.business_id == business_id,
-                Invitation.is_deleted.is_(False),
+                self.model.business_id == business_id,
+                self.model.is_deleted.is_(False),
             )
             .order_by(
-                Invitation.created_at.desc(),
+                self.model.created_at.desc(),
             )
+            .offset(
+                (page - 1) * size,
+            )
+            .limit(size)
         )
 
         return list(
             self.db.scalars(statement).all()
         )
 
-    def update(
+    def get_active_by_email(
         self,
-        invitation: Invitation,
-    ) -> Invitation:
-
-        self.db.commit()
-
-        self.db.refresh(invitation)
-
-        return invitation
-
-    def get_by_token_simple(
-        self,
-        token: str,
-    ) -> Invitation | None:
+        email: str,
+    ) -> list[Invitation]:
 
         statement = (
-            select(Invitation)
+            select(self.model)
             .where(
-                Invitation.token == token,
-                Invitation.is_deleted.is_(False),
+                self.model.email == email,
+                self.model.status == InvitationStatus.PENDING,
+                self.model.is_deleted.is_(False),
+            )
+            .order_by(
+                self.model.created_at.desc(),
             )
         )
 
-        return self.db.scalar(statement)
-
-    def save(
-        self,
-        invitation: Invitation,
-    ) -> Invitation:
-
-        self.db.commit()
-
-        self.db.refresh(invitation)
-
-        self.db.refresh(
-            invitation,
-            attribute_names=[
-                "business",
-            ],
+        return list(
+            self.db.scalars(statement).all()
         )
-
-        return invitation

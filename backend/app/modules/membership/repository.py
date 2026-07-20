@@ -1,165 +1,290 @@
+from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
+from app.db.base_repository import BaseRepository
 from app.modules.membership.models import Membership
 from app.shared.enums.membership import MembershipRole
+from fastapi import HTTPException, status
 
 
-class MembershipRepository:
+class MembershipRepository(BaseRepository[Membership]):
 
     def __init__(
         self,
         db: Session,
     ):
-        self.db = db
-
-    def create(
-        self,
-        membership: Membership,
-    ) -> Membership:
-
-        self.db.add(membership)
-
-        self.db.commit()
-
-        self.db.refresh(membership)
-
-        self.db.refresh(
-            membership,
-            attribute_names=[
-                "user",
-                "business",
-            ],
+        super().__init__(
+            db=db,
+            model=Membership,
         )
 
-        return membership
+    # --------------------------------------------------
+    # GET USER + BUSINESS MEMBERSHIP
+    # --------------------------------------------------
 
     def get_by_user_and_business(
         self,
-        user_id,
-        business_id,
+        user_id: UUID,
+        business_id: UUID,
     ) -> Membership | None:
 
         statement = (
-            select(Membership)
+            select(self.model)
             .options(
-                joinedload(Membership.user),
-                joinedload(Membership.business),
+                joinedload(self.model.user),
+                joinedload(self.model.business),
             )
             .where(
-                Membership.user_id == user_id,
-                Membership.business_id == business_id,
-                Membership.is_deleted.is_(False),
+                self.model.user_id == user_id,
+                self.model.business_id == business_id,
+                self.model.is_deleted.is_(False),
+            )
+        )
+
+        return self.db.scalar(statement)
+    
+        # --------------------------------------------------
+    # GET MEMBERSHIP BY BUSINESS + ID
+    # --------------------------------------------------
+
+    def get_by_business_and_id(
+        self,
+        business_id: UUID,
+        membership_id: UUID,
+    ) -> Membership | None:
+
+        statement = (
+            select(self.model)
+            .options(
+                joinedload(self.model.user),
+                joinedload(self.model.business),
+            )
+            .where(
+                self.model.id == membership_id,
+                self.model.business_id == business_id,
+                self.model.is_deleted.is_(False),
             )
         )
 
         return self.db.scalar(statement)
 
-    def get_user_memberships(
+    # --------------------------------------------------
+    # CHECK EXISTENCE
+    # --------------------------------------------------
+
+    def exists_by_user_and_business(
         self,
-        user_id,
-    ) -> list[Membership]:
+        user_id: UUID,
+        business_id: UUID,
+    ) -> bool:
 
-        statement = (
-            select(Membership)
-            .options(
-                joinedload(Membership.user),
-                joinedload(Membership.business),
+        return (
+            self.get_by_user_and_business(
+                user_id,
+                business_id,
             )
-            .where(
-                Membership.user_id == user_id,
-                Membership.is_deleted.is_(False),
-            )
+            is not None
         )
 
-        return list(
-            self.db.scalars(statement).all()
-        )
-
-    def get_business_memberships(
-        self,
-        business_id,
-    ) -> list[Membership]:
-
-        statement = (
-            select(Membership)
-            .options(
-                joinedload(Membership.user),
-                joinedload(Membership.business),
-            )
-            .where(
-                Membership.business_id == business_id,
-                Membership.is_deleted.is_(False),
-            )
-        )
-
-        return list(
-            self.db.scalars(statement).all()
-        )
-
-    def get_by_id(
-        self,
-        membership_id,
-    ) -> Membership | None:
-
-        statement = (
-            select(Membership)
-            .options(
-                joinedload(Membership.user),
-                joinedload(Membership.business),
-            )
-            .where(
-                Membership.id == membership_id,
-                Membership.is_deleted.is_(False),
-            )
-        )
-
-        return self.db.scalar(statement)
-
-    def delete(
-        self,
-        membership: Membership,
-    ) -> Membership:
-
-        membership.is_deleted = True
-
-        self.db.commit()
-
-        self.db.refresh(membership)
-
-        return membership
+    # --------------------------------------------------
+    # OWNER CHECK
+    # --------------------------------------------------
 
     def is_owner(
         self,
-        user_id,
-        business_id,
+        user_id: UUID,
+        business_id: UUID,
     ) -> bool:
 
-        membership = self.get_by_user_and_business(
-            user_id,
-            business_id,
+        statement = (
+            select(self.model)
+            .where(
+                self.model.user_id == user_id,
+                self.model.business_id == business_id,
+                self.model.role == MembershipRole.OWNER,
+                self.model.is_deleted.is_(False),
+            )
         )
 
-        if membership is None:
-            return False
+        membership = self.db.scalar(
+            statement,
+        )
 
-        return membership.role == MembershipRole.OWNER
+        return membership is not None
 
-    def is_admin(
+    # --------------------------------------------------
+    # ROLE CHECK
+    # --------------------------------------------------
+
+    def has_role(
         self,
-        user_id,
-        business_id,
+        user_id: UUID,
+        business_id: UUID,
+        role: MembershipRole,
     ) -> bool:
 
+        statement = (
+            select(self.model)
+            .where(
+                self.model.user_id == user_id,
+                self.model.business_id == business_id,
+                self.model.role == role,
+                self.model.is_deleted.is_(False),
+            )
+        )
+
+        membership = self.db.scalar(
+            statement,
+        )
+
+        return membership is not None
+
+    # --------------------------------------------------
+    # USER MEMBERSHIPS
+    # --------------------------------------------------
+
+    def get_user_memberships(
+        self,
+        user_id: UUID,
+        page: int = 1,
+        size: int = 20,
+    ) -> list[Membership]:
+
+        statement = (
+            select(self.model)
+            .options(
+                joinedload(self.model.user),
+                joinedload(self.model.business),
+            )
+            .where(
+                self.model.user_id == user_id,
+                self.model.is_deleted.is_(False),
+            )
+            .order_by(
+                self.model.created_at.desc(),
+            )
+            .offset(
+                (page - 1) * size,
+            )
+            .limit(size)
+        )
+
+        return list(
+            self.db.scalars(statement).all()
+        )
+
+    # --------------------------------------------------
+    # BUSINESS MEMBERSHIPS
+    # --------------------------------------------------
+
+    def get_business_memberships(
+        self,
+        business_id: UUID,
+        page: int = 1,
+        size: int = 20,
+    ) -> list[Membership]:
+
+        statement = (
+            select(self.model)
+            .options(
+                joinedload(self.model.user),
+                joinedload(self.model.business),
+            )
+            .where(
+                self.model.business_id == business_id,
+                self.model.is_deleted.is_(False),
+            )
+            .order_by(
+                self.model.created_at.desc(),
+            )
+            .offset(
+                (page - 1) * size,
+            )
+            .limit(size)
+        )
+
+        return list(
+            self.db.scalars(statement).all()
+        )
+    
+    # --------------------------------------------------
+    # Permission helper
+    # --------------------------------------------------
+
+    def require_membership(
+        self,
+        user_id: UUID,
+        business_id: UUID,
+    ) -> Membership:
+
         membership = self.get_by_user_and_business(
-            user_id,
-            business_id,
+            user_id=user_id,
+            business_id=business_id,
         )
 
         if membership is None:
-            return False
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User is not a member of this business.",
+            )
 
-        return membership.role in (
-            MembershipRole.OWNER,
-            MembershipRole.ADMIN,
+        return membership
+    
+        # --------------------------------------------------
+    # UPDATE MEMBERSHIP ROLE
+    # --------------------------------------------------
+
+    def update_role(
+        self,
+        membership_id: UUID,
+        role: MembershipRole,
+    ) -> Membership | None:
+
+        statement = (
+            select(self.model)
+            .options(
+                joinedload(self.model.user),
+                joinedload(self.model.business),
+            )
+            .where(
+                self.model.id == membership_id,
+                self.model.is_deleted.is_(False),
+            )
+        )
+
+        membership = self.db.scalar(
+            statement,
+        )
+
+        if membership is None:
+            return None
+
+        membership.role = role
+
+        self.db.flush()
+
+        return membership
+    
+        # --------------------------------------------------
+    # COUNT OWNERS
+    # --------------------------------------------------
+
+    def count_owners(
+        self,
+        business_id: UUID,
+    ) -> int:
+
+        statement = (
+            select(self.model)
+            .where(
+                self.model.business_id == business_id,
+                self.model.role == MembershipRole.OWNER,
+                self.model.is_deleted.is_(False),
+            )
+        )
+
+        return len(
+            self.db.scalars(statement).all()
         )

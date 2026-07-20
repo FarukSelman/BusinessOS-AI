@@ -1,12 +1,34 @@
 from fastapi import FastAPI
 
 from app.api.router import api_router
+
 from app.core.config import settings
+from app.core.handlers import register_exception_handlers
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.PROJECT_VERSION,
+    description=(
+        "AI Agent Platform for Small Businesses."
+    ),
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
+
+
+# ---------------------------------------------------------
+# Exception Handlers
+# ---------------------------------------------------------
+
+register_exception_handlers(
+    app,
+)
+
+
+# ---------------------------------------------------------
+# API Routes
+# ---------------------------------------------------------
 
 app.include_router(
     api_router,
@@ -14,15 +36,30 @@ app.include_router(
 )
 
 
-@app.get("/")
+# ---------------------------------------------------------
+# System
+# ---------------------------------------------------------
+
+@app.get(
+    "/",
+    tags=["System"],
+)
 def root():
+
     return {
-        "message": "BusinessOS AI API"
+        "project": settings.PROJECT_NAME,
+        "version": settings.PROJECT_VERSION,
+        "status": "running",
     }
 
 
-@app.get("/health")
+
+@app.get(
+    "/health",
+    tags=["System"],
+)
 def health():
+
     return {
-        "status": "ok"
+        "status": "ok",
     }

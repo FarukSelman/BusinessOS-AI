@@ -7,11 +7,41 @@ from app.shared.enums.invitation import InvitationStatus
 from app.shared.enums.membership import MembershipRole
 
 
+# ==========================================================
+# Create Invitation
+# ==========================================================
+
 class InvitationCreate(BaseModel):
     business_id: UUID
     email: EmailStr
     role: MembershipRole = MembershipRole.EMPLOYEE
 
+
+# ==========================================================
+# Accept Invitation
+# ==========================================================
+
+class InvitationAccept(BaseModel):
+    token: str
+
+
+# ==========================================================
+# Business Mini Response
+# ==========================================================
+
+class InvitationBusinessResponse(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
+
+    id: UUID
+    name: str
+    slug: str
+
+
+# ==========================================================
+# Response
+# ==========================================================
 
 class InvitationResponse(BaseModel):
     model_config = ConfigDict(
@@ -38,6 +68,4 @@ class InvitationResponse(BaseModel):
 
     updated_at: datetime
 
-
-class InvitationAccept(BaseModel):
-    token: str
+    business: InvitationBusinessResponse
