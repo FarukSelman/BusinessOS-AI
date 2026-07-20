@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -20,7 +21,7 @@ class InvitationRepository(BaseRepository[Invitation]):
         )
 
     # --------------------------------------------------
-    # Queries
+    # GET BY TOKEN
     # --------------------------------------------------
 
     def get_by_token(
@@ -31,9 +32,7 @@ class InvitationRepository(BaseRepository[Invitation]):
         statement = (
             select(self.model)
             .options(
-                joinedload(
-                    self.model.business,
-                ),
+                joinedload(self.model.business),
             )
             .where(
                 self.model.token == token,
@@ -42,6 +41,10 @@ class InvitationRepository(BaseRepository[Invitation]):
         )
 
         return self.db.scalar(statement)
+
+    # --------------------------------------------------
+    # GET PENDING INVITATION
+    # --------------------------------------------------
 
     def get_pending_invitation(
         self,
@@ -61,6 +64,10 @@ class InvitationRepository(BaseRepository[Invitation]):
 
         return self.db.scalar(statement)
 
+    # --------------------------------------------------
+    # EXISTS PENDING
+    # --------------------------------------------------
+
     def exists_pending(
         self,
         business_id: UUID,
@@ -69,11 +76,15 @@ class InvitationRepository(BaseRepository[Invitation]):
 
         return (
             self.get_pending_invitation(
-                business_id=business_id,
-                email=email,
+                business_id,
+                email,
             )
             is not None
         )
+
+    # --------------------------------------------------
+    # LIST BUSINESS INVITATIONS
+    # --------------------------------------------------
 
     def get_business_invitations(
         self,
@@ -85,9 +96,7 @@ class InvitationRepository(BaseRepository[Invitation]):
         statement = (
             select(self.model)
             .options(
-                joinedload(
-                    self.model.business,
-                ),
+                joinedload(self.model.business),
             )
             .where(
                 self.model.business_id == business_id,
@@ -105,6 +114,10 @@ class InvitationRepository(BaseRepository[Invitation]):
         return list(
             self.db.scalars(statement).all()
         )
+
+    # --------------------------------------------------
+    # LIST ACTIVE INVITATIONS BY EMAIL
+    # --------------------------------------------------
 
     def get_active_by_email(
         self,
@@ -126,3 +139,90 @@ class InvitationRepository(BaseRepository[Invitation]):
         return list(
             self.db.scalars(statement).all()
         )
+
+    # --------------------------------------------------
+    # IS PENDING
+    # --------------------------------------------------
+
+    def is_pending(
+        self,
+        invitation: Invitation,
+    ) -> bool:
+
+        return invitation.status == InvitationStatus.PENDING
+
+    # --------------------------------------------------
+    # MARK ACCEPTED
+    # --------------------------------------------------
+
+    def mark_accepted(
+        self,
+        invitation: Invitation,
+    ) -> None:
+
+        invitation.status = InvitationStatus.ACCEPTED
+        invitation.accepted_at = datetime.now(UTC)
+
+        self.save(invitation)
+
+    # --------------------------------------------------
+    # MARK EXPIRED
+    # --------------------------------------------------
+
+    def mark_expired(
+        self,
+        invitation: Invitation,
+    ) -> None:
+
+        invitation.status = InvitationStatus.EXPIRED
+
+        self.save(invitation)
+
+    # --------------------------------------------------
+    # CANCEL INVITATION
+    # --------------------------------------------------
+
+    def cancel(
+        self,
+        invitation: Invitation,
+    ) -> None:
+
+        invitation.is_deleted = True
+
+        self.save(invitation)
+
+    # --------------------------------------------------
+    # GET EXPIRED INVITATIONS
+    # --------------------------------------------------
+
+    def get_expired(
+        self,
+    ) -> list[Invitation]:
+
+        statement = (
+            select(self.model)
+            .where(
+                self.model.status == InvitationStatus.PENDING,
+                self.model.expires_at < datetime.now(UTC),
+                self.model.is_deleted.is_(False),
+            )
+        )
+
+        return list(
+            self.db.scalars(statement).all()
+        )
+
+    # --------------------------------------------------
+    # DELETE EXPIRED INVITATIONS
+    # --------------------------------------------------
+
+    def delete_expired(
+        self,
+    ) -> int:
+
+        invitations = self.get_expired()
+
+        for invitation in invitations:
+            invitation.is_deleted = True
+
+        return len(invitations)

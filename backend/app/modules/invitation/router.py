@@ -14,38 +14,34 @@ from app.modules.invitation.schemas import (
 from app.modules.invitation.service import InvitationService
 
 from app.modules.membership.repository import MembershipRepository
-
 from app.modules.user.models import User
 
-from app.shared.security.dependencies import get_current_user
-from app.shared.security.business import require_admin
+from app.shared.security.business import require_owner
 
+
+# ==========================================================
+# Business Invitations
+# ==========================================================
 
 router = APIRouter(
-    prefix="/invitations",
+    prefix="/businesses/{business_id}/invitations",
     tags=["Invitations"],
 )
 
 
-# --------------------------------------------------
+# ==========================================================
 # Dependency
-# --------------------------------------------------
+# ==========================================================
 
 def get_service(
     db: Session = Depends(get_db),
 ) -> InvitationService:
 
-    invitation_repository = InvitationRepository(
-        db,
-    )
+    invitation_repository = InvitationRepository(db)
 
-    membership_repository = MembershipRepository(
-        db,
-    )
+    membership_repository = MembershipRepository(db)
 
-    uow = UnitOfWork(
-        db,
-    )
+    uow = UnitOfWork(db)
 
     return InvitationService(
         repository=invitation_repository,
@@ -54,17 +50,19 @@ def get_service(
     )
 
 
-
-# --------------------------------------------------
+# ==========================================================
 # CREATE INVITATION
-# --------------------------------------------------
+# ==========================================================
 
 @router.post(
     "",
     response_model=InvitationResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Create invitation",
 )
 def create_invitation(
+    business_id: UUID,
+
     data: InvitationCreate,
 
     service: InvitationService = Depends(
@@ -72,23 +70,24 @@ def create_invitation(
     ),
 
     current_user: User = Depends(
-        get_current_user,
+        require_owner,
     ),
 ):
 
     return service.create_invitation(
-        data,
+        business_id=business_id,
+        data=data,
     )
 
 
-
-# --------------------------------------------------
+# ==========================================================
 # LIST BUSINESS INVITATIONS
-# --------------------------------------------------
+# ==========================================================
 
 @router.get(
-    "/business/{business_id}",
+    "",
     response_model=list[InvitationResponse],
+    summary="List business invitations",
 )
 def list_business_invitations(
     business_id: UUID,
@@ -101,7 +100,7 @@ def list_business_invitations(
     ),
 
     current_user: User = Depends(
-        require_admin,
+        require_owner,
     ),
 ):
 
@@ -109,31 +108,4 @@ def list_business_invitations(
         business_id=business_id,
         page=page,
         size=size,
-    )
-
-
-
-# --------------------------------------------------
-# ACCEPT INVITATION
-# --------------------------------------------------
-
-@router.post(
-    "/accept/{token}",
-    response_model=InvitationResponse,
-)
-def accept_invitation(
-    token: str,
-
-    service: InvitationService = Depends(
-        get_service,
-    ),
-
-    current_user: User = Depends(
-        get_current_user,
-    ),
-):
-
-    return service.accept_invitation(
-        token=token,
-        user_id=current_user.id,
     )

@@ -46,12 +46,13 @@ class InvitationService:
 
     def create_invitation(
         self,
+        business_id: UUID,
         data: InvitationCreate,
     ) -> Invitation:
 
 
         if self.repository.exists_pending(
-            data.business_id,
+            business_id,
             data.email,
         ):
 
@@ -61,7 +62,7 @@ class InvitationService:
 
 
         invitation = Invitation(
-            business_id=data.business_id,
+            business_id=business_id,
             email=data.email,
             role=data.role,
             token=str(uuid4()),
@@ -176,7 +177,7 @@ class InvitationService:
         )
 
 
-        if invitation.status != InvitationStatus.PENDING:
+        if not self.repository.is_pending(invitation):
 
             raise BadRequestException(
                 "Invitation already used.",
@@ -224,19 +225,11 @@ class InvitationService:
             )
 
 
-            invitation.status = (
-                InvitationStatus.ACCEPTED
-            )
+            self.repository.mark_accepted(invitation)
 
             invitation.accepted_at = (
                 datetime.now(UTC)
             )
-
-
-            self.repository.save(
-                invitation,
-            )
-
 
             self.uow.flush()
 

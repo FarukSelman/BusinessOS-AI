@@ -8,17 +8,16 @@ from app.shared.enums.membership import MembershipRole
 
 
 # ==========================================================
-# Create Invitation
+# CREATE INVITATION
 # ==========================================================
 
 class InvitationCreate(BaseModel):
-    business_id: UUID
     email: EmailStr
     role: MembershipRole = MembershipRole.EMPLOYEE
 
 
 # ==========================================================
-# Accept Invitation
+# ACCEPT INVITATION
 # ==========================================================
 
 class InvitationAccept(BaseModel):
@@ -26,7 +25,7 @@ class InvitationAccept(BaseModel):
 
 
 # ==========================================================
-# Business Mini Response
+# BUSINESS MINI RESPONSE
 # ==========================================================
 
 class InvitationBusinessResponse(BaseModel):
@@ -40,7 +39,7 @@ class InvitationBusinessResponse(BaseModel):
 
 
 # ==========================================================
-# Response
+# INVITATION RESPONSE
 # ==========================================================
 
 class InvitationResponse(BaseModel):
