@@ -35,7 +35,7 @@ class RAGService:
         business_id: UUID,
         question: str,
         history: ConversationHistory | None = None,
-        top_k: int = 5,
+        top_k: int = 3,
     ) -> RAGResponse:
         """
         Execute the full RAG pipeline.

@@ -22,6 +22,8 @@ from app.ai.llm.providers.claude_provider import (
     ClaudeProvider,
 )
 
+from app.ai.openai.client import OpenAIClient
+
 
 def get_llm_service() -> LLMService:
     """
@@ -34,20 +36,33 @@ def get_llm_service() -> LLMService:
         "mock",
     ).lower()
 
+
     if provider_name == "openai":
-        provider = OpenAIProvider()
+
+        provider = OpenAIProvider(
+            client=OpenAIClient(),
+        )
+
 
     elif provider_name == "ollama":
+
         provider = OllamaProvider()
 
+
     elif provider_name == "gemini":
+
         provider = GeminiProvider()
 
+
     elif provider_name == "claude":
+
         provider = ClaudeProvider()
 
+
     else:
+
         provider = MockLLMProvider()
+
 
     return LLMService(
         provider=provider,

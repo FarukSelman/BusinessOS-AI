@@ -59,4 +59,4 @@ def chat(
         business_id=business_id,
         user_id=current_user.id,
         request=request,
-    )
+    ) 

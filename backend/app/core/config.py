@@ -22,6 +22,7 @@ class Settings(BaseSettings):
 
     OPENAI_API_KEY: str | None = None
     EMBEDDING_MODEL: str = "text-embedding-3-small"
+    LLM_PROVIDER: str = "mock"
 
     # ==========================
     # Mail

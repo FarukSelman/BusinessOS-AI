@@ -27,7 +27,7 @@ class RetrievalService:
         *,
         business_id: UUID,
         query: str,
-        top_k: int = 5,
+        top_k: int = 3,
     ) -> RetrievalResult:
         """
         Retrieve the most relevant chunks
@@ -38,8 +38,15 @@ class RetrievalService:
             query,
         )
 
-        return self.repository.search(
+        result = self.repository.search(
             business_id=business_id,
             embedding=query_embedding,
             top_k=top_k,
         )
+
+
+        if not result.chunks:
+            return result
+
+
+        return result

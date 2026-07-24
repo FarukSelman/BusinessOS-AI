@@ -50,13 +50,21 @@ class RetrievalRepository:
             .where(
                 Document.business_id == business_id,
                 Document.status == DocumentStatus.READY,
+
                 DocumentChunk.embedding.is_not(None),
+
                 DocumentChunk.embedding_status
                 == EmbeddingStatus.COMPLETED,
+
                 Document.is_deleted.is_(False),
+
                 DocumentChunk.is_deleted.is_(False),
+
+                similarity < 0.35,
             )
-            .order_by(similarity.asc())
+            .order_by(
+                similarity.asc()
+            )
             .limit(top_k)
         )
 
