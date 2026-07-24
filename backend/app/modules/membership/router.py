@@ -16,8 +16,7 @@ from app.modules.membership.service import MembershipService
 
 from app.modules.user.models import User
 
-from app.shared.security.dependencies import get_current_user
-from app.shared.auth.dependencies import require_permission
+from app.shared.security.permissions import require_permission
 from app.shared.auth.permissions import Permission
 
 
@@ -35,9 +34,13 @@ def get_service(
     db: Session = Depends(get_db),
 ) -> MembershipService:
 
-    repository = MembershipRepository(db)
+    repository = MembershipRepository(
+        db,
+    )
 
-    uow = UnitOfWork(db)
+    uow = UnitOfWork(
+        db,
+    )
 
     return MembershipService(
         repository=repository,
@@ -66,8 +69,8 @@ def create_membership(
 
     current_user: User = Depends(
         require_permission(
-            Permission.MEMBERSHIP_UPDATE,
-        )
+            Permission.MEMBERSHIP_CREATE,
+        ),
     ),
 ):
 
@@ -99,7 +102,7 @@ def get_business_memberships(
     current_user: User = Depends(
         require_permission(
             Permission.MEMBERSHIP_READ,
-        )
+        ),
     ),
 ):
 
@@ -120,6 +123,8 @@ def get_business_memberships(
     summary="List user memberships",
 )
 def get_user_memberships(
+    business_id: UUID,
+
     user_id: UUID,
 
     page: int = 1,
@@ -130,7 +135,9 @@ def get_user_memberships(
     ),
 
     current_user: User = Depends(
-        get_current_user,
+        require_permission(
+            Permission.MEMBERSHIP_READ,
+        ),
     ),
 ):
 
@@ -138,7 +145,8 @@ def get_user_memberships(
         user_id=user_id,
         page=page,
         size=size,
-    )   
+    )
+
 
 # ---------------------------------------------------------
 # UPDATE MEMBERSHIP ROLE
@@ -163,7 +171,7 @@ def update_membership(
     current_user: User = Depends(
         require_permission(
             Permission.MEMBERSHIP_UPDATE,
-        )
+        ),
     ),
 ):
 
@@ -173,6 +181,11 @@ def update_membership(
         data=data,
     )
 
+
+# ---------------------------------------------------------
+# DELETE MEMBERSHIP
+# ---------------------------------------------------------
+
 @router.delete(
     "/{membership_id}",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -180,6 +193,7 @@ def update_membership(
 )
 def delete_membership(
     business_id: UUID,
+
     membership_id: UUID,
 
     service: MembershipService = Depends(
@@ -189,7 +203,7 @@ def delete_membership(
     current_user: User = Depends(
         require_permission(
             Permission.MEMBERSHIP_DELETE,
-        )
+        ),
     ),
 ):
 

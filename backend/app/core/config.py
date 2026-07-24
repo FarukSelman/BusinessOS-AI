@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
 
+    OPENAI_API_KEY: str | None = None
+    EMBEDDING_MODEL: str = "text-embedding-3-small"
+
     # ==========================
     # Mail
     # ==========================
@@ -41,6 +44,8 @@ class Settings(BaseSettings):
         case_sensitive=True,
         extra="ignore",   # Tanınmayan env değişkenlerini görmezden gel
     )
+
+    EMBEDDING_PROVIDER: str = "mock"
 
 
 settings = Settings()

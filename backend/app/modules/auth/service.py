@@ -225,7 +225,7 @@ class AuthService:
     # CURRENT USER
     # --------------------------------------------------
 
-    def me(
+    def me( 
         self,
         user: User,
     ) -> MeResponse:

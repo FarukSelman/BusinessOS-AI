@@ -12,12 +12,16 @@ DATABASE_URL = (
     f"{settings.POSTGRES_DB}"
 )
 
+
 engine = create_engine(
     DATABASE_URL,
     echo=settings.DEBUG,
     future=True,
     pool_pre_ping=True,
 )
+
+
+
 
 SessionLocal = sessionmaker(
     bind=engine,

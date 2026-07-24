@@ -155,4 +155,4 @@ def logout(
 
 ):
 
-    return service.logout()
+    return service.logout() 

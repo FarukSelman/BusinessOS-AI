@@ -16,8 +16,10 @@ from app.modules.business.service import BusinessService
 
 from app.modules.user.models import User
 
-from app.shared.security.business import require_owner
+from app.shared.security.permissions import require_permission
+from app.shared.auth.permissions import Permission
 from app.shared.security.dependencies import get_current_user
+
 from app.modules.membership.repository import MembershipRepository
 
 
@@ -100,7 +102,9 @@ def list_businesses(
     ),
 
     current_user: User = Depends(
-        get_current_user,
+        require_permission(
+            Permission.BUSINESS_READ,
+        ),
     ),
 ):
 
@@ -127,7 +131,9 @@ def get_business(
     ),
 
     current_user: User = Depends(
-        get_current_user,
+        require_permission(
+            Permission.BUSINESS_READ,
+        ),
     ),
 ):
 
@@ -155,7 +161,9 @@ def update_business(
     ),
 
     current_user: User = Depends(
-        require_owner,
+        require_permission(
+            Permission.BUSINESS_UPDATE,
+        ),
     ),
 ):
 
@@ -182,7 +190,9 @@ def delete_business(
     ),
 
     current_user: User = Depends(
-        require_owner,
+        require_permission(
+            Permission.BUSINESS_DELETE,
+        ),
     ),
 ) -> Response:
 

@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from app.modules.membership.models import Membership
     from app.modules.invitation.models import Invitation
+    from app.modules.document.models import Document
 
 
 class Business(BaseModel):
@@ -73,5 +74,9 @@ class Business(BaseModel):
     )
 
     invitations: Mapped[list["Invitation"]] = relationship(
+    back_populates="business",
+    )
+
+    documents: Mapped[list["Document"]] = relationship(
     back_populates="business",
     )

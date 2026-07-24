@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.modules.membership.models import Membership
+    from app.modules.document.models import Document
 
 
 class User(BaseModel):
@@ -56,4 +57,8 @@ class User(BaseModel):
 
     memberships: Mapped[list["Membership"]] = relationship(
     back_populates="user",
+    )
+
+    documents: Mapped[list["Document"]] = relationship(
+    back_populates="uploader",
     )
