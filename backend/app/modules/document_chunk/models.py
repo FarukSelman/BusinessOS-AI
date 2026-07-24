@@ -63,7 +63,7 @@ class DocumentChunk(BaseModel):
         nullable=False,
     )
     embedding: Mapped[list[float] | None] = mapped_column(
-    Vector(768),
+    Vector(1536),
     nullable=True,
     )
 

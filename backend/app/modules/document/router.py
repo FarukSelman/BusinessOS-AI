@@ -20,7 +20,7 @@ from app.modules.document_chunk.repository import DocumentChunkRepository
 from app.modules.document_chunk.service import DocumentChunkService
 
 from app.ai.embedding.service import EmbeddingService
-from app.ai.embedding.providers.mock_provider import MockEmbeddingProvider
+from app.ai.embedding.factory import get_embedding_service
 
 
 router = APIRouter(
@@ -43,9 +43,7 @@ def get_service(
 
     uow = UnitOfWork(db)
 
-    embedding_service = EmbeddingService(
-        provider=MockEmbeddingProvider(),
-    )
+    embedding_service = get_embedding_service()
 
     chunk_service = DocumentChunkService(
         repository=chunk_repository,

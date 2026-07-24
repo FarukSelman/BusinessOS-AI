@@ -10,11 +10,23 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
     """
 
     MODEL = "text-embedding-3-small"
+    EMBEDDING_DIM = 1536
 
     def __init__(self):
         self.client = OpenAI(
             api_key=settings.OPENAI_API_KEY,
         )
+
+
+    @property
+    def name(self) -> str:
+        return "openai"
+
+
+    @property
+    def dimension(self) -> int:
+        return self.EMBEDDING_DIM
+
 
     def embed(
         self,
@@ -27,6 +39,7 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         )
 
         return response.data[0].embedding
+
 
     def embed_batch(
         self,
