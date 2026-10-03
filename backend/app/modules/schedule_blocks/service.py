@@ -3,19 +3,34 @@ from datetime import date, time
 from typing import List, Tuple, Optional
 from app.db.unit_of_work import UnitOfWork
 from app.core.exceptions import NotFoundException
+from app.modules.branches.repository import BranchRepository
 from app.modules.schedule_blocks.repository import ScheduleBlockRepository
 from app.modules.schedule_blocks.schemas import ScheduleBlockCreate, ScheduleBlockUpdate
 from app.modules.schedule_blocks.models import ScheduleBlock
 from app.shared.enums.schedule_block import BlockType
 
 class ScheduleBlockService:
-    def __init__(self, repository: ScheduleBlockRepository, uow: UnitOfWork):
+    def __init__(
+        self,
+        repository: ScheduleBlockRepository,
+        uow: UnitOfWork,
+        branch_repo: Optional[BranchRepository] = None,
+    ):
         self.repository = repository
         self.uow = uow
+        self.branch_repo = branch_repo
+
+    def _ensure_branch(self, business_id: uuid.UUID, branch_id: Optional[uuid.UUID]) -> None:
+        if branch_id is None or self.branch_repo is None:
+            return
+        if self.branch_repo.get_by_business(business_id, branch_id) is None:
+            raise NotFoundException("Branch not found")
 
     def create(self, business_id: uuid.UUID, data: ScheduleBlockCreate) -> ScheduleBlock:
+        self._ensure_branch(business_id, data.branch_id)
         obj = ScheduleBlock(
             business_id=business_id,
+            branch_id=data.branch_id,
             block_type=data.block_type,
             title=data.title,
             start_date=data.start_date,
@@ -45,6 +60,8 @@ class ScheduleBlockService:
         obj = self.get(business_id, block_id)
         
         update_data = data.model_dump(exclude_unset=True)
+        if "branch_id" in update_data:
+            self._ensure_branch(business_id, update_data["branch_id"])
         for field, value in update_data.items():
             setattr(obj, field, value)
             
@@ -59,8 +76,13 @@ class ScheduleBlockService:
         with self.uow:
             self.uow.flush()
 
-    def get_blocked_times_for_date(self, business_id: uuid.UUID, target_date: date) -> List[Tuple[time, time]]:
-        blocks = self.repository.list_active_blocks_for_date(business_id, target_date)
+    def get_blocked_times_for_date(
+        self,
+        business_id: uuid.UUID,
+        target_date: date,
+        branch_id: Optional[uuid.UUID] = None,
+    ) -> List[Tuple[time, time]]:
+        blocks = self.repository.list_active_blocks_for_date(business_id, target_date, branch_id)
         
         blocked_times = []
         for block in blocks:

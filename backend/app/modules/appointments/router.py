@@ -15,6 +15,7 @@ from app.modules.appointments.schemas import (
     AvailableSlotResponse,
 )
 from app.modules.appointments.service import AppointmentService
+from app.modules.appointments.dependencies import build_appointment_service
 
 from app.modules.user.models import User
 
@@ -35,22 +36,7 @@ def get_service(
     db: Session = Depends(get_db),
 ) -> AppointmentService:
 
-    repository = AppointmentRepository(
-        db,
-    )
-
-    uow = UnitOfWork(
-        db,
-    )
-    
-    from app.modules.schedule_blocks.repository import ScheduleBlockRepository
-    schedule_block_repo = ScheduleBlockRepository(db)
-
-    return AppointmentService(
-        repository=repository,
-        uow=uow,
-        schedule_block_repo=schedule_block_repo,
-    )
+    return build_appointment_service(db)
 
 
 # --------------------------------------------------

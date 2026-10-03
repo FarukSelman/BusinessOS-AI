@@ -8,7 +8,7 @@ from app.db.unit_of_work import UnitOfWork
 from app.modules.agent_actions.schemas import AgentActionResponse, RejectAgentActionRequest
 from app.modules.agent_actions.service import AgentActionService
 from app.modules.appointments.repository import AppointmentRepository
-from app.modules.appointments.service import AppointmentService
+from app.modules.appointments.dependencies import build_appointment_service
 from app.modules.invoice.repository import InvoiceRepository
 from app.modules.invoice.service import InvoiceService
 from app.modules.user.models import User
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/businesses/{business_id}/agent-actions", tags=["Agen
 
 
 def get_service(db: Session = Depends(get_db)) -> AgentActionService:
-    appointments = AppointmentService(AppointmentRepository(db), UnitOfWork(db))
+    appointments = build_appointment_service(db)
     invoices = InvoiceService(InvoiceRepository(db), UnitOfWork(db), AppointmentRepository(db))
     return AgentActionService(db, appointments, invoices)
 

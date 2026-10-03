@@ -13,6 +13,10 @@ class ScheduleBlock(BaseModel):
     business_id: Mapped[uuid.UUID] = mapped_column(
         PG_UUID(as_uuid=True), ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False
     )
+    # NULL = applies to the whole business, otherwise only to this branch
+    branch_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("branches.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     block_type: Mapped[BlockType] = mapped_column(
         SQLEnum(BlockType, name="blocktype", create_type=False), nullable=False
     )

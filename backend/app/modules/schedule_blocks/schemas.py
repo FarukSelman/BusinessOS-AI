@@ -5,6 +5,7 @@ from uuid import UUID
 from app.shared.enums.schedule_block import BlockType, RecurrenceDay
 
 class ScheduleBlockCreate(BaseModel):
+    branch_id: Optional[UUID] = None
     block_type: BlockType
     title: Optional[str] = None
     start_date: Optional[date] = None
@@ -16,6 +17,7 @@ class ScheduleBlockCreate(BaseModel):
     is_active: bool = True
 
 class ScheduleBlockUpdate(BaseModel):
+    branch_id: Optional[UUID] = None
     block_type: Optional[BlockType] = None
     title: Optional[str] = None
     start_date: Optional[date] = None
@@ -31,6 +33,7 @@ class ScheduleBlockResponse(BaseModel):
     
     id: UUID
     business_id: UUID
+    branch_id: Optional[UUID] = None
     block_type: BlockType
     title: Optional[str] = None
     start_date: Optional[date] = None

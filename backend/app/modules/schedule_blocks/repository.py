@@ -26,12 +26,24 @@ class ScheduleBlockRepository(BaseRepository[ScheduleBlock]):
         )
         return self.db.scalars(statement).first()
 
-    def list_active_blocks_for_date(self, business_id: uuid.UUID, target_date: date) -> List[ScheduleBlock]:
+    def list_active_blocks_for_date(
+        self,
+        business_id: uuid.UUID,
+        target_date: date,
+        branch_id: Optional[uuid.UUID] = None,
+    ) -> List[ScheduleBlock]:
         # A bit of logic to match date or recurrence
         target_day_name = target_date.strftime("%A").upper()
+
+        # Business-wide blocks always apply; branch blocks only for that branch.
+        if branch_id is None:
+            branch_filter = self.model.branch_id.is_(None)
+        else:
+            branch_filter = or_(self.model.branch_id.is_(None), self.model.branch_id == branch_id)
         
         statement = select(self.model).where(
             self.model.business_id == business_id,
+            branch_filter,
             self.model.is_deleted.is_(False),
             self.model.is_active.is_(True),
             or_(

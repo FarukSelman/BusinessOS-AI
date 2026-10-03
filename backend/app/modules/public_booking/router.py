@@ -10,6 +10,7 @@ from app.modules.services.repository import ServiceRepository
 from app.modules.appointments.repository import AppointmentRepository
 from app.modules.customers.repository import CustomerRepository
 from app.modules.appointments.service import AppointmentService
+from app.modules.appointments.dependencies import build_appointment_service
 from app.modules.public_booking.schemas import PublicBusinessInfo, PublicServiceResponse, PublicAvailableSlots, PublicBookingCreate, PublicBookingResponse
 from app.modules.public_booking.service import PublicBookingService
 from app.modules.branches.schemas import BranchResponse
@@ -21,20 +22,13 @@ from app.modules.staff.service import StaffServiceDomain
 router = APIRouter(prefix="/public/booking/{business_slug}", tags=["Public Booking"])
 
 def get_service(db: Session = Depends(get_db)) -> PublicBookingService:
-    from app.modules.schedule_blocks.repository import ScheduleBlockRepository
-    
     business_repo = BusinessRepository(db)
     service_repo = ServiceRepository(db)
     appointment_repo = AppointmentRepository(db)
     customer_repo = CustomerRepository(db)
-    schedule_block_repo = ScheduleBlockRepository(db)
     uow = UnitOfWork(db)
     
-    appointment_service = AppointmentService(
-        repository=appointment_repo,
-        uow=uow,
-        schedule_block_repo=schedule_block_repo
-    )
+    appointment_service = build_appointment_service(db)
     
     return PublicBookingService(
         business_repo=business_repo,

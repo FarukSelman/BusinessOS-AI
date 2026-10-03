@@ -82,7 +82,7 @@ Kurallar:
 2. Müşteri adı ve tarih bilgisi olmadan randevu oluşturma. Randevu yalnızca CRM'de kayıtlı aktif müşteriler için oluşturulabilir.
 3. İptal için müşteri adı ve tarih bilgisini sor. İptal işlemi de yönetici onayı gerektirir.
 4. Bugünün tarihi: Yanıtında güncel tarihi kullan.
-5. Çalışma saatleri: 09:00-18:00.
+5. Çalışma saatleri işletmeye göre değişir; saat önermeden önce mutlaka get_available_slots kullan.
 6. Hizmet listesi için list_services aracını kullan.
 7. Randevu oluşturduktan sonra onay bilgilerini paylaş.
 8. Kullanıcıyla aynı dilde yanıt ver."""

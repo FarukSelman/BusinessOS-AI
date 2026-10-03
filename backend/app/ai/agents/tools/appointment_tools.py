@@ -27,7 +27,7 @@ class GetAvailableSlotsTool(BaseTool):
     def description(self) -> str:
         return (
             "Belirtilen tarih için müsait randevu saatlerini getirir. "
-            "Çalışma saatleri: 09:00-18:00."
+            "İşletmenin tanımlı çalışma saatlerini, kapatmaları ve mevcut randevuları dikkate alır."
         )
 
     @property
@@ -50,9 +50,7 @@ class GetAvailableSlotsTool(BaseTool):
 
     def execute(self, **kwargs) -> ToolResult:
 
-        from app.modules.agent_actions.models import AgentAction
-        from app.modules.appointments.models import Appointment
-        from app.shared.enums.appointment import AppointmentStatus
+        from app.modules.appointments.dependencies import build_appointment_service
 
         try:
 
@@ -67,57 +65,13 @@ class GetAvailableSlotsTool(BaseTool):
                     output="Geçersiz tarih formatı. YYYY-MM-DD kullanın.",
                 )
 
-            # Get existing appointments for the date
-            existing = (
-                self.db.query(Appointment)
-                .filter(
-                    Appointment.business_id == self.business_id,
-                    Appointment.appointment_date == target_date,
-                    Appointment.status.in_([
-                        AppointmentStatus.PENDING,
-                        AppointmentStatus.CONFIRMED,
-                    ]),
-                    Appointment.is_deleted.is_(False),
-                )
-                .all()
-            )
-
-            # Generate slots from 09:00 to 18:00
-            booked_ranges = []
-            for appt in existing:
-                start = datetime.combine(target_date, appt.start_time)
-                end_time = appt.end_time or (
-                    start + timedelta(minutes=60)
-                ).time()
-                end = datetime.combine(target_date, end_time)
-                booked_ranges.append((start, end))
-
-            available = []
-            current = datetime.combine(
+            # Same calculation as the API and the approval step:
+            # business/branch hours, schedule blocks and existing appointments.
+            available = build_appointment_service(self.db).get_available_slots(
+                self.business_id,
                 target_date,
-                time(9, 0),
+                duration_minutes=duration,
             )
-            end_of_day = datetime.combine(
-                target_date,
-                time(18, 0),
-            )
-
-            while current + timedelta(minutes=duration) <= end_of_day:
-
-                slot_end = current + timedelta(minutes=duration)
-
-                conflict = False
-                for booked_start, booked_end in booked_ranges:
-                    if current < booked_end and slot_end > booked_start:
-                        conflict = True
-                        break
-
-                if not conflict:
-                    available.append(
-                        current.strftime("%H:%M")
-                    )
-
-                current += timedelta(minutes=30)
 
             if not available:
                 return ToolResult(

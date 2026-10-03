@@ -2,11 +2,12 @@ from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.orm import Session
 from uuid import UUID
 from datetime import date
-from typing import List, Any
+from typing import List, Any, Optional
 from app.db.session import get_db
 from app.db.unit_of_work import UnitOfWork
 from app.modules.user.models import User
 from app.shared.security.dependencies import get_current_user
+from app.modules.branches.repository import BranchRepository
 from app.modules.schedule_blocks.repository import ScheduleBlockRepository
 from app.modules.schedule_blocks.service import ScheduleBlockService
 from app.modules.schedule_blocks.schemas import ScheduleBlockCreate, ScheduleBlockUpdate, ScheduleBlockResponse
@@ -16,7 +17,7 @@ router = APIRouter(prefix="/businesses/{business_id}/schedule-blocks", tags=["Sc
 def get_service(db: Session = Depends(get_db)) -> ScheduleBlockService:
     repository = ScheduleBlockRepository(db)
     uow = UnitOfWork(db)
-    return ScheduleBlockService(repository=repository, uow=uow)
+    return ScheduleBlockService(repository=repository, uow=uow, branch_repo=BranchRepository(db))
 
 @router.post("", response_model=ScheduleBlockResponse, status_code=status.HTTP_201_CREATED)
 def create(
@@ -41,10 +42,11 @@ def list_blocks(
 def get_blocked_times(
     business_id: UUID, 
     target_date: date = Query(..., alias="date"),
+    branch_id: Optional[UUID] = Query(None),
     service: ScheduleBlockService = Depends(get_service), 
     current_user: User = Depends(get_current_user)
 ) -> Any:
-    blocked_times = service.get_blocked_times_for_date(business_id, target_date)
+    blocked_times = service.get_blocked_times_for_date(business_id, target_date, branch_id)
     return [{"start_time": st.isoformat(), "end_time": et.isoformat()} for st, et in blocked_times]
 
 @router.get("/{block_id}", response_model=ScheduleBlockResponse)

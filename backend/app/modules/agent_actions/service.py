@@ -67,6 +67,7 @@ class AgentActionService:
         appointment_data.customer_email = customer.email
         available = self.appointment_service.get_available_slots(
             business_id, appointment_data.appointment_date, duration_minutes=60,
+            staff_id=appointment_data.staff_id, branch_id=appointment_data.branch_id,
         )
         requested_slot = appointment_data.start_time.strftime("%H:%M")
         if requested_slot not in available:
