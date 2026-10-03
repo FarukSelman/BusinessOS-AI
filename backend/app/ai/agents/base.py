@@ -1,6 +1,9 @@
 import json
 import logging
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from abc import ABC, abstractmethod
 
 from app.ai.agents.schemas import (
@@ -15,9 +18,26 @@ from app.ai.agents.tools.base import (
 
 from app.ai.openai.client import OpenAIClient
 from app.ai.memory.schemas import ConversationHistory
+from app.core.config import settings
 
 
 logger = logging.getLogger(__name__)
+
+
+def current_date_note(now: datetime | None = None) -> str:
+    """
+    Tells the model today's date and time in APP_TIMEZONE, so relative
+    phrases like "yarın" or "bu hafta" resolve to real dates.
+    """
+    from app.modules.reminders.templating import format_date_tr
+
+    now = now or datetime.now(ZoneInfo(settings.APP_TIMEZONE))
+    return (
+        f"Bugünün tarihi: {format_date_tr(now.date())} ({now.date().isoformat()}), "
+        f"saat {now.strftime('%H:%M')} ({settings.APP_TIMEZONE}). "
+        "\"Bugün\", \"yarın\", \"bu hafta\", \"cuma\" gibi göreli ifadeleri bu tarihe göre hesapla; "
+        "araçlara tarihleri YYYY-MM-DD biçiminde ver."
+    )
 
 
 class BaseAgent(ABC):
@@ -201,7 +221,7 @@ class BaseAgent(ABC):
         # System message with agent-specific prompt
         system_content = self.system_prompt.format(
             business_name=context.business_name or "İşletme",
-        )
+        ) + "\n\n" + current_date_note()
 
         messages = [
             {

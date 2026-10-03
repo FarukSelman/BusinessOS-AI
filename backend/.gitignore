@@ -22,3 +22,6 @@ htmlcov/
 # Celery beat schedule state
 .celery/
 celerybeat-schedule*
+
+# Agent E2E reports (scripts/agent_e2e.py)
+agent-e2e-report-*.md

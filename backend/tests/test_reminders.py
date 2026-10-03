@@ -10,7 +10,7 @@ No real e-mail is sent: a FakeMailer collects messages and smtplib is mocked.
 import smtplib
 import threading
 import uuid
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, timedelta
 from unittest import mock
 
 import pytest
