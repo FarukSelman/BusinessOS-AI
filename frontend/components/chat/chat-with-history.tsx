@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User as UserIcon, Wrench, MessageSquarePlus, MessageSquare, Trash2, Check } from "lucide-react";
+import { Send, Bot, User as UserIcon, Wrench, MessageSquarePlus, MessageSquare, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -14,7 +14,9 @@ import {
   ChatMessage,
   PendingAgentAction,
   approveAgentAction,
+  rejectAgentAction,
 } from "@/lib/api";
+import { PendingActionCard, type ActionOutcome } from "@/components/chat/pending-action-card";
 import { getActiveBusinessId } from "@/lib/business";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -43,6 +45,7 @@ export function ChatWithHistory({ title, description, agentColor, examplePrompts
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [actionOutcomes, setActionOutcomes] = useState<Record<string, ActionOutcome>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const businessId = getActiveBusinessId();
@@ -155,12 +158,22 @@ export function ChatWithHistory({ title, description, agentColor, examplePrompts
     try {
       setLoading(true);
       await approveAgentAction(businessId, actionId);
-      setMessages((previous) => previous.map((message) => ({
-        ...message,
-        pendingActions: message.pendingActions?.filter((action) => action.action_id !== actionId) ?? null,
-      })));
+      setActionOutcomes((previous) => ({ ...previous, [actionId]: "approved" }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "İşlem onaylanamadı.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function rejectAction(actionId: string, reason: string) {
+    if (!businessId) return;
+    try {
+      setLoading(true);
+      await rejectAgentAction(businessId, actionId, reason);
+      setActionOutcomes((previous) => ({ ...previous, [actionId]: "rejected" }));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "İşlem reddedilemedi.");
     } finally {
       setLoading(false);
     }
@@ -283,18 +296,14 @@ export function ChatWithHistory({ title, description, agentColor, examplePrompts
                     </div>
                   )}
                   {m.pendingActions?.map((action) => (
-                    <div key={action.action_id} className="mt-3 rounded-lg border border-amber-400/50 bg-amber-50 p-3 text-amber-950">
-                      <p className="text-xs font-semibold">Yönetici onayı bekleniyor</p>
-                      <p className="mt-1 text-xs">Bu işlem uygulanmadan önce tekrar doğrulanır.</p>
-                      <Button
-                        size="sm"
-                        className="mt-2 gap-1.5"
-                        onClick={() => approveAction(action.action_id)}
-                        disabled={loading}
-                      >
-                        <Check className="h-3.5 w-3.5" /> Onayla ve uygula
-                      </Button>
-                    </div>
+                    <PendingActionCard
+                      key={action.action_id}
+                      action={action}
+                      disabled={loading}
+                      outcome={actionOutcomes[action.action_id]}
+                      onApprove={approveAction}
+                      onReject={rejectAction}
+                    />
                   ))}
                 </div>
               </div>

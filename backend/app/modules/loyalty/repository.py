@@ -39,6 +39,31 @@ class LoyaltyWalletRepository(BaseRepository[LoyaltyWallet]):
         )
         return self.db.scalar(statement)
         
+    def get_by_customer_readonly(self, business_id: UUID, customer_id: UUID) -> Optional[LoyaltyWallet]:
+        # Unlike LoyaltyService.get_wallet_balance this never creates a wallet.
+        return self.db.scalars(select(self.model).where(
+            self.model.business_id == business_id,
+            self.model.customer_id == customer_id,
+            self.model.is_deleted.is_(False),
+        )).first()
+
+    def get_totals(self, business_id: UUID) -> dict:
+        from sqlalchemy import func
+        row = self.db.execute(select(
+            func.count(self.model.id), func.coalesce(func.sum(self.model.balance), 0),
+            func.coalesce(func.sum(self.model.lifetime_earned), 0), func.coalesce(func.sum(self.model.lifetime_spent), 0),
+        ).where(self.model.business_id == business_id, self.model.is_deleted.is_(False))).first()
+        return {"wallet_count": row[0], "outstanding_points": int(row[1]), "lifetime_earned": int(row[2]), "lifetime_spent": int(row[3])}
+
+    def list_top_by_balance(self, business_id: UUID, limit: int = 10) -> list:
+        from app.modules.customers.models import Customer
+        return list(self.db.execute(
+            select(Customer.name, self.model.balance)
+            .join(Customer, Customer.id == self.model.customer_id)
+            .where(self.model.business_id == business_id, self.model.is_deleted.is_(False), self.model.balance > 0)
+            .order_by(self.model.balance.desc()).limit(limit)
+        ).all())
+
     def list_by_business(self, business_id: UUID, page: int = 1, size: int = 20) -> List[LoyaltyWallet]:
         statement = select(self.model).where(
             self.model.business_id == business_id,

@@ -244,6 +244,13 @@ export async function approveAgentAction(businessId: string, actionId: string) {
   });
 }
 
+export async function rejectAgentAction(businessId: string, actionId: string, reason: string) {
+  return apiFetch(`/api/v1/businesses/${businessId}/agent-actions/${actionId}/reject`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+}
+
 // ---------- Customers ----------
 
 export async function listCustomers(businessId: string, page = 1, size = 20): Promise<Customer[]> {

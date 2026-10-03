@@ -13,6 +13,8 @@ from app.modules.invoice.repository import InvoiceRepository
 from app.modules.invoice.service import InvoiceService
 from app.modules.user.models import User
 from app.shared.auth.permissions import Permission
+from app.modules.membership.models import Membership
+from app.shared.security.business import get_business_membership
 from app.shared.security.permissions import require_permission
 
 
@@ -39,8 +41,9 @@ def approve_action(
     business_id: UUID, action_id: UUID,
     service: AgentActionService = Depends(get_service),
     current_user: User = Depends(require_permission(Permission.APPOINTMENT_CREATE)),
+    membership: Membership = Depends(get_business_membership),
 ):
-    return service.approve(business_id, action_id, current_user.id)
+    return service.approve(business_id, action_id, current_user.id, role=membership.role)
 
 
 @router.post("/{action_id}/reject", response_model=AgentActionResponse)

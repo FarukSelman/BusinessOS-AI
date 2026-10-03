@@ -32,7 +32,8 @@ from app.ai.memory.service import ConversationMemoryService
 
 from app.modules.chat.service import ChatService
 from app.modules.business.models import Business
-from app.shared.security.business import require_business_member
+from app.modules.membership.models import Membership
+from app.shared.security.business import get_business_membership, require_business_member
 
 
 router = APIRouter(
@@ -57,6 +58,7 @@ def chat(
     request: ChatRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    membership: Membership = Depends(get_business_membership),
 ):
     """
     Ask a question about a business knowledge base.
@@ -80,6 +82,7 @@ def chat(
         db=db,
         business_id=business_id,
         user_id=current_user.id,
+        role=membership.role,
     )
 
     service = ChatService(
@@ -92,6 +95,7 @@ def chat(
         user_id=current_user.id,
         request=request,
         business_name=business_name,
+        role=membership.role,
     )
 
 

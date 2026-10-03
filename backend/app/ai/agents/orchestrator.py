@@ -1,4 +1,3 @@
-import json
 import logging
 
 from uuid import UUID
@@ -7,27 +6,32 @@ from sqlalchemy.orm import Session
 
 from app.ai.agents.base import BaseAgent
 from app.ai.agents.schemas import AgentContext, AgentResponse
-
-from app.ai.agents.specialists.customer_support import (
-    CustomerSupportAgent,
-)
-from app.ai.agents.specialists.appointment import (
-    AppointmentAgent,
-)
-from app.ai.agents.specialists.sales import (
-    SalesAgent,
-)
-from app.ai.agents.specialists.analytics import (
-    AnalyticsAgent,
-)
+from app.ai.agents.specialists.analytics import AnalyticsAgent
+from app.ai.agents.specialists.appointment import AppointmentAgent
+from app.ai.agents.specialists.customer_support import CustomerSupportAgent
+from app.ai.agents.specialists.finance import FinanceAgent
 from app.ai.agents.specialists.marketing import MarketingAgent
-
+from app.ai.agents.specialists.sales import SalesAgent
+from app.ai.agents.tools.common import can_view_finance
+from app.ai.agents.tools.finance_tools import FINANCE_DENIED
 from app.ai.embedding.service import EmbeddingService
-from app.ai.openai.client import OpenAIClient
 from app.ai.memory.schemas import ConversationHistory
+from app.ai.openai.client import OpenAIClient
 
 
 logger = logging.getLogger(__name__)
+
+
+AGENT_NAMES = (
+    "customer_support",
+    "appointment",
+    "sales",
+    "analytics",
+    "marketing",
+    "finance",
+)
+
+DEFAULT_AGENT = "customer_support"
 
 
 CLASSIFICATION_PROMPT = """Sen bir intent sınıflandırma asistanısın.
@@ -37,28 +41,38 @@ Kullanıcının mesajını analiz et ve en uygun ajanı seç.
 Mevcut ajanlar:
 
 1. customer_support — Müşteri sorularını yanıtlar.
-   Fiyatlar, hizmetler, çalışma saatleri, SSS gibi
-   genel bilgi soruları için.
+   Çalışma saatleri, şube adres/telefonları, hizmetler, SSS,
+   bilgi tabanındaki dokümanlar; müşteri yorumlarını listeleme
+   ve yoruma yanıt taslağı yazma.
 
 2. appointment — Randevu yönetimi.
-   Randevu oluşturma, iptal, müsait saat sorgulama,
-   randevu listeleme için.
+   Müsait saat sorgulama, randevu oluşturma/iptal/listeleme,
+   hangi personelin ne zaman çalıştığı, müşterinin paketinde
+   kalan seanslar, belirli gün/saatleri kapatma (izin, tatil, mola).
 
-3. sales — Satış ve ürün önerisi.
-   Ürün/hizmet önerisi, fiyat karşılaştırma,
-   kampanya bilgisi için.
+3. sales — Satış, ürün ve paket önerisi.
+   Ürün arama, fiyat ve stok sorgulama, stoğu azalan ürünler,
+   hizmet paketleri ve paket önerisi, müşterinin aktif paketleri,
+   hizmet fiyat karşılaştırması.
 
-4. analytics — İşletme analizi ve raporlama.
-   İstatistik, rapor, performans analizi,
-   müşteri/randevu sayıları için.
+4. analytics — Operasyonel analiz ve raporlama.
+   Genel durum özeti, randevu/müşteri istatistikleri, popüler
+   hizmetler, personel performansı, anket sonuçları, yorum puanları.
 
-5. marketing — Pazarlama ve kampanya önerisi.
-   Kampanya fikirleri, sosyal medya içerikleri,
-   promosyon stratejileri, hedef kitle analizi için.
+5. marketing — Pazarlama ve kampanya.
+   Kampanya fikri ve taslağı, sosyal medya metni, müşteri
+   segmentleri/etiketleri, sadakat puanı programı, öne çıkarılacak
+   olumlu müşteri yorumları.
+
+6. finance — Finans.
+   Ciro, gelir, gider, net kâr, gider kategorileri, gider kaydı
+   taslağı, kasa durumu, geciken taksitler, fatura özeti ve
+   fatura taslağı.
 
 Kurallar:
-- Sadece ajan adını döndür: customer_support, appointment, sales, analytics veya marketing
+- Sadece ajan adını döndür: customer_support, appointment, sales, analytics, marketing veya finance
 - Başka hiçbir şey yazma.
+- Para, ciro, gider, kasa, taksit ya da fatura geçiyorsa finance seç.
 - Emin olamıyorsan customer_support seç.
 
 Konuşma geçmişi:
@@ -74,7 +88,8 @@ class AgentOrchestrator:
     Routes user requests to the appropriate specialist agent.
 
     Uses LLM-based intent classification to determine
-    which agent should handle the request.
+    which agent should handle the request. The finance agent is
+    only available to OWNER / ADMIN members.
     """
 
     def __init__(
@@ -84,46 +99,24 @@ class AgentOrchestrator:
         business_id: UUID,
         user_id: UUID,
         embedding_service: EmbeddingService,
+        role=None,
     ):
         self.client = client
         self.db = db
         self.business_id = business_id
         self.user_id = user_id
         self.embedding_service = embedding_service
+        self.role = role
 
-        # Initialize all specialist agents
+        common = dict(client=client, db=db, business_id=business_id)
+
         self.agents: dict[str, BaseAgent] = {
-            "customer_support": CustomerSupportAgent(
-                client=client,
-                db=db,
-                business_id=business_id,
-                embedding_service=embedding_service,
-            ),
-            "appointment": AppointmentAgent(
-                client=client,
-                db=db,
-                business_id=business_id,
-                user_id=user_id,
-            ),
-            "sales": SalesAgent(
-                client=client,
-                db=db,
-                business_id=business_id,
-                embedding_service=embedding_service,
-            ),
-            "analytics": AnalyticsAgent(
-                client=client,
-                db=db,
-                business_id=business_id,
-                user_id=user_id,
-            ),
-            "marketing": MarketingAgent(
-                client=client,
-                db=db,
-                business_id=business_id,
-                user_id=user_id,
-                embedding_service=embedding_service,
-            ),
+            "customer_support": CustomerSupportAgent(**common, user_id=user_id, embedding_service=embedding_service),
+            "appointment": AppointmentAgent(**common, user_id=user_id, role=role),
+            "sales": SalesAgent(**common, embedding_service=embedding_service, role=role),
+            "analytics": AnalyticsAgent(**common, user_id=user_id, role=role),
+            "marketing": MarketingAgent(**common, user_id=user_id, embedding_service=embedding_service, role=role),
+            "finance": FinanceAgent(**common, user_id=user_id, role=role),
         }
 
     def route(
@@ -138,31 +131,30 @@ class AgentOrchestrator:
         the appropriate specialist agent.
         """
 
-        # Classify intent
         agent_name = self._classify_intent(
             question=question,
             history=history,
         )
 
-        logger.info(
-            "Orchestrator routed to agent: %s",
-            agent_name,
-        )
+        logger.info("Orchestrator routed to agent: %s", agent_name)
 
-        # Get the agent
-        agent = self.agents.get(
-            agent_name,
-            self.agents["customer_support"],
-        )
+        if agent_name == "finance" and not can_view_finance(context.role):
+            return AgentResponse(
+                answer=(
+                    FINANCE_DENIED
+                    + " Randevu, müşteri veya hizmetlerle ilgili sorularınızda yardımcı olabilirim."
+                ),
+                agent_name="finance",
+                metadata={"access_denied": True},
+            )
 
-        # Execute the agent
-        response = agent.execute(
+        agent = self.agents.get(agent_name, self.agents[DEFAULT_AGENT])
+
+        return agent.execute(
             question=question,
             context=context,
             history=history,
         )
-
-        return response
 
     def _classify_intent(
         self,
@@ -174,7 +166,6 @@ class AgentOrchestrator:
         Use LLM to classify the user's intent.
         """
 
-        # Build history text
         history_text = "Yok"
         if history and history.messages:
             history_text = "\n".join(
@@ -194,34 +185,19 @@ class AgentOrchestrator:
                 temperature=0.0,
             )
 
-            agent_name = response.strip().lower()
+            agent_name = (response or "").strip().lower()
 
-            # Validate agent name
-            valid_agents = [
-                "customer_support",
-                "appointment",
-                "sales",
-                "analytics",
-                "marketing",
-            ]
-
-            if agent_name in valid_agents:
+            if agent_name in AGENT_NAMES:
                 return agent_name
 
-            # Try to extract from response
-            for name in valid_agents:
+            # Try to extract from response (e.g. "ajan: finance")
+            for name in AGENT_NAMES:
                 if name in agent_name:
                     return name
 
-            logger.warning(
-                "Unknown agent '%s', falling back to customer_support",
-                agent_name,
-            )
-            return "customer_support"
+            logger.warning("Unknown agent '%s', falling back to %s", agent_name, DEFAULT_AGENT)
+            return DEFAULT_AGENT
 
         except Exception as e:
-            logger.error(
-                "Intent classification failed: %s",
-                str(e),
-            )
-            return "customer_support"
+            logger.error("Intent classification failed: %s", str(e))
+            return DEFAULT_AGENT

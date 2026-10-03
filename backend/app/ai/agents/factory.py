@@ -11,6 +11,7 @@ def get_orchestrator(
     db: Session,
     business_id: UUID,
     user_id: UUID,
+    role=None,
 ) -> AgentOrchestrator:
     """
     Factory function to create an AgentOrchestrator
@@ -26,4 +27,5 @@ def get_orchestrator(
         business_id=business_id,
         user_id=user_id,
         embedding_service=embedding_service,
+        role=role,
     )

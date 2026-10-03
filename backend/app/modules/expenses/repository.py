@@ -37,6 +37,29 @@ class ExpenseRepository(BaseRepository[Expense]):
         )
         return self.db.scalars(statement).first()
 
+    def get_expense_breakdown_by_category(self, business_id: UUID, start_date: date, end_date: date) -> list[dict]:
+        from sqlalchemy import func, select
+        from app.modules.expense_categories.models import ExpenseCategory
+        rows = self.db.execute(
+            select(
+                func.coalesce(ExpenseCategory.name, "Kategorisiz").label("category"),
+                func.sum(self.model.amount).label("total"),
+                func.count(self.model.id).label("count"),
+            )
+            .select_from(self.model)
+            .outerjoin(ExpenseCategory, ExpenseCategory.id == self.model.category_id)
+            .where(
+                self.model.business_id == business_id,
+                self.model.direction == TransactionDirection.EXPENSE,
+                self.model.transaction_date >= start_date,
+                self.model.transaction_date <= end_date,
+                self.model.is_deleted.is_(False),
+            )
+            .group_by(func.coalesce(ExpenseCategory.name, "Kategorisiz"))
+            .order_by(func.sum(self.model.amount).desc())
+        ).all()
+        return [{"category": r.category, "total": float(r.total or 0), "count": r.count} for r in rows]
+
     def get_totals_by_period(self, business_id: UUID, start_date: date, end_date: date) -> dict:
         statement = select(
             self.model.direction, func.sum(self.model.amount)
@@ -48,6 +71,8 @@ class ExpenseRepository(BaseRepository[Expense]):
         ).group_by(self.model.direction)
         
         results = self.db.execute(statement).all()
-        income = sum([r[1] for r in results if r[0] == TransactionDirection.INCOME]) or 0.0
-        expense = sum([r[1] for r in results if r[0] == TransactionDirection.EXPENSE]) or 0.0
+        # float() first: mixing the 0.0 fallback with a Decimal sum raised TypeError
+        # whenever a period had expenses but no income (or the other way round).
+        income = float(sum(r[1] for r in results if r[0] == TransactionDirection.INCOME) or 0)
+        expense = float(sum(r[1] for r in results if r[0] == TransactionDirection.EXPENSE) or 0)
         return {"total_income": float(income), "total_expense": float(expense), "net": float(income - expense)}

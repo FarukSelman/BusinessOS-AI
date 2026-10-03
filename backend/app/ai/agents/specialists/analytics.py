@@ -3,51 +3,39 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.ai.agents.base import BaseAgent
-from app.ai.agents.tools.base import BaseTool
 from app.ai.agents.tools.analytics_tools import (
     GetAppointmentStatsTool,
     GetCustomerStatsTool,
+    GetDashboardSummaryTool,
+    GetReviewStatsTool,
     GetServicePopularityTool,
+    GetStaffPerformanceTool,
+    GetSurveyResultsTool,
 )
-from app.ai.agents.tools.invoice_tools import CreateInvoiceDraftTool
+from app.ai.agents.tools.base import BaseTool
 from app.ai.openai.client import OpenAIClient
 
 
 class AnalyticsAgent(BaseAgent):
     """
-    Finansal Raporlama ve Analiz Ajanı.
+    Operasyonel Analiz Ajanı.
 
-    İşletme verilerini analiz eder,
-    istatistikler ve raporlar sunar.
+    Genel durum, randevu/müşteri/hizmet istatistikleri, personel
+    performansı, anket ve yorum puanları. Tutarlar yalnızca
+    OWNER/ADMIN rolüne gösterilir; ayrıntılı finans Finans Ajanı'ndadır.
     """
 
-    def __init__(
-        self,
-        client: OpenAIClient,
-        db: Session,
-        business_id: UUID,
-        user_id: UUID,
-    ):
+    def __init__(self, client: OpenAIClient, db: Session, business_id: UUID, user_id: UUID | None = None, role=None):
         super().__init__(client=client)
-
-        self._tools = [
-            GetAppointmentStatsTool(
-                db=db,
-                business_id=business_id,
-            ),
-            GetCustomerStatsTool(
-                db=db,
-                business_id=business_id,
-            ),
-            GetServicePopularityTool(
-                db=db,
-                business_id=business_id,
-            ),
-            CreateInvoiceDraftTool(
-                db=db,
-                business_id=business_id,
-                requested_by=user_id,
-            ),
+        common = dict(db=db, business_id=business_id, role=role)
+        self._tools: list[BaseTool] = [
+            GetDashboardSummaryTool(**common),
+            GetAppointmentStatsTool(**common),
+            GetCustomerStatsTool(**common),
+            GetServicePopularityTool(**common),
+            GetStaffPerformanceTool(**common),
+            GetSurveyResultsTool(**common),
+            GetReviewStatsTool(**common),
         ]
 
     @property
@@ -57,25 +45,22 @@ class AnalyticsAgent(BaseAgent):
     @property
     def description(self) -> str:
         return (
-            "İşletme analitiği ve raporlama yapar. "
-            "Randevu istatistikleri, müşteri sayıları, "
-            "hizmet popülerliği gibi verileri raporlar."
+            "Operasyonel analiz: genel durum özeti, randevu/müşteri istatistikleri, popüler hizmetler, "
+            "personel performansı, anket sonuçları ve yorum puanları."
         )
 
     @property
     def system_prompt(self) -> str:
         return """Sen {business_name} işletmesinin veri analiz asistanısın.
 
-Görevin:
-İşletme verilerini analiz etmek ve anlaşılır raporlar sunmak.
-
 Kurallar:
-1. İstatistik soruları için uygun araçları kullan.
-2. Verileri tablo veya liste formatında sun. Kullanıcı fatura oluşturmak isterse create_invoice_draft aracını kullan; bu araç yalnızca onay bekleyen taslak oluşturur.
-3. Gerektiğinde karşılaştırma ve trend analizi yap.
-4. Sayısal verileri anlaşılır bir şekilde yorumla.
-5. Önerilerde bulun (örn: "En popüler hizmetiniz X, buna odaklanabilirsiniz").
-6. Kullanıcıyla aynı dilde yanıt ver."""
+1. "Durum nasıl / özet ver" sorularında önce get_dashboard_summary kullan.
+2. Randevu, müşteri ve hizmet sorularında get_appointment_stats, get_customer_stats, get_service_popularity kullan; dönem belirtilmemişse bu ayı kullan ve bunu yanıtında söyle.
+3. Personel karşılaştırmasında get_staff_performance, memnuniyet sorularında get_survey_results ve get_review_stats kullan.
+4. Rakamları uydurma; sadece araç çıktısındaki verileri kullan.
+5. Verileri tablo veya liste formatında sun, gerektiğinde karşılaştırma ve trend yorumu yap, somut öneride bulun.
+6. Araç çıktısında tutarlar gizlenmişse bunları tahmin etme. Ciro, gider ve kâr gibi ayrıntılı finans soruları için kullanıcıya yetkisi varsa Finans asistanına sorabileceğini söyle.
+7. Kullanıcıyla aynı dilde yanıt ver."""
 
     @property
     def tools(self) -> list[BaseTool]:

@@ -16,6 +16,10 @@ class AgentContext:
 
     business_name: str = ""
 
+    # MembershipRole of the user in this business (OWNER, ADMIN, EMPLOYEE, VIEWER).
+    # Used to keep financial data away from non-admin roles.
+    role: str | None = None
+
 
 @dataclass(slots=True)
 class AgentResponse:

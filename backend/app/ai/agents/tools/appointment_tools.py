@@ -438,7 +438,13 @@ class CancelAppointmentTool(BaseTool):
                 requested_by=self.requested_by,
                 action_type="CANCEL_APPOINTMENT",
                 status="PENDING",
-                payload={"appointment_id": str(appointment.id)},
+                payload={
+                    "appointment_id": str(appointment.id),
+                    # Display-only fields for the approval card; approval uses appointment_id.
+                    "customer_name": appointment.customer_name,
+                    "appointment_date": appointment.appointment_date.isoformat(),
+                    "start_time": appointment.start_time.strftime("%H:%M"),
+                },
             )
             self.db.add(action)
             self.db.commit()

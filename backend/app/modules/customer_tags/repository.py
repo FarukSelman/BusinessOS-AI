@@ -17,6 +17,37 @@ class CustomerTagRepository(BaseRepository[CustomerTag]):
         ).order_by(self.model.created_at.desc())
         return list(self.db.scalars(statement).all())
         
+    def count_customers_per_tag(self, business_id: UUID) -> dict:
+        from sqlalchemy import func
+        from app.modules.customer_tags.models import CustomerTagAssignment
+        rows = self.db.execute(
+            select(CustomerTagAssignment.tag_id, func.count(CustomerTagAssignment.id))
+            .join(self.model, self.model.id == CustomerTagAssignment.tag_id)
+            .where(
+                self.model.business_id == business_id,
+                self.model.is_deleted.is_(False),
+                CustomerTagAssignment.is_deleted.is_(False),
+            )
+            .group_by(CustomerTagAssignment.tag_id)
+        ).all()
+        return {tag_id: count for tag_id, count in rows}
+
+    def list_customers_with_tag(self, business_id: UUID, tag_id: UUID, limit: int = 20) -> list:
+        from app.modules.customer_tags.models import CustomerTagAssignment
+        from app.modules.customers.models import Customer
+        return list(self.db.scalars(
+            select(Customer)
+            .join(CustomerTagAssignment, CustomerTagAssignment.customer_id == Customer.id)
+            .where(
+                Customer.business_id == business_id,
+                Customer.is_deleted.is_(False),
+                CustomerTagAssignment.tag_id == tag_id,
+                CustomerTagAssignment.is_deleted.is_(False),
+            )
+            .order_by(Customer.name)
+            .limit(limit)
+        ).all())
+
     def get_by_business(self, business_id: UUID, tag_id: UUID) -> CustomerTag | None:
         statement = select(self.model).where(
             self.model.id == tag_id,

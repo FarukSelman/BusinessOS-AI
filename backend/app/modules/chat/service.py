@@ -36,6 +36,7 @@ class ChatService:
         user_id: UUID,
         request: ChatRequest,
         business_name: str = "",
+        role=None,
     ) -> ChatResponse:
         """
         Execute an AI chat request via the Agent Orchestrator.
@@ -80,6 +81,7 @@ class ChatService:
             business_id=business_id,
             user_id=user_id,
             business_name=business_name,
+            role=getattr(role, "value", role),
         )
 
         agent_response = self.orchestrator.route(

@@ -10,20 +10,15 @@ regular mocked test suite keeps working without Docker.
     # PowerShell, with docker compose running:
     pytest tests/test_tenant_isolation.py
 """
-import os
 import uuid
 from datetime import date, datetime, UTC
 
 import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, text
-from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
 
-from app.core.config import settings
 from app.db.base import Base
-from app.db.session import get_db
 from app.main import app
 from app.modules.business.models import Business
 from app.modules.cash_register.models import CashRegister
@@ -38,40 +33,14 @@ from app.shared.enums.membership import MembershipRole
 from app.shared.enums.notification import NotificationType
 from app.shared.enums.user import UserStatus
 from app.shared.security import business as business_security
-from app.shared.security.jwt import create_access_token
-
-API = "/api/v1"
+from tests.pg_support import API, auth, make_client, make_engine, release_client
 
 
 # ------------------------------------------------------------------ database
 
-def _test_database_url() -> str:
-    if os.getenv("TEST_DATABASE_URL"):
-        return os.environ["TEST_DATABASE_URL"]
-    return (
-        f"postgresql+psycopg2://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}"
-        f"@{settings.POSTGRES_SERVER}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}_test"
-    )
-
-
 @pytest.fixture(scope="module")
 def engine():
-    url = make_url(_test_database_url())
-    try:
-        admin = create_engine(url.set(database="postgres"), isolation_level="AUTOCOMMIT", connect_args={"connect_timeout": 3})
-        with admin.connect() as conn:
-            exists = conn.scalar(text("SELECT 1 FROM pg_database WHERE datname = :n"), {"n": url.database})
-            if not exists:
-                conn.execute(text(f'CREATE DATABASE "{url.database}"'))
-        admin.dispose()
-        eng = create_engine(url, connect_args={"connect_timeout": 3})
-        with eng.begin() as conn:
-            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-    except Exception as exc:  # no PostgreSQL available
-        pytest.skip(f"PostgreSQL test database not reachable: {exc.__class__.__name__}")
-
-    Base.metadata.drop_all(eng)
-    Base.metadata.create_all(eng)
+    eng = make_engine()
     yield eng
     Base.metadata.drop_all(eng)
     eng.dispose()
@@ -79,19 +48,9 @@ def engine():
 
 @pytest.fixture(scope="module")
 def client(engine):
-    Session = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
-
-    def override_get_db():
-        db = Session()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as c:
+    with make_client(engine) as c:
         yield c
-    app.dependency_overrides.pop(get_db, None)
+    release_client()
 
 
 # ------------------------------------------------------------------ data
@@ -147,10 +106,6 @@ def world(engine):
     w.db = db
     yield w
     db.close()
-
-
-def auth(user) -> dict:
-    return {"Authorization": f"Bearer {create_access_token(str(user.id))}"}
 
 
 # ------------------------------------------------------------------ 1. cross-business access is 403
