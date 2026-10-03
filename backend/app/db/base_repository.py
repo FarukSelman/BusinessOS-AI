@@ -165,3 +165,22 @@ class BaseRepository(Generic[ModelType]):
         obj.is_deleted = True
 
         return obj
+
+    # --------------------------------------------------
+    # UPDATE
+    # --------------------------------------------------
+
+    def update(
+        self,
+        obj: ModelType,
+        data: dict,
+    ) -> ModelType:
+
+        for key, value in data.items():
+            setattr(obj, key, value)
+
+        return obj
+
+    # Aliases for backward compatibility
+    get_by_id = get
+    soft_delete = delete

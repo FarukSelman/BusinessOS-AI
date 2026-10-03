@@ -48,5 +48,7 @@ class Settings(BaseSettings):
 
     EMBEDDING_PROVIDER: str = "mock"
 
+    CORS_ORIGINS: list[str] = ["http://localhost:3000"]
+
 
 settings = Settings()
