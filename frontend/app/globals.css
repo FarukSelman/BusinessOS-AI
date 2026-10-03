@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+:root {
+  /* Zemin katmanları */
+  --surface: #eef1f8;       /* sayfa arka planı - soğuk açık gri-mavi, düz beyaz değil */
+  --surface-elevated: #ffffff; /* kart / panel yüzeyleri */
+  --border: #d7dce6;
+
+  /* Metin - yüksek kontrast, "silik gri" yok */
+  --ink: #10131a;           /* birincil metin, neredeyse siyah */
+  --ink-muted: #4b5468;     /* ikincil metin - hâlâ okunaklı, WCAG AA geçer */
+
+  /* Sidebar - koyu lacivert, içerik alanından net ayrışır */
+  --sidebar-bg: #12172a;
+  --sidebar-ink: #e7eaf3;
+  --sidebar-muted: #8b93ac;
+
+  /* Birincil aksiyon rengi */
+  --accent: #4c6fff;
+  --accent-ink: #ffffff;
+
+  /* Ajan renk kodlaması - her modülün kendi kimliği (sidebar, chat, rozetler hep aynı rengi kullanır) */
+  --agent-support: #4c6fff;
+  --agent-appointments: #f59e0b;
+  --agent-sales: #10b981;
+  --agent-finance: #a855f7;
+  --agent-marketing: #f43f5e;
+
+  --danger: #dc2626;
+}
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-border: var(--border);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-ink: var(--sidebar-ink);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-agent-support: var(--agent-support);
+  --color-agent-appointments: var(--agent-appointments);
+  --color-agent-sales: var(--agent-sales);
+  --color-agent-finance: var(--agent-finance);
+  --color-agent-marketing: var(--agent-marketing);
+  --color-danger: var(--danger);
+
+  --font-display: var(--font-sora);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+body {
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display), var(--font-sans), ui-sans-serif, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+/* Landing page ile paylaşılan koyu tema stilleri (login/register de kullanıyor) */
+
+.text-gradient {
+  background: linear-gradient(to right, #6366f1, #a855f7, #06b6d4, #6366f1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  background-size: 300% auto;
+  animation: shine 6s linear infinite;
+}
+@keyframes shine {
+  to {
+    background-position: 300% center;
+  }
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.glass-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.blob {
+  position: absolute;
+  filter: blur(90px);
+  z-index: 0;
+  opacity: 0.4;
+  animation: float 15s ease-in-out infinite;
+  border-radius: 50%;
+}
+.blob-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: #6366f1; animation-delay: 0s; }
+.blob-2 { bottom: -20%; right: -10%; width: 60vw; height: 60vw; background: #a855f7; animation-delay: -5s; }
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+}
