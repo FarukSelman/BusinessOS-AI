@@ -60,6 +60,7 @@ from app.modules.staff.router import router as staff_router
 
 from app.modules.packages.router import packages_router, customer_packages_router, installments_router
 from app.modules.reports.router import router as reports_router
+from app.modules.business_hours.router import router as business_hours_router
 
 api_router = APIRouter()
 
@@ -195,3 +196,4 @@ api_router.include_router(packages_router)
 api_router.include_router(customer_packages_router)
 api_router.include_router(installments_router)
 api_router.include_router(reports_router)
+api_router.include_router(business_hours_router)

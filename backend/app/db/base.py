@@ -17,6 +17,7 @@ from app.modules.notifications.models import Notification
 from app.modules.agent_actions.models import AgentAction
 
 from app.modules.schedule_blocks.models import ScheduleBlock
+from app.modules.business_hours.models import BusinessHours
 from app.modules.reminders.models import ReminderConfig, ReminderLog
 
 from app.modules.customer_tags.models import CustomerTag, CustomerTagAssignment
@@ -60,6 +61,7 @@ __all__ = [
     "AgentAction",
 
     "ScheduleBlock",
+    "BusinessHours",
     "ReminderConfig",
     "ReminderLog",
 
