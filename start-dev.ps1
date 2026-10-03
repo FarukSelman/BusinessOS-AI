@@ -2,18 +2,16 @@ Write-Host ""
 Write-Host "========== BusinessOS AI ==========" -ForegroundColor Cyan
 Write-Host ""
 
-# Docker kontrolü
+# 1. Docker Kontrolü
 docker info *> $null
-
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Docker Desktop çalışmıyor!" -ForegroundColor Red
     exit
 }
 
-# Windows PostgreSQL servisini durdur
+# 2. Windows Yerel PostgreSQL Servisini Durdur
 try {
     $service = Get-Service postgresql-x64-18 -ErrorAction Stop
-
     if ($service.Status -eq "Running") {
         Stop-Service postgresql-x64-18
         Write-Host "Windows PostgreSQL durduruldu." -ForegroundColor Yellow
@@ -21,16 +19,30 @@ try {
 }
 catch {}
 
-# Docker Compose
+# 3. Docker Compose Başlat
 Set-Location infrastructure
-
 docker compose up -d
 
-# Backend
-Set-Location ..
+Write-Host "Veritabanının hazır olması bekleniyor..." -ForegroundColor Yellow
+Start-Sleep -Seconds 3
 
+# 4. pgvector Eklentisini Etkinleştir
+docker exec businessos-postgres psql -U postgres -d businessos_ai -c "CREATE EXTENSION IF NOT EXISTS vector;" *> $null
+
+# 5. Backend Ortamı ve Migration
+Set-Location ..
 Set-Location backend
 
 & .\.venv\Scripts\Activate.ps1
 
+Write-Host "Veritabanı migration'ları uygulanıyor..." -ForegroundColor Cyan
+alembic upgrade head
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Migration sırasında hata oluştu!" -ForegroundColor Red
+    exit
+}
+
+# 6. Sunucuyu Başlat
+Write-Host "Backend başlatılıyor..." -ForegroundColor Green
 uvicorn app.main:app --reload
