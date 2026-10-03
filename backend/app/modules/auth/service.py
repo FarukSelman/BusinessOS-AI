@@ -15,6 +15,8 @@ from app.modules.auth.schemas import (
     TokenResponse,
     RefreshTokenRequest,
     MeResponse,
+    UpdateProfilePayload,
+    ChangePasswordPayload,
 )
 
 from app.modules.user.models import User
@@ -247,3 +249,46 @@ class AuthService:
         return {
             "message": "Successfully logged out."
         }
+
+
+
+    # --------------------------------------------------
+    # UPDATE PROFILE
+    # --------------------------------------------------
+
+    def update_profile(
+        self,
+        user: User,
+        data: UpdateProfilePayload,
+    ) -> User:
+
+        user.first_name = data.first_name
+        user.last_name = data.last_name
+
+        with self.uow:
+            self.uow.flush()
+            self.uow.refresh(user)
+
+        return user
+
+
+
+    # --------------------------------------------------
+    # CHANGE PASSWORD
+    # --------------------------------------------------
+
+    def change_password(
+        self,
+        user: User,
+        data: ChangePasswordPayload,
+    ) -> dict:
+
+        if not verify_password(data.current_password, user.password_hash):
+            raise BadRequestException("Mevcut şifre hatalı.")
+
+        user.password_hash = hash_password(data.new_password)
+
+        with self.uow:
+            self.uow.flush()
+        
+        return {"message": "Şifre başarıyla güncellendi."}

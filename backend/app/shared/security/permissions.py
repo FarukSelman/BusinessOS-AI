@@ -72,3 +72,17 @@ def require_permission(
 
 
     return permission_checker
+
+def require_superadmin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """
+    Yalnızca platform admini (is_superadmin=True) olan kullanıcıların
+    erişebileceği endpoint'ler için kullanılır. Belirli bir işletmeye
+    üyelik gerektirmez — tüm işletmeler üzerinde yetki verir.
+    """
+    if not current_user.is_superadmin:
+        raise ForbiddenException(
+            detail="Bu işlem için platform admin yetkisi gerekiyor.",
+        )
+    return current_user

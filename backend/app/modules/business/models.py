@@ -3,6 +3,7 @@ from sqlalchemy import Enum, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.shared.enums.business import BusinessStatus
+from app.shared.enums.business_plan import BusinessPlan
 from app.shared.models.base import BaseModel
 from sqlalchemy.orm import relationship
 
@@ -12,6 +13,8 @@ if TYPE_CHECKING:
     from app.modules.membership.models import Membership
     from app.modules.invitation.models import Invitation
     from app.modules.document.models import Document
+
+
 
 
 class Business(BaseModel):
@@ -69,6 +72,16 @@ class Business(BaseModel):
         default=BusinessStatus.ACTIVE,
         nullable=False,
     )
+
+    plan: Mapped[BusinessPlan] = mapped_column(
+        Enum(
+            BusinessPlan,
+            name="business_plan",
+        ),
+        default=BusinessPlan.FREE,
+        nullable=False,
+    )
+
     memberships: Mapped[list["Membership"]] = relationship(
     back_populates="business",
     )

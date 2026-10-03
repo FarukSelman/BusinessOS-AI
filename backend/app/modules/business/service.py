@@ -1,4 +1,5 @@
 from uuid import UUID
+from typing import List
 
 from app.core.exceptions import (
     ConflictException,
@@ -102,12 +103,29 @@ class BusinessService:
         self,
         page: int = 1,
         size: int = 20,
-    ) -> list[Business]:
+    ) -> List[Business]:
 
         return self.repository.list_paginated(
             page=page,
             size=size,
         )
+
+    #--------------------------------------------------
+    # LIST FOR USER
+    #--------------------------------------------------
+    def list_for_user(
+        self,
+        user_id: UUID,
+        page: int = 1,
+        size: int = 20,
+    ) -> List[Business]:
+        """Sadece kullanıcının üye olduğu işletmeleri döndürür (list() tüm sistemi döndürüyordu)."""
+        memberships = self.membership_repository.get_user_memberships(
+            user_id=user_id,
+            page=page,
+            size=size,
+        )
+        return [membership.business for membership in memberships]
 
     # --------------------------------------------------
     # GET

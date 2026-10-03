@@ -10,6 +10,8 @@ from app.modules.auth.schemas import (
     RefreshTokenRequest,
     RegisterRequest,
     TokenResponse,
+    UpdateProfilePayload,
+    ChangePasswordPayload,
 )
 from app.modules.auth.service import AuthService
 
@@ -156,3 +158,38 @@ def logout(
 ):
 
     return service.logout() 
+
+
+# --------------------------------------------------
+# UPDATE PROFILE
+# --------------------------------------------------
+
+@router.patch(
+    "/me",
+    response_model=MeResponse,
+    summary="Update current user profile",
+)
+def update_profile(
+    data: UpdateProfilePayload,
+    current_user: User = Depends(get_current_user),
+    service: AuthService = Depends(get_service),
+):
+
+    return service.update_profile(current_user, data)
+
+
+# --------------------------------------------------
+# CHANGE PASSWORD
+# --------------------------------------------------
+
+@router.post(
+    "/change-password",
+    summary="Change user password",
+)
+def change_password(
+    data: ChangePasswordPayload,
+    current_user: User = Depends(get_current_user),
+    service: AuthService = Depends(get_service),
+):
+
+    return service.change_password(current_user, data)

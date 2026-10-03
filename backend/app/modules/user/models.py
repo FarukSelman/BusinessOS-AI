@@ -1,4 +1,4 @@
-from sqlalchemy import Enum, String
+from sqlalchemy import Enum, String, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.shared.enums.user import UserStatus
@@ -54,6 +54,13 @@ class User(BaseModel):
         default=UserStatus.PENDING,
         nullable=False,
     )
+
+    is_superadmin: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+
 
     memberships: Mapped[list["Membership"]] = relationship(
     back_populates="user",

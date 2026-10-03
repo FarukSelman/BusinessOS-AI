@@ -55,4 +55,29 @@ class Permission(str, Enum):
     CRM_MANAGE = "CRM_MANAGE"
     BILLING_MANAGE = "BILLING_MANAGE"
 
-    
+    # ---------------------------------------------------------
+    # Customers
+    # ---------------------------------------------------------
+
+    CUSTOMER_CREATE = "CUSTOMER_CREATE"
+    CUSTOMER_READ = "CUSTOMER_READ"
+    CUSTOMER_UPDATE = "CUSTOMER_UPDATE"
+    CUSTOMER_DELETE = "CUSTOMER_DELETE"
+
+    # ---------------------------------------------------------
+    # Services
+    # ---------------------------------------------------------
+
+    SERVICE_CREATE = "SERVICE_CREATE"
+    SERVICE_READ = "SERVICE_READ"
+    SERVICE_UPDATE = "SERVICE_UPDATE"
+    SERVICE_DELETE = "SERVICE_DELETE"
+
+    # ---------------------------------------------------------
+    # Appointments
+    # ---------------------------------------------------------
+
+    APPOINTMENT_CREATE = "APPOINTMENT_CREATE"
+    APPOINTMENT_READ = "APPOINTMENT_READ"
+    APPOINTMENT_UPDATE = "APPOINTMENT_UPDATE"
+    APPOINTMENT_DELETE = "APPOINTMENT_DELETE"

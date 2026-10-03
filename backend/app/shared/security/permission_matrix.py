@@ -47,6 +47,24 @@ ROLE_PERMISSIONS: dict[
         Permission.AI_AGENT_MANAGE,
         Permission.CRM_MANAGE,
         Permission.BILLING_MANAGE,
+
+        # Customers
+        Permission.CUSTOMER_CREATE,
+        Permission.CUSTOMER_READ,
+        Permission.CUSTOMER_UPDATE,
+        Permission.CUSTOMER_DELETE,
+
+        # Services
+        Permission.SERVICE_CREATE,
+        Permission.SERVICE_READ,
+        Permission.SERVICE_UPDATE,
+        Permission.SERVICE_DELETE,
+
+        # Appointments
+        Permission.APPOINTMENT_CREATE,
+        Permission.APPOINTMENT_READ,
+        Permission.APPOINTMENT_UPDATE,
+        Permission.APPOINTMENT_DELETE,
     },
 
     # =====================================================
@@ -82,6 +100,24 @@ ROLE_PERMISSIONS: dict[
         # Future Modules
         Permission.AI_AGENT_MANAGE,
         Permission.CRM_MANAGE,
+
+        # Customers
+        Permission.CUSTOMER_CREATE,
+        Permission.CUSTOMER_READ,
+        Permission.CUSTOMER_UPDATE,
+        Permission.CUSTOMER_DELETE,
+
+        # Services
+        Permission.SERVICE_CREATE,
+        Permission.SERVICE_READ,
+        Permission.SERVICE_UPDATE,
+        Permission.SERVICE_DELETE,
+
+        # Appointments
+        Permission.APPOINTMENT_CREATE,
+        Permission.APPOINTMENT_READ,
+        Permission.APPOINTMENT_UPDATE,
+        Permission.APPOINTMENT_DELETE,
     },
 
     # =====================================================
@@ -100,7 +136,17 @@ ROLE_PERMISSIONS: dict[
 
         Permission.USER_READ,
 
-        Permission.DOCUMENT_READ,
+        # Customers
+        Permission.CUSTOMER_READ,
+        Permission.CUSTOMER_CREATE,
+
+        # Services
+        Permission.SERVICE_READ,
+
+        # Appointments
+        Permission.APPOINTMENT_READ,
+        Permission.APPOINTMENT_CREATE,
+        Permission.APPOINTMENT_UPDATE,
     },
 
     # =====================================================
@@ -114,6 +160,11 @@ ROLE_PERMISSIONS: dict[
         Permission.MEMBERSHIP_READ,
 
         Permission.DOCUMENT_READ,
-        
+
+        Permission.CUSTOMER_READ,
+
+        Permission.SERVICE_READ,
+
+        Permission.APPOINTMENT_READ,
     },
 }

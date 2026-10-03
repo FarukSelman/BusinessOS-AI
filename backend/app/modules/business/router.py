@@ -96,19 +96,11 @@ def create_business(
 def list_businesses(
     page: int = 1,
     size: int = 20,
-
-    service: BusinessService = Depends(
-        get_service,
-    ),
-
-    current_user: User = Depends(
-        require_permission(
-            Permission.BUSINESS_READ,
-        ),
-    ),
+    service: BusinessService = Depends(get_service),
+    current_user: User = Depends(get_current_user),   # require_permission değil, sadece get_current_user
 ):
-
-    return service.list(
+    return service.list_for_user(
+        user_id=current_user.id,
         page=page,
         size=size,
     )

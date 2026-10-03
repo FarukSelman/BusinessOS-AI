@@ -84,3 +84,32 @@ class MeResponse(BaseModel):
     profile_image: HttpUrl | None
 
     status: UserStatus
+    
+    is_superadmin: bool
+
+
+# ==========================================================
+# Update Profile & Password
+# ==========================================================
+
+class UpdateProfilePayload(BaseModel):
+
+    first_name: str = Field(
+        min_length=2,
+        max_length=100,
+    )
+
+    last_name: str = Field(
+        min_length=2,
+        max_length=100,
+    )
+
+
+class ChangePasswordPayload(BaseModel):
+
+    current_password: str
+
+    new_password: str = Field(
+        min_length=8,
+        max_length=128,
+    )
