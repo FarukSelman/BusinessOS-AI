@@ -18,3 +18,7 @@ __pycache__/
 htmlcov/
 
 *.db
+
+# Celery beat schedule state
+.celery/
+celerybeat-schedule*

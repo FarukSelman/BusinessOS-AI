@@ -42,7 +42,7 @@ export interface OpenWindow {
 
 export interface ReminderChannel { EMAIL: 'EMAIL'; SMS: 'SMS'; }
 export type ReminderChannelType = 'EMAIL' | 'SMS';
-export type ReminderStatusType = 'PENDING' | 'SENT' | 'FAILED';
+export type ReminderStatusType = 'PENDING' | 'SENT' | 'FAILED' | 'SKIPPED';
 
 export interface ReminderConfig {
   id: string;
@@ -61,8 +61,19 @@ export interface ReminderLog {
   appointment_id: string;
   reminder_config_id: string;
   channel: ReminderChannelType;
+  appointment_start: string;
+  recipient_email: string | null;
+  attempts: number;
   sent_at: string | null;
   status: ReminderStatusType;
   error_message: string | null;
   created_at: string;
+  updated_at: string;
+  customer_name: string | null;
+  hours_before: number | null;
+}
+
+export interface TestReminderResult {
+  status: string;
+  recipient: string;
 }

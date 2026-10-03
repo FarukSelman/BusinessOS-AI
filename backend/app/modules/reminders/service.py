@@ -1,10 +1,16 @@
 import uuid
 from typing import List, Optional
+
+from fastapi import HTTPException, status
+
 from app.db.unit_of_work import UnitOfWork
-from app.core.exceptions import NotFoundException
+from app.core.exceptions import BadRequestException, NotFoundException
 from app.modules.reminders.repository import ReminderConfigRepository, ReminderLogRepository
 from app.modules.reminders.schemas import ReminderConfigCreate, ReminderConfigUpdate
 from app.modules.reminders.models import ReminderConfig, ReminderLog
+from app.modules.reminders.templating import build_reminder_email, sample_context
+from app.shared.enums.reminder import ReminderChannel
+from app.shared.mail.smtp import SMTPClient
 
 class ReminderService:
     def __init__(
@@ -60,10 +66,25 @@ class ReminderService:
 
     def list_logs(
         self, business_id: uuid.UUID, appointment_id: Optional[uuid.UUID] = None, page: int = 1, size: int = 20
-    ) -> List[ReminderLog]:
-        return self.log_repository.list_by_business_and_appointment(business_id, appointment_id, page, size)
+    ) -> List[dict]:
+        return self.log_repository.list_with_details(business_id, appointment_id, page, size)
 
-    def send_test_reminder(self, business_id: uuid.UUID, config_id: uuid.UUID) -> dict:
+    def send_test_reminder(
+        self, business_id: uuid.UUID, config_id: uuid.UUID, to_email: str, business_name: str
+    ) -> dict:
+        """
+        Renders the config's template with sample data and sends it to the
+        requesting user only (never to customers).
+        """
         config = self.get_config(business_id, config_id)
-        # Mocking test send
-        return {"status": "success", "message": f"Test message sent via {config.channel}"}
+        if config.channel != ReminderChannel.EMAIL:
+            raise BadRequestException("Test gönderimi yalnızca e-posta hatırlatmaları için yapılabilir.")
+        subject, html, text = build_reminder_email(config.message_template, sample_context(business_name))
+        try:
+            SMTPClient.send(to_email=to_email, subject=f"[TEST] {subject}", html=html, text=text)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Test e-postası gönderilemedi ({type(exc).__name__}). Mail ayarlarını (MAIL_*) kontrol edin.",
+            ) from exc
+        return {"status": "sent", "recipient": to_email}

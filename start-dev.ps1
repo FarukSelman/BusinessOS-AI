@@ -19,7 +19,7 @@ try {
 }
 catch {}
 
-# 3. Docker Compose Başlat
+# 3. Docker Compose Başlat (PostgreSQL + Redis)
 Set-Location infrastructure
 docker compose up -d
 
@@ -43,6 +43,16 @@ if ($LASTEXITCODE -ne 0) {
     exit
 }
 
-# 6. Sunucuyu Başlat
+# 6. Celery Worker ve Beat (randevu hatırlatma e-postaları)
+#    Her biri ayrı bir PowerShell penceresinde açılır; stop-dev.ps1 kapatır.
+$backendPath = (Get-Location).Path
+$activate = Join-Path $backendPath ".venv\Scripts\Activate.ps1"
+New-Item -ItemType Directory -Force -Path (Join-Path $backendPath ".celery") | Out-Null
+
+Write-Host "Celery worker ve beat başlatılıyor..." -ForegroundColor Cyan
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$backendPath'; & '$activate'; celery -A app.workers.celery_app worker --pool=solo --loglevel=info"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$backendPath'; & '$activate'; celery -A app.workers.celery_app beat --loglevel=info --schedule .celery\celerybeat-schedule"
+
+# 7. Sunucuyu Başlat
 Write-Host "Backend başlatılıyor..." -ForegroundColor Green
 uvicorn app.main:app --reload

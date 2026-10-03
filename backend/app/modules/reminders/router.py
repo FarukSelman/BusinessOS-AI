@@ -8,7 +8,8 @@ from app.modules.user.models import User
 from app.shared.security.dependencies import get_current_user
 from app.modules.reminders.repository import ReminderConfigRepository, ReminderLogRepository
 from app.modules.reminders.service import ReminderService
-from app.modules.reminders.schemas import ReminderConfigCreate, ReminderConfigUpdate, ReminderConfigResponse, ReminderLogResponse
+from app.modules.business.models import Business
+from app.modules.reminders.schemas import ReminderConfigCreate, ReminderConfigUpdate, ReminderConfigResponse, ReminderLogResponse, TestReminderResponse
 from app.shared.security.business import require_business_member
 
 router = APIRouter(prefix="/businesses/{business_id}/reminders", tags=["Reminders"], dependencies=[Depends(require_business_member)])
@@ -32,7 +33,7 @@ def create_config(
 def list_configs(
     business_id: UUID, 
     page: int = Query(1, ge=1), 
-    size: int = Query(20, ge=1),
+    size: int = Query(20, ge=1, le=100),
     service: ReminderService = Depends(get_service), 
     current_user: User = Depends(get_current_user)
 ):
@@ -68,11 +69,19 @@ def list_logs(
 ):
     return service.list_logs(business_id=business_id, appointment_id=appointment_id, page=page, size=size)
 
-@router.post("/send-test/{config_id}")
+@router.post("/send-test/{config_id}", response_model=TestReminderResponse)
 def send_test_reminder(
     business_id: UUID, 
     config_id: UUID, 
+    db: Session = Depends(get_db),
     service: ReminderService = Depends(get_service), 
     current_user: User = Depends(get_current_user)
 ):
-    return service.send_test_reminder(business_id=business_id, config_id=config_id)
+    """Sends the rendered template with sample data to the logged-in user's own address."""
+    business = db.get(Business, business_id)
+    return service.send_test_reminder(
+        business_id=business_id,
+        config_id=config_id,
+        to_email=current_user.email,
+        business_name=business.name if business else "İşletme",
+    )

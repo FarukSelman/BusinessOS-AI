@@ -40,3 +40,25 @@ class ReminderLogRepository(BaseRepository[ReminderLog]):
             
         statement = query.order_by(self.model.created_at.desc()).offset((page - 1) * size).limit(size)
         return list(self.db.scalars(statement).all())
+
+    def list_with_details(
+        self, business_id: uuid.UUID, appointment_id: Optional[uuid.UUID] = None, page: int = 1, size: int = 20
+    ) -> List[dict]:
+        """Logs plus the customer name and reminder offset, for the history list."""
+        from app.modules.appointments.models import Appointment
+
+        query = (
+            select(self.model, Appointment.customer_name, ReminderConfig.hours_before)
+            .join(Appointment, Appointment.id == self.model.appointment_id)
+            .join(ReminderConfig, ReminderConfig.id == self.model.reminder_config_id)
+            .where(self.model.business_id == business_id, self.model.is_deleted.is_(False))
+        )
+        if appointment_id:
+            query = query.where(self.model.appointment_id == appointment_id)
+        query = query.order_by(self.model.created_at.desc()).offset((page - 1) * size).limit(size)
+        rows = []
+        for log, customer_name, hours_before in self.db.execute(query).all():
+            data = {c.name: getattr(log, c.name) for c in self.model.__table__.columns}
+            data.update(customer_name=customer_name, hours_before=hours_before)
+            rows.append(data)
+        return rows

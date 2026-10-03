@@ -48,6 +48,22 @@ class Settings(BaseSettings):
 
     EMBEDDING_PROVIDER: str = "mock"
 
+    # ==========================
+    # Time zone / background jobs
+    # ==========================
+
+    # Appointment dates and times are stored without a time zone and are
+    # interpreted in this zone (reminder scheduling, "now" comparisons).
+    APP_TIMEZONE: str = "Europe/Istanbul"
+
+    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
+
+    # Appointment reminders
+    REMINDER_SCAN_INTERVAL_SECONDS: int = 300
+    REMINDER_MIN_LEAD_MINUTES: int = 60
+    REMINDER_MAX_ATTEMPTS: int = 3
+    MAIL_TIMEOUT_SECONDS: int = 10
+
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
 
 

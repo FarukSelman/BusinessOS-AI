@@ -7,6 +7,8 @@ import type {
   MeResponse,
   Business,
   BusinessCreatePayload,
+  ReminderLog,
+  TestReminderResult,
   ChatResponse,
   ChatSession,
   ChatMessage,
@@ -748,6 +750,24 @@ export async function deleteReminderConfig(businessId: string, configId: string)
   return apiFetch<void>(`/api/v1/businesses/${businessId}/reminders/configs/${configId}`, {
     method: "DELETE",
   });
+}
+
+export async function listReminderLogs(
+  businessId: string,
+  params: { page?: number; size?: number; appointmentId?: string } = {},
+) {
+  const q = new URLSearchParams();
+  q.set("page", String(params.page ?? 1));
+  q.set("size", String(params.size ?? 20));
+  if (params.appointmentId) q.set("appointment_id", params.appointmentId);
+  return apiFetch<ReminderLog[]>(`/api/v1/businesses/${businessId}/reminders/logs?${q.toString()}`);
+}
+
+export async function sendTestReminder(businessId: string, configId: string) {
+  return apiFetch<TestReminderResult>(
+    `/api/v1/businesses/${businessId}/reminders/send-test/${configId}`,
+    { method: "POST" },
+  );
 }
 
 // ==================== Customer Tags ====================
