@@ -70,7 +70,7 @@ class DocumentResponse(BaseModel):
     original_name: str
 
 
-    mime_type: str
+    mime_type: str 
 
 
     file_size: int
@@ -89,3 +89,9 @@ class DocumentResponse(BaseModel):
 
 
     business: BusinessSummary
+
+class DocumentStatusResponse(BaseModel):
+
+    id: UUID
+
+    status: DocumentStatus

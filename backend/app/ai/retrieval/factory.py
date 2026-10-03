@@ -6,6 +6,7 @@ from app.ai.retrieval.repository import RetrievalRepository
 from app.ai.retrieval.service import RetrievalService
 
 
+
 def get_retrieval_service(
     db: Session,
 ) -> RetrievalService:

@@ -1,4 +1,17 @@
+import re
+
+
 class TextChunker:
+    """Sentence-aware text chunker for RAG.
+    
+    Splits text at sentence boundaries instead of
+    arbitrary character positions, preserving semantic
+    coherence within each chunk.
+    """
+
+    SENTENCE_ENDINGS = re.compile(
+        r'(?<=[.!?。？！])\s+'
+    )
 
     @staticmethod
     def chunk(
@@ -7,18 +20,41 @@ class TextChunker:
         overlap: int = 200,
     ) -> list[str]:
 
+        sentences = TextChunker.SENTENCE_ENDINGS.split(text)
+        sentences = [s.strip() for s in sentences if s.strip()]
+
+        if not sentences:
+            return [text] if text.strip() else []
+
         chunks = []
+        current_chunk: list[str] = []
+        current_length = 0
 
-        start = 0
+        for sentence in sentences:
+            sentence_length = len(sentence)
 
-        while start < len(text):
+            if current_length + sentence_length > chunk_size and current_chunk:
+                chunk_text = ' '.join(current_chunk)
+                chunks.append(chunk_text)
 
-            end = start + chunk_size
+                # Build overlap from end of current chunk
+                overlap_chunk: list[str] = []
+                overlap_length = 0
 
-            chunks.append(
-                text[start:end]
-            )
+                for s in reversed(current_chunk):
+                    if overlap_length + len(s) > overlap:
+                        break
+                    overlap_chunk.insert(0, s)
+                    overlap_length += len(s)
 
-            start += chunk_size - overlap
+                current_chunk = overlap_chunk
+                current_length = overlap_length
+
+            current_chunk.append(sentence)
+            current_length += sentence_length
+
+        # Add the last chunk
+        if current_chunk:
+            chunks.append(' '.join(current_chunk))
 
         return chunks

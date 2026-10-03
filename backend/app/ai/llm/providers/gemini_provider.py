@@ -11,6 +11,8 @@ class GeminiProvider(LLMProvider):
     def generate(
         self,
         prompt: str,
+        *,
+        system_prompt: str | None = None,
     ) -> str:
         raise NotImplementedError(
             "Gemini provider is not implemented yet."

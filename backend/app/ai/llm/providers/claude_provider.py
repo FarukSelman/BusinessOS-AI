@@ -11,6 +11,8 @@ class ClaudeProvider(LLMProvider):
     def generate(
         self,
         prompt: str,
+        *,
+        system_prompt: str | None = None,
     ) -> str:
         raise NotImplementedError(
             "Claude provider is not implemented yet."

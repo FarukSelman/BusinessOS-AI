@@ -41,6 +41,23 @@ class DocumentRepository:
             document_id,
         )
 
+    def get_by_business(
+        self,
+        business_id: UUID,
+        document_id: UUID,
+    ) -> Document | None:
+
+        stmt = (
+            select(Document)
+            .where(
+                Document.id == document_id,
+                Document.business_id == business_id,
+                Document.is_deleted.is_(False),
+            )
+        )
+
+        return self.db.scalar(stmt)
+
     # ---------------------------------------------------------
     # LIST BUSINESS DOCUMENTS
     # ---------------------------------------------------------
@@ -49,7 +66,7 @@ class DocumentRepository:
         self,
         business_id: UUID,
         page: int = 1,
-        size: int = 20,
+        size: int = 20, 
     ) -> list[Document]:
 
         stmt = (

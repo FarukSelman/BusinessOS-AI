@@ -1,25 +1,30 @@
-from app.ai.retrieval.schemas import RetrievalResult
-
-
 class PromptBuilder:
     """
     Builds the final prompt sent to the LLM.
+
+    The SYSTEM_PROMPT is kept as a class constant
+    so callers can pass it separately to the LLM provider
+    as the system message — not embedded in the user text.
     """
 
     SYSTEM_PROMPT = """
-You are BusinessOS AI.
+Sen BusinessOS AI asistanısın.
 
-You are an AI assistant that answers questions
-using only the provided business knowledge.
+Görevin:
+Kullanıcının sorularını sadece sana verilen doküman içeriğine göre cevaplamaktır.
 
-Rules:
+Kurallar:
 
-- Answer only using the provided context.
-- Never invent information.
-- If the answer is not found in the context,
-  politely say that you don't know.
-- Keep answers concise.
-- Respond in the same language as the user.
+1. Sadece CONTEXT bölümünde bulunan bilgileri kullan.
+2. Kendi genel bilgini kullanma.
+3. CONTEXT bölümünde cevap yoksa şu mesajı ver:
+   "Bu bilgi yüklenen dokümanlarda bulunamadı."
+4. Dokümanda olmayan bilgi üretme.
+5. Tahmin yapma veya varsayımda bulunma.
+6. Cevapları kısa, anlaşılır ve faydalı şekilde oluştur.
+7. RAG, embedding veya teknik süreçlerden bahsetme.
+8. Kullanıcıyla aynı dilde yanıt ver.
+9. Konuşma geçmişi varsa, takip sorularını bağlamıyla birlikte değerlendir.
 """.strip()
 
 
@@ -31,75 +36,42 @@ Rules:
         history=None,
     ) -> str:
         """
-        Build the final RAG prompt.
+        Build the user prompt for the LLM.
 
-        Supports conversation memory.
+        Returns only the user content (history + context + question).
+        The system prompt should be passed separately via
+        PromptBuilder.SYSTEM_PROMPT.
         """
 
-        history_text = ""
+        sections = []
 
-        if history:
+        # --- Conversation History ---
+        if history and hasattr(history, "messages") and history.messages:
+            formatted_history = "\n".join(
+                f"{msg.role}: {msg.content}"
+                for msg in history.messages
+            )
+            sections.append(
+                "--- CONVERSATION HISTORY ---\n"
+                f"{formatted_history}"
+            )
 
-            if hasattr(history, "messages"):
+        # --- Context ---
+        if context:
+            sections.append(
+                "--- CONTEXT ---\n"
+                f"{context}"
+            )
+        else:
+            sections.append(
+                "--- CONTEXT ---\n"
+                "Dokümanlardan ilgili bilgi bulunamadı."
+            )
 
-                messages = history.messages
+        # --- Question ---
+        sections.append(
+            "--- QUESTION ---\n"
+            f"{question}"
+        )
 
-                if messages:
-
-                    formatted_history = "\n".join(
-                        [
-                            f"{msg.role}: {msg.content}"
-                            for msg in messages
-                        ]
-                    )
-
-                    history_text = f"""
-        ------------------------
-        CONVERSATION HISTORY
-        ------------------------
-
-        {formatted_history}
-        """
-
-                else:
-
-                    history_text = """
-        ------------------------
-        CONVERSATION HISTORY
-        ------------------------
-
-        No previous conversation.
-        """
-
-            else:
-
-                history_text = f"""
-        ------------------------
-        CONVERSATION HISTORY
-        ------------------------
-
-        {history}
-        """
-
-
-        return f"""
-{self.SYSTEM_PROMPT}
-
-{history_text}
-
-------------------------
-CONTEXT
-------------------------
-
-{context}
-
-------------------------
-QUESTION
-------------------------
-
-{question}
-
-------------------------
-ANSWER
-------------------------
-""".strip()
+        return "\n\n".join(sections)

@@ -1,6 +1,13 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, UploadFile, File, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    UploadFile,
+    File,
+    status,
+    BackgroundTasks,
+)
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -9,6 +16,7 @@ from app.db.unit_of_work import UnitOfWork
 from app.modules.document.repository import DocumentRepository
 from app.modules.document.schemas import (
     DocumentResponse,
+    DocumentStatusResponse,
 )
 from app.modules.document.service import DocumentService
 
@@ -16,10 +24,10 @@ from app.modules.user.models import User
 
 from app.shared.auth.permissions import Permission
 from app.shared.security.permissions import require_permission
+
 from app.modules.document_chunk.repository import DocumentChunkRepository
 from app.modules.document_chunk.service import DocumentChunkService
 
-from app.ai.embedding.service import EmbeddingService
 from app.ai.embedding.factory import get_embedding_service
 
 
@@ -57,6 +65,7 @@ def get_service(
         uow=uow,
     )
 
+
 # ---------------------------------------------------------
 # Upload Document
 # ---------------------------------------------------------
@@ -69,6 +78,8 @@ def get_service(
 def upload_document(
 
     business_id: UUID,
+
+    background_tasks: BackgroundTasks,
 
     file: UploadFile = File(...),
 
@@ -85,6 +96,7 @@ def upload_document(
         business_id=business_id,
         uploaded_by=current_user.id,
         file=file,
+        background_tasks=background_tasks,
     )
 
 
@@ -98,6 +110,7 @@ def upload_document(
     summary="List documents",
 )
 def list_documents(
+
     business_id: UUID,
 
     service: DocumentService = Depends(
@@ -126,6 +139,7 @@ def list_documents(
     summary="Get document",
 )
 def get_document(
+
     business_id: UUID,
 
     document_id: UUID,
@@ -157,6 +171,7 @@ def get_document(
     summary="Delete document",
 )
 def delete_document(
+
     business_id: UUID,
 
     document_id: UUID,
@@ -173,6 +188,38 @@ def delete_document(
 ):
 
     service.delete_document(
+        business_id=business_id,
+        document_id=document_id,
+    )
+
+
+# ---------------------------------------------------------
+# Get Document Status
+# ---------------------------------------------------------
+
+@router.get(
+    "/{document_id}/status",
+    response_model=DocumentStatusResponse,
+    summary="Get document status",
+)
+def get_document_status(
+
+    business_id: UUID,
+
+    document_id: UUID,
+
+    service: DocumentService = Depends(
+        get_service,
+    ),
+
+    current_user: User = Depends(
+        require_permission(
+            Permission.DOCUMENT_READ,
+        )
+    ),
+):
+
+    return service.get_document_status(
         business_id=business_id,
         document_id=document_id,
     )

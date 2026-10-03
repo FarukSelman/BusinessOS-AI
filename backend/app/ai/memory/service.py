@@ -8,12 +8,19 @@ from app.ai.memory.schemas import (
     ConversationHistory,
 )
 
+from app.ai.memory.models.conversation_session import (
+    ConversationSession,
+)
+
+from app.ai.memory.models.conversation_message import (
+    ConversationMessage,
+)
+
 
 class ConversationMemoryService:
     """
     Service responsible for conversation memory management.
     """
-
 
     def __init__(
         self,
@@ -21,71 +28,81 @@ class ConversationMemoryService:
     ):
         self.repository = repository
 
-    def get_session(
+    def list_sessions(
         self,
         *,
         business_id: UUID,
         user_id: UUID,
-    ):
-        """
-        Get current conversation session.
-        """
-
-        return self.repository.get_or_create_session(
+    ) -> list[ConversationSession]:
+        return self.repository.list_sessions(
             business_id=business_id,
             user_id=user_id,
         )
 
+    def get_or_create_session(
+        self,
+        *,
+        business_id: UUID,
+        user_id: UUID,
+        session_id: UUID | None = None,
+    ) -> ConversationSession:
+        return self.repository.get_or_create_session(
+            business_id=business_id,
+            user_id=user_id,
+            session_id=session_id,
+        )
 
     def get_history(
         self,
         *,
-        business_id: UUID,
-        user_id: UUID,
+        session_id: UUID,
     ) -> ConversationHistory:
-        """
-        Retrieve previous conversation history.
-        """
-
         return self.repository.get_history(
-            business_id=business_id,
-            user_id=user_id,
+            session_id=session_id,
         )
 
+    def get_messages(
+        self,
+        *,
+        session_id: UUID,
+    ) -> list[ConversationMessage]:
+        return self.repository.get_messages(
+            session_id=session_id,
+        )
 
     def save_user_message(
         self,
         *,
-        business_id: UUID,
-        user_id: UUID,
+        session_id: UUID,
         message: str,
     ) -> None:
-        """
-        Save user message.
-        """
-
         self.repository.save_message(
-            business_id=business_id,
-            user_id=user_id,
+            session_id=session_id,
             role="user",
             content=message,
         )
 
-
     def save_assistant_message(
+        self,
+        *,
+        session_id: UUID,
+        message: str,
+    ) -> None:
+        self.repository.save_message(
+            session_id=session_id,
+            role="assistant",
+            content=message,
+        )
+
+    def delete_session(
         self,
         *,
         business_id: UUID,
         user_id: UUID,
-        message: str,
+        session_id: UUID,
     ) -> None:
-        """
-        Save assistant response.
-        """
-
-        self.repository.save_message(
+        self.repository.delete_session(
             business_id=business_id,
             user_id=user_id,
-            role="assistant",
-            content=message,
+            session_id=session_id,
         )

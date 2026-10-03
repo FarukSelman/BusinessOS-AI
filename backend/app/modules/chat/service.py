@@ -1,11 +1,10 @@
 from uuid import UUID
 
+from app.ai.agents.orchestrator import AgentOrchestrator
+from app.ai.agents.schemas import AgentContext
+
 from app.ai.memory.service import (
     ConversationMemoryService,
-)
-
-from app.ai.rag.service import (
-    RAGService,
 )
 
 from app.modules.chat.schemas import (
@@ -17,14 +16,17 @@ from app.modules.chat.schemas import (
 class ChatService:
     """
     Application service responsible for AI chat.
+
+    Routes requests through the Agent Orchestrator
+    to the appropriate specialist agent.
     """
 
     def __init__(
         self,
-        rag_service: RAGService,
+        orchestrator: AgentOrchestrator,
         memory_service: ConversationMemoryService,
     ):
-        self.rag_service = rag_service
+        self.orchestrator = orchestrator
         self.memory_service = memory_service
 
     def chat(
@@ -33,64 +35,76 @@ class ChatService:
         business_id: UUID,
         user_id: UUID,
         request: ChatRequest,
+        business_name: str = "",
     ) -> ChatResponse:
         """
-        Execute an AI chat request.
+        Execute an AI chat request via the Agent Orchestrator.
+
+        If request.session_id is provided, the message is appended to
+        that existing conversation. Otherwise a brand new conversation
+        session is started.
         """
 
         # ---------------------------------
-        # 1. Load conversation history
+        # 1. Resolve session ONCE (reused below)
+        # ---------------------------------
+
+        session = self.memory_service.get_or_create_session(
+            business_id=business_id,
+            user_id=user_id,
+            session_id=request.session_id,
+        )
+
+        # ---------------------------------
+        # 2. Load conversation history
         # ---------------------------------
 
         history = self.memory_service.get_history(
-            business_id=business_id,
-            user_id=user_id,
+            session_id=session.id,
         )
 
         # ---------------------------------
-        # 1.5 Get current session
-        # ---------------------------------
-
-        session = self.memory_service.get_session(
-            business_id=business_id,
-            user_id=user_id,
-        )
-
-        # ---------------------------------
-        # 2. Save user message
+        # 3. Save user message
         # ---------------------------------
 
         self.memory_service.save_user_message(
-            business_id=business_id,
-            user_id=user_id,
+            session_id=session.id,
             message=request.question,
         )
 
         # ---------------------------------
-        # 3. Execute RAG pipeline
+        # 4. Route through Orchestrator
         # ---------------------------------
 
-        rag_response = self.rag_service.ask(
+        context = AgentContext(
             business_id=business_id,
+            user_id=user_id,
+            business_name=business_name,
+        )
+
+        agent_response = self.orchestrator.route(
             question=request.question,
+            context=context,
             history=history,
         )
 
         # ---------------------------------
-        # 4. Save assistant response
+        # 5. Save assistant response
         # ---------------------------------
 
         self.memory_service.save_assistant_message(
-            business_id=business_id,
-            user_id=user_id,
-            message=rag_response.answer,
+            session_id=session.id,
+            message=agent_response.answer,
         )
 
         # ---------------------------------
-        # 5. Return response
+        # 6. Return response
         # ---------------------------------
 
         return ChatResponse(
             conversation_id=session.id,
-            answer=rag_response.answer,
+            answer=agent_response.answer,
+            agent_name=agent_response.agent_name,
+            tools_used=agent_response.tools_used or None,
+            pending_actions=agent_response.metadata.get("pending_actions") or None,
         )

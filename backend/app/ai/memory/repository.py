@@ -2,6 +2,8 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import NotFoundException
+
 from app.ai.memory.models.conversation_session import (
     ConversationSession,
 )
@@ -25,24 +27,24 @@ class ConversationRepository:
     PostgreSQL repository for conversation memory.
     """
 
-
     def __init__(
         self,
         db: Session,
     ):
         self.db = db
 
-    def get_sessions(
+    def list_sessions(
         self,
         *,
         business_id: UUID,
         user_id: UUID,
     ) -> list[ConversationSession]:
         """
-        Get all conversation sessions for user.
+        List all conversation sessions for a user in a business,
+        most recently updated first.
         """
 
-        sessions = (
+        return (
             self.db.query(
                 ConversationSession
             )
@@ -57,79 +59,65 @@ class ConversationRepository:
             .all()
         )
 
-        return sessions
-
-
-
     def get_or_create_session(
         self,
         *,
         business_id: UUID,
         user_id: UUID,
+        session_id: UUID | None = None,
     ) -> ConversationSession:
         """
-        Get existing conversation session.
-        If not exists create one.
+        If session_id is given, fetch that exact session (must belong
+        to this business + user). If session_id is None, a brand new
+        session is created - this is what starts a fresh conversation.
         """
 
-
-        session = (
-            self.db.query(
-                ConversationSession
+        if session_id is not None:
+            session = (
+                self.db.query(
+                    ConversationSession
+                )
+                .filter(
+                    ConversationSession.id == session_id,
+                    ConversationSession.business_id == business_id,
+                    ConversationSession.user_id == user_id,
+                    ConversationSession.is_deleted.is_(False),
+                )
+                .first()
             )
-            .filter(
-                ConversationSession.business_id == business_id,
-                ConversationSession.user_id == user_id,
-                ConversationSession.is_deleted.is_(False),
-            )
-            .first()
-        )
 
+            if not session:
+                raise NotFoundException("Conversation session not found.")
 
-        if session:
             return session
-
-
 
         session = ConversationSession(
             business_id=business_id,
             user_id=user_id,
-            title="Chat Session",
+            title=None,
         )
-
 
         self.db.add(session)
         self.db.commit()
         self.db.refresh(session)
 
-
         return session
-
-
 
     def get_history(
         self,
         *,
-        business_id: UUID,
-        user_id: UUID,
+        session_id: UUID,
     ) -> ConversationHistory:
         """
-        Load previous messages.
+        Load previous messages for a specific session (for LLM context).
         """
-
-
-        session = self.get_or_create_session(
-            business_id=business_id,
-            user_id=user_id,
-        )
-
 
         messages = (
             self.db.query(
                 ConversationMessage
             )
             .filter(
-                ConversationMessage.conversation_id == session.id,
+                ConversationMessage.conversation_id == session_id,
                 ConversationMessage.is_deleted.is_(False),
             )
             .order_by(
@@ -139,11 +127,8 @@ class ConversationRepository:
             .all()
         )
 
-
         messages.reverse()
-
-
-
+        
         return ConversationHistory(
             messages=[
                 ChatMessage(
@@ -154,33 +139,72 @@ class ConversationRepository:
             ]
         )
 
+    def get_messages(
+        self,
+        *,
+        session_id: UUID,
+    ) -> list[ConversationMessage]:
+        """
+        Load the full message list for a session (for displaying
+        a past conversation in the UI).
+        """
 
+        return (
+            self.db.query(
+                ConversationMessage
+            )
+            .filter(
+                ConversationMessage.conversation_id == session_id,
+                ConversationMessage.is_deleted.is_(False),
+            )
+            .order_by(
+                ConversationMessage.created_at.asc()
+            )
+            .all()
+        )
 
     def save_message(
         self,
         *,
-        business_id: UUID,
-        user_id: UUID,
+        session_id: UUID,
         role: str,
         content: str,
     ) -> None:
         """
-        Save new message.
+        Save a new message onto a specific session, and auto-title
+        the session from the first user message if it has no title yet.
         """
 
-
-        session = self.get_or_create_session(
-            business_id=business_id,
-            user_id=user_id,
-        )
-
-
         message = ConversationMessage(
-            conversation_id=session.id,
+            conversation_id=session_id,
             role=MessageRole[role.upper()],
             content=content,
         )
 
-
         self.db.add(message)
+
+        if role.upper() == "USER":
+            session = (
+                self.db.query(ConversationSession)
+                .filter(ConversationSession.id == session_id)
+                .first()
+            )
+            if session and not session.title:
+                session.title = content[:50]
+
+        self.db.commit()
+
+    def delete_session(
+        self,
+        *,
+        business_id: UUID,
+        user_id: UUID,
+        session_id: UUID,
+    ) -> None:
+        session = self.get_or_create_session(
+            business_id=business_id,
+            user_id=user_id,
+            session_id=session_id,
+        )
+        session.is_deleted = True
         self.db.commit()

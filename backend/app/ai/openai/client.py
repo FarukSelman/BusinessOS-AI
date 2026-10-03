@@ -19,7 +19,7 @@ class OpenAIClient:
         *,
         system_prompt: str,
         user_prompt: str,
-        model: str = "gpt-4.1-mini",
+        model: str = "gpt-4o-mini",
         temperature: float = 0.2,
     ) -> str:
         """
@@ -42,3 +42,34 @@ class OpenAIClient:
         )
 
         return response.choices[0].message.content
+
+    def chat_with_tools(
+        self,
+        *,
+        messages: list[dict],
+        tools: list[dict] | None = None,
+        model: str = "gpt-4o-mini",
+        temperature: float = 0.2,
+    ):
+        """
+        Send a chat completion request with function calling support.
+
+        Returns the full ChatCompletionMessage object which may contain
+        tool_calls that need to be executed.
+        """
+
+        kwargs = {
+            "model": model,
+            "temperature": temperature,
+            "messages": messages,
+        }
+
+        if tools:
+            kwargs["tools"] = tools
+            kwargs["tool_choice"] = "auto"
+
+        response = self.client.chat.completions.create(
+            **kwargs,
+        )
+
+        return response.choices[0].message

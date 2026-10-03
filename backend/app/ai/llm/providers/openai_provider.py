@@ -9,6 +9,8 @@ class OpenAIProvider(LLMProvider):
 
     name = "openai"
 
+    DEFAULT_SYSTEM_PROMPT = "You are a helpful AI assistant."
+
     def __init__(
         self,
         client: OpenAIClient,
@@ -18,23 +20,11 @@ class OpenAIProvider(LLMProvider):
     def generate(
         self,
         prompt: str,
+        *,
+        system_prompt: str | None = None,
     ) -> str:
 
         return self.client.chat(
-        system_prompt="""
-You are BusinessOS AI.
-
-You are an AI assistant for business knowledge management.
-
-Rules:
-
-1. Answer ONLY using the provided context.
-2. Do not use outside knowledge.
-3. If the answer is not present in the context, clearly say:
-   "Bu bilgi yüklenen dokümanlarda bulunamadı."
-
-4. Keep answers concise and useful.
-5. Do not mention that you are using RAG or embeddings.
-""",
+            system_prompt=system_prompt or self.DEFAULT_SYSTEM_PROMPT,
             user_prompt=prompt,
         )

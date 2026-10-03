@@ -14,6 +14,8 @@ if TYPE_CHECKING:
     from app.modules.user.models import User
 
 
+
+
 class Document(BaseModel):
     """
     Uploaded business document.
@@ -79,4 +81,4 @@ class Document(BaseModel):
     chunks: Mapped[list["DocumentChunk"]] = relationship(
     back_populates="document",
     cascade="all, delete-orphan",
-    ) 
+    )  

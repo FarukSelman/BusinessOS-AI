@@ -15,8 +15,15 @@ class LLMProvider(ABC):
     def generate(
         self,
         prompt: str,
+        *,
+        system_prompt: str | None = None,
     ) -> str:
         """
         Generate a response from a prompt.
+
+        Args:
+            prompt: The user prompt / content.
+            system_prompt: Optional system prompt override.
+                           If None, the provider uses its default.
         """
         raise NotImplementedError
