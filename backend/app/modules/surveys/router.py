@@ -9,8 +9,9 @@ from app.shared.security.dependencies import get_current_user
 from app.modules.surveys.schemas import SurveyCreate, SurveyUpdate, SurveyResponseSchema
 from app.modules.surveys.repository import SurveyRepository, SurveyResponseRepository
 from app.modules.surveys.service import SurveyService
+from app.shared.security.business import require_business_member
 
-router = APIRouter(prefix="/businesses/{business_id}/surveys", tags=["Surveys"])
+router = APIRouter(prefix="/businesses/{business_id}/surveys", tags=["Surveys"], dependencies=[Depends(require_business_member)])
 
 def get_service(db: Session = Depends(get_db)) -> SurveyService:
     survey_repo = SurveyRepository(db)

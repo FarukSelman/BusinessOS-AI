@@ -8,8 +8,9 @@ from app.shared.security.dependencies import get_current_user
 from app.modules.expense_categories.schemas import ExpenseCategoryCreate, ExpenseCategoryUpdate, ExpenseCategoryResponse
 from app.modules.expense_categories.repository import ExpenseCategoryRepository
 from app.modules.expense_categories.service import ExpenseCategoryService
+from app.shared.security.business import require_business_member
 
-router = APIRouter(prefix="/businesses/{business_id}/expense-categories", tags=["Expense Categories"])
+router = APIRouter(prefix="/businesses/{business_id}/expense-categories", tags=["Expense Categories"], dependencies=[Depends(require_business_member)])
 
 def get_service(db: Session = Depends(get_db)) -> ExpenseCategoryService:
     repository = ExpenseCategoryRepository(db)

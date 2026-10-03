@@ -11,8 +11,9 @@ from app.shared.enums.expense import TransactionDirection
 from app.modules.expenses.schemas import ExpenseCreate, ExpenseUpdate, ExpenseResponse, FinancialSummary
 from app.modules.expenses.repository import ExpenseRepository
 from app.modules.expenses.service import ExpenseService
+from app.shared.security.business import require_business_member
 
-router = APIRouter(prefix="/businesses/{business_id}/expenses", tags=["Expenses"])
+router = APIRouter(prefix="/businesses/{business_id}/expenses", tags=["Expenses"], dependencies=[Depends(require_business_member)])
 
 def get_service(db: Session = Depends(get_db)) -> ExpenseService:
     repository = ExpenseRepository(db)

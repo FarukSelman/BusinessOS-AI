@@ -9,8 +9,9 @@ from app.shared.security.dependencies import get_current_user
 from app.modules.cash_register.schemas import CashRegisterOpen, CashRegisterClose, CashRegisterResponse, CashTransactionCreate, CashTransactionResponse, RegisterSummary
 from app.modules.cash_register.repository import CashRegisterRepository, CashTransactionRepository
 from app.modules.cash_register.service import CashRegisterService
+from app.shared.security.business import require_business_member
 
-router = APIRouter(prefix="/businesses/{business_id}/cash-register", tags=["Cash Register"])
+router = APIRouter(prefix="/businesses/{business_id}/cash-register", tags=["Cash Register"], dependencies=[Depends(require_business_member)])
 
 def get_service(db: Session = Depends(get_db)) -> CashRegisterService:
     register_repo = CashRegisterRepository(db)
@@ -49,8 +50,8 @@ def add_transaction(business_id: UUID, register_id: UUID, data: CashTransactionC
 
 @router.get("/{register_id}/summary", response_model=RegisterSummary)
 def get_summary(business_id: UUID, register_id: UUID, service: CashRegisterService = Depends(get_service), current_user: User = Depends(get_current_user)):
-    return service.get_register_summary(register_id)
+    return service.get_register_summary(register_id, business_id=business_id)
 
 @router.get("/{register_id}", response_model=CashRegisterResponse)
 def get_register(business_id: UUID, register_id: UUID, service: CashRegisterService = Depends(get_service), current_user: User = Depends(get_current_user)):
-    return service.register_repo.get_by_id(register_id)
+    return service.get_register(business_id, register_id)

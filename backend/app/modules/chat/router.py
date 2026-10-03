@@ -32,11 +32,13 @@ from app.ai.memory.service import ConversationMemoryService
 
 from app.modules.chat.service import ChatService
 from app.modules.business.models import Business
+from app.shared.security.business import require_business_member
 
 
 router = APIRouter(
     prefix="/businesses/{business_id}/chat",
     tags=["Chat"],
+    dependencies=[Depends(require_business_member)],
 )
 
 

@@ -9,8 +9,9 @@ from app.shared.security.dependencies import get_current_user
 from app.modules.reminders.repository import ReminderConfigRepository, ReminderLogRepository
 from app.modules.reminders.service import ReminderService
 from app.modules.reminders.schemas import ReminderConfigCreate, ReminderConfigUpdate, ReminderConfigResponse, ReminderLogResponse
+from app.shared.security.business import require_business_member
 
-router = APIRouter(prefix="/businesses/{business_id}/reminders", tags=["Reminders"])
+router = APIRouter(prefix="/businesses/{business_id}/reminders", tags=["Reminders"], dependencies=[Depends(require_business_member)])
 
 def get_service(db: Session = Depends(get_db)) -> ReminderService:
     config_repo = ReminderConfigRepository(db)

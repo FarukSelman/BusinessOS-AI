@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -24,7 +26,7 @@ from app.shared.auth.permissions import (
 
 
 router = APIRouter(
-    prefix="/rag",
+    prefix="/businesses/{business_id}/rag",
     tags=["RAG"],
 )
 
@@ -35,6 +37,8 @@ router = APIRouter(
     summary="Ask Business Knowledge Base",
 )
 def ask_question(
+    business_id: UUID,
+
     request: RAGRequest,
 
     db: Session = Depends(get_db),
@@ -60,7 +64,10 @@ def ask_question(
     # -----------------------------------------
 
     result = rag_service.ask(
-        business_id=request.business_id,
+        # The URL path is the only source of truth for the business: it is
+        # what the permission check above verified. Any business_id sent in
+        # the body is ignored.
+        business_id=business_id,
 
         user_id=current_user.id,
 

@@ -11,8 +11,9 @@ from app.modules.reviews.repository import CustomerReviewRepository
 from app.modules.business.repository import BusinessRepository
 from app.modules.reviews.service import CustomerReviewService
 from app.shared.enums.review import ReviewStatus
+from app.shared.security.business import require_business_member
 
-router = APIRouter(prefix="/businesses/{business_id}/reviews", tags=["Reviews"])
+router = APIRouter(prefix="/businesses/{business_id}/reviews", tags=["Reviews"], dependencies=[Depends(require_business_member)])
 
 def get_service(db: Session = Depends(get_db)) -> CustomerReviewService:
     review_repo = CustomerReviewRepository(db)

@@ -69,14 +69,15 @@ class InvoiceService:
             business_id, status_filter=status_filter, page=page, size=size
         )
 
-    def get_invoice(self, invoice_id: UUID) -> Invoice:
+    def get_invoice(self, business_id: UUID, invoice_id: UUID) -> Invoice:
         invoice = self.repository.get(invoice_id)
-        if not invoice:
+        # An invoice of another business is reported as "not found" (no ID probing).
+        if not invoice or invoice.business_id != business_id:
             raise NotFoundException("Invoice not found.")
         return invoice
 
-    def update_invoice(self, invoice_id: UUID, payload: InvoiceUpdatePayload) -> Invoice:
-        invoice = self.get_invoice(invoice_id)
+    def update_invoice(self, business_id: UUID, invoice_id: UUID, payload: InvoiceUpdatePayload) -> Invoice:
+        invoice = self.get_invoice(business_id, invoice_id)
         
         update_data = payload.model_dump(exclude_unset=True)
         if "items" in update_data and update_data["items"]:
@@ -91,8 +92,8 @@ class InvoiceService:
 
         return invoice
 
-    def mark_as_paid(self, invoice_id: UUID, payment_method: PaymentMethod) -> Invoice:
-        invoice = self.get_invoice(invoice_id)
+    def mark_as_paid(self, business_id: UUID, invoice_id: UUID, payment_method: PaymentMethod) -> Invoice:
+        invoice = self.get_invoice(business_id, invoice_id)
         
         invoice.status = InvoiceStatus.PAID
         invoice.payment_method = payment_method
@@ -104,8 +105,8 @@ class InvoiceService:
 
         return invoice
 
-    def cancel_invoice(self, invoice_id: UUID) -> Invoice:
-        invoice = self.get_invoice(invoice_id)
+    def cancel_invoice(self, business_id: UUID, invoice_id: UUID) -> Invoice:
+        invoice = self.get_invoice(business_id, invoice_id)
         invoice.status = InvoiceStatus.CANCELLED
 
         with self.uow:

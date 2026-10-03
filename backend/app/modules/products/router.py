@@ -15,9 +15,10 @@ from app.modules.products.schemas import (
 from app.modules.products.repository import ProductRepository, StockMovementRepository, ProductSaleRepository
 from app.modules.products.service import ProductService
 from app.shared.enums.product import ProductStatus
+from app.shared.security.business import require_business_member
 
-products_router = APIRouter(prefix="/businesses/{business_id}/products", tags=["Products"])
-product_sales_router = APIRouter(prefix="/businesses/{business_id}/product-sales", tags=["Product Sales"])
+products_router = APIRouter(prefix="/businesses/{business_id}/products", tags=["Products"], dependencies=[Depends(require_business_member)])
+product_sales_router = APIRouter(prefix="/businesses/{business_id}/product-sales", tags=["Product Sales"], dependencies=[Depends(require_business_member)])
 
 def get_product_service(db: Session = Depends(get_db)) -> ProductService:
     product_repo = ProductRepository(db)

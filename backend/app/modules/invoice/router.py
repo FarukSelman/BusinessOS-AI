@@ -18,10 +18,12 @@ from app.modules.appointments.repository import AppointmentRepository
 from app.shared.enums.invoice import InvoiceStatus, PaymentMethod
 from app.modules.user.models import User
 from app.shared.security.dependencies import get_current_user
+from app.shared.security.business import require_business_member
 
 router = APIRouter(
     prefix="/businesses/{business_id}/invoices",
     tags=["Invoices"],
+    dependencies=[Depends(require_business_member)],
 )
 
 def get_service(db: Session = Depends(get_db)) -> InvoiceService:
@@ -81,7 +83,7 @@ def get_invoice(
     service: InvoiceService = Depends(get_service),
     current_user: User = Depends(get_current_user),
 ):
-    return service.get_invoice(invoice_id)
+    return service.get_invoice(business_id, invoice_id)
 
 @router.patch(
     "/{invoice_id}",
@@ -95,7 +97,7 @@ def update_invoice(
     service: InvoiceService = Depends(get_service),
     current_user: User = Depends(get_current_user),
 ):
-    return service.update_invoice(invoice_id, payload)
+    return service.update_invoice(business_id, invoice_id, payload)
 
 @router.post(
     "/{invoice_id}/pay",
@@ -109,7 +111,7 @@ def mark_as_paid(
     service: InvoiceService = Depends(get_service),
     current_user: User = Depends(get_current_user),
 ):
-    return service.mark_as_paid(invoice_id, payment_method)
+    return service.mark_as_paid(business_id, invoice_id, payment_method)
 
 @router.post(
     "/{invoice_id}/cancel",
@@ -122,7 +124,7 @@ def cancel_invoice(
     service: InvoiceService = Depends(get_service),
     current_user: User = Depends(get_current_user),
 ):
-    return service.cancel_invoice(invoice_id)
+    return service.cancel_invoice(business_id, invoice_id)
 
 @router.post(
     "/from-appointment/{appointment_id}",

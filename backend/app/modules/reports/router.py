@@ -19,8 +19,9 @@ from app.modules.reports.schemas import (
 )
 from app.modules.reports.repository import ReportRepository
 from app.modules.reports.service import ReportService
+from app.shared.security.business import require_business_member
 
-router = APIRouter(prefix="/businesses/{business_id}/reports", tags=["Reports"])
+router = APIRouter(prefix="/businesses/{business_id}/reports", tags=["Reports"], dependencies=[Depends(require_business_member)])
 
 def get_service(db: Session = Depends(get_db)) -> ReportService:
     repository = ReportRepository(db)

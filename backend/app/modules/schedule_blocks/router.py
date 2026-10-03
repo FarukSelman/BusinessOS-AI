@@ -11,8 +11,9 @@ from app.modules.branches.repository import BranchRepository
 from app.modules.schedule_blocks.repository import ScheduleBlockRepository
 from app.modules.schedule_blocks.service import ScheduleBlockService
 from app.modules.schedule_blocks.schemas import ScheduleBlockCreate, ScheduleBlockUpdate, ScheduleBlockResponse
+from app.shared.security.business import require_business_member
 
-router = APIRouter(prefix="/businesses/{business_id}/schedule-blocks", tags=["ScheduleBlocks"])
+router = APIRouter(prefix="/businesses/{business_id}/schedule-blocks", tags=["ScheduleBlocks"], dependencies=[Depends(require_business_member)])
 
 def get_service(db: Session = Depends(get_db)) -> ScheduleBlockService:
     repository = ScheduleBlockRepository(db)

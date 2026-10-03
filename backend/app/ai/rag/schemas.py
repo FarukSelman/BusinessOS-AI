@@ -27,7 +27,10 @@ class RAGResponse:
 
 class RAGRequest(BaseModel):
 
-    business_id: UUID
+    # Deprecated and ignored: the business comes from the URL path
+    # (/businesses/{business_id}/rag/ask). Kept optional so older clients
+    # that still send it do not get a validation error.
+    business_id: UUID | None = None
 
     question: str
 

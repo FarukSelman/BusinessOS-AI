@@ -17,11 +17,13 @@ from app.modules.services.service import ServiceService
 from app.modules.user.models import User
 
 from app.shared.security.dependencies import get_current_user
+from app.shared.security.business import require_business_member
 
 
 router = APIRouter(
     prefix="/businesses/{business_id}/services",
     tags=["Services"],
+    dependencies=[Depends(require_business_member)],
 )
 
 

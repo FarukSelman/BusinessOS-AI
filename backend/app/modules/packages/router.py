@@ -18,11 +18,12 @@ from app.modules.packages.schemas import (
 )
 from app.shared.enums.package import PackageStatus, CustomerPackageStatus, InstallmentStatus
 from app.shared.enums.invoice import PaymentMethod
+from app.shared.security.business import require_business_member
 
 
-packages_router = APIRouter(prefix="/businesses/{business_id}/packages", tags=["Packages"])
-customer_packages_router = APIRouter(prefix="/businesses/{business_id}/customer-packages", tags=["Customer Packages"])
-installments_router = APIRouter(prefix="/businesses/{business_id}/installments", tags=["Installments"])
+packages_router = APIRouter(prefix="/businesses/{business_id}/packages", tags=["Packages"], dependencies=[Depends(require_business_member)])
+customer_packages_router = APIRouter(prefix="/businesses/{business_id}/customer-packages", tags=["Customer Packages"], dependencies=[Depends(require_business_member)])
+installments_router = APIRouter(prefix="/businesses/{business_id}/installments", tags=["Installments"], dependencies=[Depends(require_business_member)])
 
 
 def get_package_service(db: Session = Depends(get_db)) -> PackageService:

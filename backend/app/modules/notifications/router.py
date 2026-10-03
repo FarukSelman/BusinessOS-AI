@@ -13,10 +13,12 @@ from app.modules.notifications.schemas import (
 from app.modules.notifications.service import NotificationService
 from app.modules.user.models import User
 from app.shared.security.dependencies import get_current_user
+from app.shared.security.business import require_business_member
 
 router = APIRouter(
     prefix="/businesses/{business_id}/notifications",
     tags=["Notifications"],
+    dependencies=[Depends(require_business_member)],
 )
 
 def get_service(db: Session = Depends(get_db)) -> NotificationService:
@@ -62,7 +64,7 @@ def mark_as_read(
     service: NotificationService = Depends(get_service),
     current_user: User = Depends(get_current_user),
 ):
-    service.mark_as_read(notification_id)
+    service.mark_as_read(business_id, notification_id, current_user.id)
     return {"status": "success"}
 
 @router.post(

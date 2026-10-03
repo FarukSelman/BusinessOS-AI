@@ -49,9 +49,15 @@ class NotificationService:
     def get_unread_count(self, business_id: UUID, user_id: UUID) -> int:
         return self.repository.get_unread_count(business_id, user_id)
 
-    def mark_as_read(self, notification_id: UUID) -> None:
+    def mark_as_read(self, business_id: UUID, notification_id: UUID, user_id: UUID) -> None:
         notification = self.repository.get(notification_id)
-        if not notification:
+        # Only the business's own notifications, and only those addressed to
+        # this user (or broadcast to the whole business), can be marked.
+        if (
+            not notification
+            or notification.business_id != business_id
+            or (notification.user_id is not None and notification.user_id != user_id)
+        ):
             raise NotFoundException("Notification not found.")
         
         with self.uow:

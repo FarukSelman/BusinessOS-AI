@@ -9,8 +9,9 @@ from app.shared.security.dependencies import get_current_user
 from app.modules.customer_tags.schemas import TagCreate, TagUpdate, TagResponse, TagAssignmentCreate
 from app.modules.customer_tags.repository import CustomerTagRepository, CustomerTagAssignmentRepository
 from app.modules.customer_tags.service import CustomerTagService
+from app.shared.security.business import require_business_member
 
-router = APIRouter(prefix="/businesses/{business_id}/customer-tags", tags=["Customer Tags"])
+router = APIRouter(prefix="/businesses/{business_id}/customer-tags", tags=["Customer Tags"], dependencies=[Depends(require_business_member)])
 
 def get_service(db: Session = Depends(get_db)) -> CustomerTagService:
     tag_repo = CustomerTagRepository(db)

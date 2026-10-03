@@ -9,8 +9,9 @@ from app.modules.staff.schemas import StaffCreate, StaffUpdate, StaffResponse, S
 from app.modules.staff.service import StaffServiceDomain
 from app.modules.user.models import User
 from app.shared.security.dependencies import get_current_user
+from app.shared.security.business import require_business_member
 
-router = APIRouter(prefix="/businesses/{business_id}/staff", tags=["Staff"])
+router = APIRouter(prefix="/businesses/{business_id}/staff", tags=["Staff"], dependencies=[Depends(require_business_member)])
 
 def get_service(db: Session = Depends(get_db)) -> StaffServiceDomain:
     profile_repo = StaffProfileRepository(db)

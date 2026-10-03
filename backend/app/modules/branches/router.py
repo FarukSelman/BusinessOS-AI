@@ -8,8 +8,9 @@ from app.modules.branches.schemas import BranchCreate, BranchResponse, BranchUpd
 from app.modules.branches.service import BranchService
 from app.modules.user.models import User
 from app.shared.security.dependencies import get_current_user
+from app.shared.security.business import require_business_member
 
-router = APIRouter(prefix="/businesses/{business_id}/branches", tags=["Branches"])
+router = APIRouter(prefix="/businesses/{business_id}/branches", tags=["Branches"], dependencies=[Depends(require_business_member)])
 
 def get_service(db: Session = Depends(get_db)) -> BranchService:
     repository = BranchRepository(db)

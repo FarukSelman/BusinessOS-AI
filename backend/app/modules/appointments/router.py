@@ -20,11 +20,13 @@ from app.modules.appointments.dependencies import build_appointment_service
 from app.modules.user.models import User
 
 from app.shared.security.dependencies import get_current_user
+from app.shared.security.business import require_business_member
 
 
 router = APIRouter(
     prefix="/businesses/{business_id}/appointments",
     tags=["Appointments"],
+    dependencies=[Depends(require_business_member)],
 )
 
 

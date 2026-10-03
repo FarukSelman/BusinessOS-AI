@@ -1,32 +1,50 @@
+"""
+Business-scoped authorization.
+
+Every endpoint under /businesses/{business_id}/... must prove that the current
+user is a member of *that* business. All checks below go through one
+dependency, get_business_membership, so there is a single place that decides
+membership. Role checks build on top of it:
+
+    require_business_member  -> any member (OWNER, ADMIN, EMPLOYEE, VIEWER)
+    require_permission(p)    -> member whose role has permission p
+                                (see app/shared/security/permissions.py)
+    require_admin            -> OWNER or ADMIN
+    require_owner            -> OWNER
+
+FastAPI caches dependencies per request, so stacking these on a router and an
+endpoint performs the membership lookup only once.
+"""
+
 from uuid import UUID
 
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import ForbiddenException
-
 from app.db.session import get_db
-
 from app.modules.membership.models import Membership
 from app.modules.membership.repository import MembershipRepository
 from app.modules.user.models import User
-
+from app.shared.enums.membership import MembershipRole
 from app.shared.security.dependencies import get_current_user
 
 
 # ---------------------------------------------------------
-# Internal Helper
+# Core: membership of the business in the path
 # ---------------------------------------------------------
 
-def _get_membership(
+def get_business_membership(
     business_id: UUID,
-    current_user: User,
-    db: Session,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> Membership:
+    """
+    Returns the current user's membership in the business from the URL path.
+    Raises 403 when the user is not a member.
+    """
 
-    repository = MembershipRepository(db)
-
-    membership = repository.get_by_user_and_business(
+    membership = MembershipRepository(db).get_by_user_and_business(
         user_id=current_user.id,
         business_id=business_id,
     )
@@ -40,77 +58,44 @@ def _get_membership(
 
 
 # ---------------------------------------------------------
-# Require Member
+# Any member
 # ---------------------------------------------------------
 
-def require_member(
-    business_id: UUID,
+def require_business_member(
+    membership: Membership = Depends(get_business_membership),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ) -> User:
-
-    _get_membership(
-        business_id=business_id,
-        current_user=current_user,
-        db=db,
-    )
-
     return current_user
 
 
-# ---------------------------------------------------------
-# Require Admin
-# ---------------------------------------------------------
-
-def require_admin(
-    business_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> User:
-
-    repository = MembershipRepository(db)
-
-    _get_membership(
-        business_id=business_id,
-        current_user=current_user,
-        db=db,
-    )
-
-    if not repository.is_admin(
-        user_id=current_user.id,
-        business_id=business_id,
-    ):
-        raise ForbiddenException(
-            "Only business admins can perform this action.",
-        )
-
-    return current_user
+# Backwards-compatible name used by existing routers.
+require_member = require_business_member
 
 
 # ---------------------------------------------------------
-# Require Owner
+# Role helpers
 # ---------------------------------------------------------
 
-def require_owner(
-    business_id: UUID,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> User:
+def _require_roles(*roles: MembershipRole, message: str):
 
-    repository = MembershipRepository(db)
+    def checker(
+        membership: Membership = Depends(get_business_membership),
+        current_user: User = Depends(get_current_user),
+    ) -> User:
+        if membership.role not in roles:
+            raise ForbiddenException(message)
+        return current_user
 
-    _get_membership(
-        business_id=business_id,
-        current_user=current_user,
-        db=db,
-    )
+    return checker
 
-    if not repository.is_owner(
-        user_id=current_user.id,
-        business_id=business_id,
-    ):
-        raise ForbiddenException(
-            "Only business owners can perform this action.",
-        )
 
-    return current_user
+require_admin = _require_roles(
+    MembershipRole.OWNER,
+    MembershipRole.ADMIN,
+    message="Only business admins can perform this action.",
+)
+
+require_owner = _require_roles(
+    MembershipRole.OWNER,
+    message="Only business owners can perform this action.",
+)

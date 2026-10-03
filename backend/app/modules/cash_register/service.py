@@ -119,7 +119,15 @@ class CashRegisterService:
             self.uow.refresh(obj)
         return obj
 
-    def get_register_summary(self, register_id: UUID) -> RegisterSummary:
+    def get_register(self, business_id: UUID, register_id: UUID) -> CashRegister:
+        reg = self.register_repo.get_by_id(register_id)
+        if not reg or reg.business_id != business_id:
+            raise NotFoundException("Kasa bulunamadı.")
+        return reg
+
+    def get_register_summary(self, register_id: UUID, business_id: UUID | None = None) -> RegisterSummary:
+        if business_id is not None:
+            self.get_register(business_id, register_id)
         transactions = self.transaction_repo.list_by_register(register_id)
         opening = sum([t.amount for t in transactions if t.transaction_type == CashTransactionType.OPENING])
         sales = sum([t.amount for t in transactions if t.transaction_type == CashTransactionType.SALE])
