@@ -38,7 +38,10 @@ import type {
   InvoiceUpdatePayload,
   InvoiceStatus,
   PaymentMethod,
-  RevenueStats
+  RevenueStats,
+  BusinessHours,
+  BusinessHoursItem,
+  OpenWindow
 } from "@/types";
 
 export interface UpdateProfilePayload {
@@ -676,8 +679,43 @@ export async function deleteScheduleBlock(businessId: string, blockId: string) {
   });
 }
 
-export async function getBlockedTimesForDate(businessId: string, date: string) {
-  return apiFetch<any[]>(`/api/v1/businesses/${businessId}/schedule-blocks/for-date?date=${date}`);
+export async function getBlockedTimesForDate(businessId: string, date: string, branchId?: string | null) {
+  const branch = branchId ? `&branch_id=${branchId}` : "";
+  return apiFetch<any[]>(`/api/v1/businesses/${businessId}/schedule-blocks/for-date?date=${date}${branch}`);
+}
+
+// ==================== Business Hours ====================
+// branchId verilmezse işletme geneli saatler, verilirse o şubenin kendi saatleri.
+function businessHoursPath(businessId: string, branchId?: string | null) {
+  const query = branchId ? `?branch_id=${branchId}` : "";
+  return `/api/v1/businesses/${businessId}/business-hours${query}`;
+}
+
+export async function getBusinessHours(businessId: string, branchId?: string | null) {
+  return apiFetch<BusinessHours[]>(businessHoursPath(businessId, branchId));
+}
+
+export async function setBusinessHours(
+  businessId: string,
+  items: BusinessHoursItem[],
+  branchId?: string | null,
+) {
+  return apiFetch<BusinessHours[]>(businessHoursPath(businessId, branchId), {
+    method: "PUT",
+    body: JSON.stringify({ items }),
+  });
+}
+
+// Şubenin kendi saatlerini siler; şube tekrar işletme geneli saatleri kullanır.
+export async function resetBranchHours(businessId: string, branchId: string) {
+  return apiFetch<void>(businessHoursPath(businessId, branchId), { method: "DELETE" });
+}
+
+export async function getOpenWindow(businessId: string, date: string, branchId?: string | null) {
+  const branch = branchId ? `&branch_id=${branchId}` : "";
+  return apiFetch<OpenWindow>(
+    `/api/v1/businesses/${businessId}/business-hours/open-window?date=${date}${branch}`,
+  );
 }
 
 // ==================== Reminders ====================

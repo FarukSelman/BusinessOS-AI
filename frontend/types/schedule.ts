@@ -4,6 +4,7 @@ export type RecurrenceDay = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'F
 export interface ScheduleBlock {
   id: string;
   business_id: string;
+  branch_id: string | null;
   block_type: BlockType;
   title: string | null;
   start_date: string | null;
@@ -15,6 +16,28 @@ export interface ScheduleBlock {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+// 0 = Monday ... 6 = Sunday (same as backend / Python weekday())
+export interface BusinessHoursItem {
+  day_of_week: number;
+  open_time: string | null;
+  close_time: string | null;
+  is_closed: boolean;
+}
+
+export interface BusinessHours extends BusinessHoursItem {
+  id: string;
+  business_id: string;
+  branch_id: string | null;
+}
+
+export interface OpenWindow {
+  date: string;
+  branch_id: string | null;
+  is_open: boolean;
+  open_time: string | null;
+  close_time: string | null;
 }
 
 export interface ReminderChannel { EMAIL: 'EMAIL'; SMS: 'SMS'; }

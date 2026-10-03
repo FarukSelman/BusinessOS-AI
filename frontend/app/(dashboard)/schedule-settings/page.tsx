@@ -12,7 +12,9 @@ import {
   createScheduleBlock,
   updateScheduleBlock,
   deleteScheduleBlock,
+  listBranches,
   ApiError,
+  Branch,
   BlockType,
   RecurrenceDay,
   ScheduleBlock
@@ -20,8 +22,10 @@ import {
 import { getActiveBusinessId } from "@/lib/business";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
+import { BusinessHoursCard } from "@/components/schedule/business-hours-card";
 
 const emptyForm = {
+  branch_id: "",
   block_type: "TIME_RANGE" as BlockType,
   title: "",
   start_date: "",
@@ -53,6 +57,7 @@ export default function ScheduleSettingsPage() {
   const businessId = getActiveBusinessId();
   const [loading, setLoading] = useState(true);
   const [blocks, setBlocks] = useState<ScheduleBlock[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -62,8 +67,12 @@ export default function ScheduleSettingsPage() {
     if (!businessId) return;
     setLoading(true);
     try {
-      const data = await listScheduleBlocks(businessId);
+      const [data, branchList] = await Promise.all([
+        listScheduleBlocks(businessId),
+        listBranches(businessId).catch(() => [] as Branch[]),
+      ]);
       setBlocks(data);
+      setBranches(branchList);
     } catch (err) {
       toast.error("Bloklar yüklenirken bir hata oluştu.");
     } finally {
@@ -81,6 +90,7 @@ export default function ScheduleSettingsPage() {
     setSaving(true);
     try {
       const payload: any = {
+        branch_id: form.branch_id || null,
         block_type: form.block_type,
         title: form.title || null,
         reason: form.reason || null,
@@ -137,6 +147,7 @@ export default function ScheduleSettingsPage() {
 
   const startEdit = (block: ScheduleBlock) => {
     setForm({
+      branch_id: block.branch_id || "",
       block_type: block.block_type,
       title: block.title || "",
       start_date: block.start_date || "",
@@ -168,6 +179,13 @@ export default function ScheduleSettingsPage() {
         )}
       </div>
 
+      {businessId && <BusinessHoursCard businessId={businessId} branches={branches} />}
+
+      <div>
+        <h2 className="font-display text-lg font-semibold text-ink">Kapatmalar ve Bloklar</h2>
+        <p className="text-sm text-ink-muted">Tatil, bakım veya mola gibi tek seferlik ya da tekrarlayan kapatmalar.</p>
+      </div>
+
       {showForm && (
         <Card>
           <CardHeader>
@@ -186,6 +204,21 @@ export default function ScheduleSettingsPage() {
                   <option value="RECURRING">Tekrarlayan (Haftalık)</option>
                 </Select>
               </div>
+
+              {branches.length > 0 && (
+                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                  <Label>Geçerli Olduğu Yer</Label>
+                  <Select
+                    value={form.branch_id}
+                    onChange={(e) => setForm({ ...form, branch_id: e.target.value })}
+                  >
+                    <option value="">Tüm işletme</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </Select>
+                </div>
+              )}
 
               {form.block_type === "FULL_DAY" && (
                 <>
@@ -338,6 +371,11 @@ export default function ScheduleSettingsPage() {
                       {typeLabels[block.block_type]}
                     </span>
                     <span className="font-medium text-ink">{block.title || "İsimsiz Blok"}</span>
+                    {block.branch_id && (
+                      <span className="rounded-full border border-border px-2 py-0.5 text-xs text-ink-muted">
+                        {branches.find((b) => b.id === block.branch_id)?.name ?? "Şube"}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-4 text-sm text-ink-muted mt-1">
