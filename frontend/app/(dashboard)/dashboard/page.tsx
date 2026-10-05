@@ -29,7 +29,9 @@ import {
   ApiError,
   getDashboardStats,
   getBusiness,
+  updateBusinessSettings,
 } from "@/lib/api";
+import { toast } from "sonner";
 import { DashboardStats } from "@/types/reports";
 import type { Appointment } from "@/types/appointment";
 import { formatCurrency } from "@/lib/utils";
@@ -96,6 +98,8 @@ export default function DashboardHomePage() {
   const [documentsReady, setDocumentsReady] = useState({ ready: 0, total: 0 });
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [businessSlug, setBusinessSlug] = useState<string | null>(null);
+  const [autoConfirm, setAutoConfirm] = useState(false);
+  const [savingAutoConfirm, setSavingAutoConfirm] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
   const confirmedToday = todayAppointments.filter((appointment) =>
@@ -143,6 +147,7 @@ export default function DashboardHomePage() {
         }
         if (results[6].status === "fulfilled") {
           setBusinessSlug(results[6].value.slug);
+          setAutoConfirm(!!results[6].value.online_booking_auto_confirm);
         }
       })
       .catch((err) => setError("Veriler yüklenirken beklenmeyen bir hata oluştu."))
@@ -264,6 +269,51 @@ export default function DashboardHomePage() {
                   {linkCopied ? "✓ Kopyalandı" : "Kopyala"}
                 </button>
               </CardContent>
+              <div className="flex items-center gap-3 border-t border-violet-500/10 px-4 py-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-ink">Online randevuları otomatik onayla</p>
+                  <p className="text-[11px] text-ink-muted">
+                    {autoConfirm
+                      ? "Linkten alınan randevular doğrudan onaylanır."
+                      : "Linkten alınan randevular \"Beklemede\" düşer, Randevu Yönetimi'nden onaylarsın."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={autoConfirm}
+                  aria-label="Online randevuları otomatik onayla"
+                  disabled={savingAutoConfirm}
+                  onClick={async () => {
+                    const id = getActiveBusinessId();
+                    if (!id) return;
+                    const next = !autoConfirm;
+                    setSavingAutoConfirm(true);
+                    try {
+                      const updated = await updateBusinessSettings(id, { online_booking_auto_confirm: next });
+                      setAutoConfirm(!!updated.online_booking_auto_confirm);
+                      toast.success(next ? "Online randevular artık otomatik onaylanacak." : "Online randevular onayına düşecek.");
+                    } catch (err) {
+                      toast.error(
+                        err instanceof ApiError && err.status === 403
+                          ? "Bu ayarı sadece işletme sahibi veya yönetici değiştirebilir."
+                          : "Ayar kaydedilemedi.",
+                      );
+                    } finally {
+                      setSavingAutoConfirm(false);
+                    }
+                  }}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
+                    autoConfirm ? "bg-violet-500" : "bg-ink-muted/30"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                      autoConfirm ? "translate-x-5" : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+              </div>
             </Card>
           )}
 

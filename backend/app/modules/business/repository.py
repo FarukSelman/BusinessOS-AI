@@ -40,10 +40,12 @@ class BusinessRepository(
         slug: str,
     ) -> bool:
 
-        return (
-            self.get_by_slug(slug)
-            is not None
+        # The unique index covers soft-deleted rows too, so check all of them.
+        statement = select(self.model.id).where(
+            self.model.slug == slug,
         )
+
+        return self.db.scalar(statement) is not None
 
 
     def list_paginated(

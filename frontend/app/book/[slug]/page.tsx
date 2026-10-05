@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import {
   Calendar, Clock, User, CheckCircle2, ChevronRight, ChevronLeft,
-  Phone, Mail, Loader2, Sparkles, Star, Building2
+  Phone, Mail, Loader2, Sparkles, Star, Building2, MapPin
 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -13,13 +13,16 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 interface ServiceInfo {
   id: string; name: string; description: string | null; price: number; duration: number;
 }
+interface OpeningHours { day_of_week: number; open_time: string | null; close_time: string | null; is_closed: boolean; }
 interface BusinessInfo {
   id: string; name: string; slug: string; industry: string | null;
   logo_url: string | null; description: string | null; services: ServiceInfo[];
+  phone: string | null; address: string | null; website: string | null; opening_hours: OpeningHours[];
 }
+interface BookingResult { status: "PENDING" | "CONFIRMED" | string; staff_name: string | null; }
 interface BranchInfo { id: string; name: string; address: string | null; }
 interface StaffInfo {
-  id: string; full_name: string; title: string | null; avatar_url: string | null; color: string;
+  id: string; full_name: string; title: string | null; avatar_url: string | null; color?: string;
   services: { id: string; name: string }[];
 }
 
@@ -32,6 +35,25 @@ function formatDate(d: string) {
 }
 
 const STEPS = ["Hizmet", "Personel", "Tarih & Saat", "Bilgiler", "Onay"];
+const DAY_NAMES = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"];
+
+function hhmm(t: string | null) {
+  return t ? t.slice(0, 5) : "";
+}
+
+/** Turns the API error body into one readable Turkish sentence. */
+function apiErrorMessage(body: { message?: string; detail?: string; errors?: string[] | null }, status: number): string {
+  if (status === 422 && body.errors?.length) {
+    const first = body.errors[0];
+    const text = first.includes("Value error, ") ? first.split("Value error, ")[1] : "";
+    if (text) return text;
+    if (first.includes("email")) return "Lütfen geçerli bir e-posta adresi girin.";
+    if (first.includes("customer_name")) return "Lütfen adınızı ve soyadınızı girin.";
+    if (first.includes("customer_phone")) return "Geçerli bir telefon numarası girin (ör. 0532 123 45 67).";
+    return "Lütfen bilgilerinizi kontrol edin.";
+  }
+  return body.message || body.detail || "Randevu oluşturulamadı.";
+}
 
 export default function PublicBookingPage() {
   const params = useParams();
@@ -47,6 +69,7 @@ export default function PublicBookingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [booking, setBooking] = useState<BookingResult | null>(null);
 
   // Selections
   const [selectedService, setSelectedService] = useState<ServiceInfo | null>(null);
@@ -55,6 +78,8 @@ export default function PublicBookingPage() {
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [form, setForm] = useState({ name: "", phone: "", email: "" });
+  // Honeypot: hidden from people, bots tend to fill every field.
+  const [website, setWebsite] = useState("");
 
   // Load business info + branches
   useEffect(() => {
@@ -107,6 +132,7 @@ export default function PublicBookingPage() {
         start_time: selectedTime,
       };
       if (selectedStaff) payload.staff_id = selectedStaff.id;
+      if (website) payload.website = website;
       if (selectedBranch) payload.branch_id = selectedBranch.id;
 
       const res = await fetch(`${API}/api/v1/public/booking/${slug}/book`, {
@@ -115,10 +141,11 @@ export default function PublicBookingPage() {
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        // Backend errors look like {"success": false, "message": "..."}
+        // Backend errors look like {"success": false, "message": "...", "errors": [...]}
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || err.detail || "Randevu oluşturulamadı.");
+        throw new Error(apiErrorMessage(err, res.status));
       }
+      setBooking(await res.json().catch(() => null));
       setSuccess(true);
     } catch (e: any) {
       const networkError = e instanceof TypeError; // fetch() itself failed: server unreachable
@@ -188,7 +215,9 @@ export default function PublicBookingPage() {
             </div>
             <div className="absolute inset-0 w-20 h-20 rounded-full bg-emerald-500/10 animate-ping mx-auto" />
           </div>
-          <h1 className="text-2xl font-bold text-white mb-2">Randevunuz Oluşturuldu! 🎉</h1>
+          <h1 className="text-2xl font-bold text-white mb-2">
+            {booking?.status === "CONFIRMED" ? "Randevunuz Onaylandı! 🎉" : "Randevu Talebiniz Alındı! 🎉"}
+          </h1>
           <p className="text-white/50 mb-6 text-sm">
             <strong className="text-white">{formatDate(selectedDate)}</strong> saat <strong className="text-white">{selectedTime}</strong> için randevunuz başarıyla oluşturuldu.
           </p>
@@ -196,7 +225,7 @@ export default function PublicBookingPage() {
             {[
               { label: "İşletme", value: business?.name },
               { label: "Hizmet", value: selectedService?.name },
-              ...(selectedStaff ? [{ label: "Personel", value: selectedStaff.full_name }] : []),
+              ...((booking?.staff_name || selectedStaff) ? [{ label: "Personel", value: booking?.staff_name || selectedStaff?.full_name }] : []),
               { label: "Tarih", value: formatDate(selectedDate) },
               { label: "Saat", value: selectedTime },
               { label: "Süre", value: `${selectedService?.duration} dakika` },
@@ -211,9 +240,18 @@ export default function PublicBookingPage() {
               <span className="text-emerald-400 font-bold text-lg">{formatCurrency(selectedService?.price || 0)}</span>
             </div>
           </div>
-          <div className="mt-5 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
-            <p className="text-amber-300 text-xs">⏳ Randevunuz onay bekliyor. İşletme tarafından onaylandığında bilgilendirileceksiniz.</p>
-          </div>
+          {booking?.status === "CONFIRMED" ? (
+            <div className="mt-5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
+              <p className="text-emerald-300 text-xs">✓ Randevunuz kesinleşti, sizi bekliyoruz.</p>
+            </div>
+          ) : (
+            <div className="mt-5 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
+              <p className="text-amber-300 text-xs">⏳ Randevunuz onay bekliyor. İşletme onayladığında randevunuz kesinleşecektir.</p>
+            </div>
+          )}
+          {form.email && (
+            <p className="mt-3 text-white/40 text-xs">Randevu bilgileri <span className="text-white/70">{form.email}</span> adresine e-posta ile gönderildi.</p>
+          )}
         </div>
       </div>
     );
@@ -246,6 +284,42 @@ export default function PublicBookingPage() {
           </div>
         </div>
       </header>
+
+      {/* Contact & opening hours */}
+      {business && (business.address || business.phone || business.opening_hours?.length > 0) && (
+        <div className="relative z-10 max-w-3xl mx-auto px-4 pt-4">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-white/50">
+            {business.address && (
+              <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-violet-400" />{business.address}</span>
+            )}
+            {business.phone && (
+              <a href={`tel:${business.phone}`} className="flex items-center gap-1.5 hover:text-white">
+                <Phone className="w-3.5 h-3.5 text-violet-400" />{business.phone}
+              </a>
+            )}
+            {business.opening_hours?.length > 0 && (
+              <details className="group">
+                <summary className="flex cursor-pointer list-none items-center gap-1.5 hover:text-white">
+                  <Clock className="w-3.5 h-3.5 text-violet-400" />
+                  {(() => {
+                    const today = business.opening_hours[(new Date().getDay() + 6) % 7];
+                    return today?.is_closed ? "Bugün kapalı" : `Bugün ${hhmm(today?.open_time)}–${hhmm(today?.close_time)}`;
+                  })()}
+                  <span className="text-white/30 group-open:hidden">· tüm hafta</span>
+                </summary>
+                <ul className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:grid-cols-4">
+                  {business.opening_hours.map((h) => (
+                    <li key={h.day_of_week} className="flex justify-between gap-3">
+                      <span>{DAY_NAMES[h.day_of_week]}</span>
+                      <span className="text-white/70">{h.is_closed ? "Kapalı" : `${hhmm(h.open_time)}–${hhmm(h.close_time)}`}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Step Indicator */}
       <div className="relative z-10 max-w-3xl mx-auto px-4 pt-8 pb-6">
@@ -467,7 +541,16 @@ export default function PublicBookingPage() {
                     <Phone className="w-3 h-3" />Telefon <span className="text-red-400">*</span>
                   </label>
                   <input className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder:text-white/15 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/50 transition-all"
-                    value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="05XX XXX XX XX" />
+                    value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="05XX XXX XX XX"
+                    inputMode="tel" autoComplete="tel" />
+                  <p className="mt-1.5 text-[11px] text-white/30">Randevunuzla ilgili sizinle bu numaradan iletişime geçilir.</p>
+                </div>
+                {/* Honeypot: invisible to people and screen readers, bots fill it in. */}
+                <div aria-hidden="true" style={{ position: "absolute", left: "-10000px", width: 1, height: 1, overflow: "hidden" }}>
+                  <label>
+                    Web siteniz
+                    <input tabIndex={-1} autoComplete="off" value={website} onChange={e => setWebsite(e.target.value)} name="website" />
+                  </label>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-white/50 mb-2 flex items-center gap-1.5 block">

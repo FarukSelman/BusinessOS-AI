@@ -8,6 +8,8 @@ export interface Business {
   website: string | null;
   logo_url: string | null;
   status: string;
+  /** Online booking page: confirm bookings automatically instead of PENDING. */
+  online_booking_auto_confirm?: boolean;
   created_at: string;
   updated_at: string;
 }

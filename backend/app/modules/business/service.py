@@ -1,4 +1,4 @@
-from uuid import UUID
+from uuid import UUID, uuid4
 from typing import List
 
 from app.core.exceptions import (
@@ -40,17 +40,19 @@ class BusinessService:
         user_id: UUID,
     ) -> Business:
 
-        slug = generate_slug(
+        # Same names are common ("Kuaför"): add -2, -3 ... instead of refusing.
+        base_slug = generate_slug(
             data.name,
-        )
-
-        if self.repository.exists_by_slug(
-            slug,
-        ):
-
-            raise ConflictException(
-                "Business slug already exists.",
-            )
+        ) or "isletme"
+        slug = base_slug
+        for suffix in range(2, 52):
+            if not self.repository.exists_by_slug(
+                slug,
+            ):
+                break
+            slug = f"{base_slug}-{suffix}"
+        else:
+            slug = f"{base_slug}-{uuid4().hex[:6]}"  # bounded: never loop forever
         
         if self.repository.exists_by_email(
             data.email,

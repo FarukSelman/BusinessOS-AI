@@ -67,6 +67,16 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
 
     # ==========================
+    # Public booking page protection
+    # ==========================
+    RATE_LIMIT_REDIS_URL: str = "redis://localhost:6379/1"
+    PUBLIC_BOOKING_LIMIT: int = 5             # bookings per IP ...
+    PUBLIC_BOOKING_WINDOW_SECONDS: int = 600  # ... per 10 minutes
+    PUBLIC_QUERY_LIMIT: int = 60              # slot/info lookups per IP ...
+    PUBLIC_QUERY_WINDOW_SECONDS: int = 60     # ... per minute
+    PUBLIC_BOOKING_MAX_OPEN_PER_PHONE: int = 3  # upcoming PENDING bookings per phone and business
+
+    # ==========================
     # Google sign-in (OAuth 2.0 authorization code flow)
     # ==========================
     GOOGLE_CLIENT_ID: str = ""

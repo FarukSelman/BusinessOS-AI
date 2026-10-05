@@ -51,6 +51,22 @@ def client(engine):
     app.dependency_overrides.pop(get_db, None)
 
 
+@pytest.fixture(autouse=True)
+def isolated_limits(monkeypatch):
+    """Generous limits and a clean counter per test; no real e-mail."""
+    from app.core.config import settings
+    from app.shared.security.rate_limit import limiter
+
+    monkeypatch.setattr(settings, "PUBLIC_BOOKING_LIMIT", 1000)
+    monkeypatch.setattr(settings, "PUBLIC_QUERY_LIMIT", 1000)
+    monkeypatch.setattr(limiter, "redis_url", None)
+    limiter.reset()
+    sent = []
+    monkeypatch.setattr("app.modules.public_booking.notify.SMTPClient.send", lambda **kw: sent.append(kw))
+    monkeypatch.setattr(settings, "MAIL_FROM", "no-reply@test.local")
+    return sent
+
+
 @pytest.fixture
 def shop(engine):
     db = sessionmaker(bind=engine, expire_on_commit=False)()
@@ -106,7 +122,7 @@ def test_booking_succeeds_and_creates_customer(client, shop):
     assert appt.customer_name == "Ali Veli" and appt.customer_email == "ali@example.com"
     assert appt.notes == "Online randevu sayfasından alındı."
     customer = shop.db.get(Customer, appt.customer_id)
-    assert customer.business_id == shop.biz.id and customer.phone == "0555 123 45 67"
+    assert customer.business_id == shop.biz.id and customer.phone == "05551234567"  # normalised
 
 
 def test_existing_customer_is_matched_by_phone_digits(client, shop):
@@ -163,6 +179,6 @@ def test_own_branch_is_accepted(client, shop):
 
 def test_unknown_business(client, shop):
     r = client.post(f"{API}/public/booking/yok-boyle-bir-isletme/book", json={
-        "customer_name": "A", "customer_phone": "1", "service_id": str(shop.service.id),
+        "customer_name": "Ali", "customer_phone": "05551234567", "service_id": str(shop.service.id),
         "date": TOMORROW.isoformat(), "start_time": "10:00"})
     assert r.status_code == 404

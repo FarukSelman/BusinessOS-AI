@@ -28,6 +28,7 @@ def register_exception_handlers(
         return JSONResponse(
             status_code=exc.status_code,
             content=response.model_dump(),
+            headers=getattr(exc, "headers", None),  # e.g. Retry-After on 429
         )
 
 

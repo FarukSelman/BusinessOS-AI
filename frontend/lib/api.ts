@@ -232,6 +232,17 @@ export async function getBusiness(businessId: string): Promise<Business> {
   return apiFetch<Business>(`/api/v1/businesses/${businessId}`);
 }
 
+/** Owner / admin only (others get 403). */
+export async function updateBusinessSettings(
+  businessId: string,
+  payload: { online_booking_auto_confirm?: boolean },
+): Promise<Business> {
+  return apiFetch<Business>(`/api/v1/businesses/${businessId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
 // ---------- Chat (Müşteri destek ajanı) ----------
 // Konuşma geçmişi backend'de business_id + user_id bazında otomatik tutuluyor,
 // frontend'in conversation_id yönetmesine gerek yok.

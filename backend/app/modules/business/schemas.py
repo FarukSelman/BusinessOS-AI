@@ -58,6 +58,8 @@ class BusinessUpdate(BaseModel):
 
     logo_url: HttpUrl | None = None
 
+    online_booking_auto_confirm: bool | None = None
+
 
 class BusinessResponse(BaseModel):
     """Schema returned from the API."""
@@ -81,6 +83,8 @@ class BusinessResponse(BaseModel):
     logo_url: HttpUrl | None
 
     status: BusinessStatus
+
+    online_booking_auto_confirm: bool = False
 
     created_at: datetime
 

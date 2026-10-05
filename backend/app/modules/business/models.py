@@ -1,4 +1,4 @@
-from sqlalchemy import Enum, String
+from sqlalchemy import Boolean, Enum, String, false
 
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -79,6 +79,14 @@ class Business(BaseModel):
             name="business_plan",
         ),
         default=BusinessPlan.FREE,
+        nullable=False,
+    )
+
+    # Online booking page: confirm bookings automatically instead of PENDING.
+    online_booking_auto_confirm: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        server_default=false(),
         nullable=False,
     )
 
