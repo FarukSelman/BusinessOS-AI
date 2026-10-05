@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.base_repository import BaseRepository
@@ -46,3 +46,15 @@ class UserRepository(BaseRepository[User]):
             )
             is not None
         )
+
+    def get_by_email_any_case(
+        self,
+        email: str,
+    ) -> User | None:
+        """Case-insensitive match, including soft-deleted users (emails are unique across all rows)."""
+
+        statement = select(self.model).where(
+            func.lower(self.model.email) == email.strip().lower(),
+        )
+
+        return self.db.scalar(statement)

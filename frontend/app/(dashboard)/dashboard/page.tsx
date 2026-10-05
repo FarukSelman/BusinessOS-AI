@@ -31,6 +31,7 @@ import {
   getBusiness,
 } from "@/lib/api";
 import { DashboardStats } from "@/types/reports";
+import type { Appointment } from "@/types/appointment";
 import { formatCurrency } from "@/lib/utils";
 import { getActiveBusinessId } from "@/lib/business";
 import {

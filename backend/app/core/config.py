@@ -66,5 +66,15 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
 
+    # ==========================
+    # Google sign-in (OAuth 2.0 authorization code flow)
+    # ==========================
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    # Must match an "Authorized redirect URI" in Google Cloud Console.
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/google/callback"
+    # Where the browser is sent after Google sign-in.
+    FRONTEND_URL: str = "http://localhost:3000"
+
 
 settings = Settings()

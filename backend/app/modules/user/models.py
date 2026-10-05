@@ -62,6 +62,11 @@ class User(BaseModel):
     )
 
 
+    @property
+    def has_password(self) -> bool:
+        """False for accounts created through Google sign-in that never set a password."""
+        return not (self.password_hash or "").startswith("!")
+
     memberships: Mapped[list["Membership"]] = relationship(
     back_populates="user",
     )

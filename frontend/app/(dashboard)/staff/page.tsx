@@ -143,9 +143,8 @@ export default function StaffPage() {
     const ok = await confirmDialog({
       title: "Çalışanı Sil",
       description: "Bu çalışanı silmek istediğinize emin misiniz?",
-      confirmText: "Sil",
-      cancelText: "İptal",
-      variant: "destructive",
+      confirmLabel: "Sil",
+      cancelLabel: "İptal",
     });
     if (!ok) return;
 

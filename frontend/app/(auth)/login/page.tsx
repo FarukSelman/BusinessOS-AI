@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { login, ApiError } from "@/lib/api";
+import { AuthDivider, GoogleButton, googleErrorMessage } from "@/components/auth/google-button";
 
 export default function LoginPage() {
   return (
@@ -18,7 +19,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => googleErrorMessage(searchParams.get("error")));
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -54,6 +55,9 @@ function LoginForm() {
           <span className="text-gradient">Giriş yap</span>
         </h1>
         <p className="mb-8 text-sm text-gray-400">İşletme panelinize erişmek için giriş yapın.</p>
+
+        <GoogleButton redirect={searchParams.get("redirect")} />
+        <AuthDivider />
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">

@@ -52,7 +52,8 @@ export interface UpdateProfilePayload {
 }
 
 export interface ChangePasswordPayload {
-  current_password: string;
+  /** Omitted when the account has no password yet (Google sign-in). */
+  current_password?: string;
   new_password: string;
 }
 
@@ -143,6 +144,12 @@ export async function updateProfile(payload: UpdateProfilePayload): Promise<MeRe
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+}
+
+/** Backend URL that starts Google sign-in (browser navigation, not fetch). */
+export function googleLoginUrl(redirect?: string | null): string {
+  const query = redirect ? `?redirect=${encodeURIComponent(redirect)}` : "";
+  return `${API_URL}/api/v1/auth/google/login${query}`;
 }
 
 export async function changePassword(payload: ChangePasswordPayload): Promise<{ message: string }> {

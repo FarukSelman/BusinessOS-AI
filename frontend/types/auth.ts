@@ -31,4 +31,6 @@ export interface MeResponse {
   profile_image: string | null;
   status: string;
   is_superadmin: boolean;
+  /** False for accounts created with Google sign-in that never set a password. */
+  has_password?: boolean;
 }

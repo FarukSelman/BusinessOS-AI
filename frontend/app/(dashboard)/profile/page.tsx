@@ -59,7 +59,8 @@ export default function ProfilePage() {
 
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
-    if (!currentPassword || !newPassword || !confirmPassword) {
+    const needsCurrent = user?.has_password !== false;
+    if ((needsCurrent && !currentPassword) || !newPassword || !confirmPassword) {
       toast.error("Tüm alanları doldurmalısın.");
       return;
     }
@@ -75,10 +76,11 @@ export default function ProfilePage() {
     setSavingPassword(true);
     try {
       await changePassword({
-        current_password: currentPassword,
+        ...(needsCurrent ? { current_password: currentPassword } : {}),
         new_password: newPassword,
       });
-      toast.success("Şifren başarıyla güncellendi.");
+      toast.success(needsCurrent ? "Şifren başarıyla güncellendi." : "Şifren oluşturuldu. Artık e-posta ve şifreyle de giriş yapabilirsin.");
+      if (!needsCurrent) setUser((prev) => (prev ? { ...prev, has_password: true } : prev));
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -181,20 +183,26 @@ export default function ProfilePage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Şifre Değiştir</CardTitle>
-              <CardDescription>Hesap güvenliğin için güçlü bir şifre kullan.</CardDescription>
+              <CardTitle className="text-lg">{user.has_password === false ? "Şifre Belirle" : "Şifre Değiştir"}</CardTitle>
+              <CardDescription>
+                {user.has_password === false
+                  ? "Google ile giriş yapıyorsun. İstersen e-posta ve şifreyle de girebilmek için bir şifre belirle."
+                  : "Hesap güvenliğin için güçlü bir şifre kullan."}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleChangePassword} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="currentPassword">Mevcut Şifre</Label>
-                  <Input 
-                    id="currentPassword" 
-                    type="password"
-                    value={currentPassword} 
-                    onChange={(e) => setCurrentPassword(e.target.value)} 
-                  />
-                </div>
+                {user.has_password !== false && (
+                  <div className="space-y-2">
+                    <Label htmlFor="currentPassword">Mevcut Şifre</Label>
+                    <Input 
+                      id="currentPassword" 
+                      type="password"
+                      value={currentPassword} 
+                      onChange={(e) => setCurrentPassword(e.target.value)} 
+                    />
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="newPassword">Yeni Şifre</Label>
                   <Input 
@@ -216,7 +224,7 @@ export default function ProfilePage() {
                 <div className="flex justify-end">
                   <Button type="submit" variant="outline" disabled={savingPassword} className="gap-2">
                     <Lock className="h-4 w-4" />
-                    {savingPassword ? "Güncelleniyor..." : "Şifreyi Güncelle"}
+                    {savingPassword ? "Kaydediliyor..." : user.has_password === false ? "Şifreyi Kaydet" : "Şifreyi Güncelle"}
                   </Button>
                 </div>
               </form>

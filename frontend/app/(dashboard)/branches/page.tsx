@@ -94,9 +94,8 @@ export default function BranchesPage() {
     const ok = await confirmDialog({
       title: "Şubeyi Sil",
       description: "Bu şubeyi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
-      confirmText: "Sil",
-      cancelText: "İptal",
-      variant: "destructive",
+      confirmLabel: "Sil",
+      cancelLabel: "İptal",
     });
     if (!ok) return;
 

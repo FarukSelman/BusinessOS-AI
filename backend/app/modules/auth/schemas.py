@@ -87,6 +87,9 @@ class MeResponse(BaseModel):
     
     is_superadmin: bool
 
+    # False for Google-only accounts: the profile page then offers "set password".
+    has_password: bool = True
+
 
 # ==========================================================
 # Update Profile & Password
@@ -107,9 +110,10 @@ class UpdateProfilePayload(BaseModel):
 
 class ChangePasswordPayload(BaseModel):
 
-    current_password: str
+    # Not required when the account has no password yet (Google sign-in).
+    current_password: str | None = None
 
     new_password: str = Field(
         min_length=8,
         max_length=128,
-    )
+    )

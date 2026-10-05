@@ -1,3 +1,4 @@
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from app.core.exceptions import (
@@ -20,6 +21,9 @@ from app.modules.auth.schemas import (
 )
 
 from app.modules.user.models import User
+
+if TYPE_CHECKING:
+    from app.modules.auth.google import GoogleProfile
 from app.modules.user.repository import UserRepository
 
 from app.shared.enums.user import UserStatus
@@ -283,7 +287,7 @@ class AuthService:
         data: ChangePasswordPayload,
     ) -> dict:
 
-        if not verify_password(data.current_password, user.password_hash):
+        if user.has_password and not verify_password(data.current_password or "", user.password_hash):
             raise BadRequestException("Mevcut şifre hatalı.")
 
         user.password_hash = hash_password(data.new_password)
@@ -291,4 +295,56 @@ class AuthService:
         with self.uow:
             self.uow.flush()
         
-        return {"message": "Şifre başarıyla güncellendi."}
+        return {"message": "Şifre başarıyla güncellendi."}
+
+
+
+    # --------------------------------------------------
+    # GOOGLE SIGN-IN
+    # --------------------------------------------------
+
+    def login_with_google(
+        self,
+        profile: "GoogleProfile",
+    ) -> TokenResponse:
+        """
+        Signs in with a verified Google profile.
+
+        - Existing account with the same e-mail (any case): signed in (linked).
+        - No account: a new ACTIVE user without a password is created; the
+          frontend then continues to business creation like a normal sign-up.
+        - Inactive or deleted accounts are refused.
+        """
+        from app.modules.auth.google import GOOGLE_PASSWORD_MARKER, GoogleAuthError
+
+        if not profile.email_verified:
+            raise GoogleAuthError("email_not_verified")
+
+        user = self.repository.get_by_email_any_case(profile.email)
+
+        if user is not None:
+            if user.is_deleted or user.status != UserStatus.ACTIVE:
+                raise GoogleAuthError("account_inactive")
+            if not user.profile_image and profile.picture:
+                user.profile_image = profile.picture[:500]
+                with self.uow:
+                    self.uow.flush()
+        else:
+            local_part = profile.email.split("@")[0]
+            user = User(
+                first_name=(profile.given_name or profile.name or local_part)[:100],
+                last_name=(profile.family_name or "")[:100],
+                email=profile.email.strip().lower(),
+                password_hash=GOOGLE_PASSWORD_MARKER,
+                profile_image=(profile.picture or None) and profile.picture[:500],
+                status=UserStatus.ACTIVE,
+            )
+            with self.uow:
+                self.repository.create(user)
+                self.uow.flush()
+                self.uow.refresh(user)
+
+        return TokenResponse(
+            access_token=create_access_token(subject=str(user.id)),
+            refresh_token=create_refresh_token(subject=str(user.id)),
+        )

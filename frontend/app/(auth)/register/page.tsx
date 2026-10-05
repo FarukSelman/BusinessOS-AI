@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { register, login, ApiError } from "@/lib/api";
+import { AuthDivider, GoogleButton } from "@/components/auth/google-button";
 
 export default function RegisterPage() {
   return (
@@ -63,6 +64,9 @@ function RegisterForm() {
           <span className="text-gradient">Hesap oluştur</span>
         </h1>
         <p className="mb-8 text-sm text-gray-400">İşletmen için birkaç saniyede kayıt ol.</p>
+
+        <GoogleButton redirect={searchParams.get("redirect")} label="Google ile kayıt ol" />
+        <AuthDivider />
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3">
