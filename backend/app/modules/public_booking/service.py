@@ -3,7 +3,12 @@ from datetime import date, time, timedelta
 from typing import List, Optional
 from fastapi import HTTPException
 from app.db.unit_of_work import UnitOfWork
-from app.core.exceptions import NotFoundException
+from datetime import datetime
+
+from app.core.exceptions import ConflictException, NotFoundException
+from app.modules.branches.models import Branch
+from app.modules.staff.models import StaffProfile
+from app.shared.enums.service import ServiceStatus
 from app.modules.business.repository import BusinessRepository
 from app.modules.services.repository import ServiceRepository
 from app.modules.appointments.repository import AppointmentRepository
@@ -14,6 +19,9 @@ from app.shared.enums.appointment import AppointmentStatus
 from app.modules.public_booking.schemas import PublicBookingCreate
 from app.modules.schedule_blocks.repository import ScheduleBlockRepository
 from app.modules.appointments.service import AppointmentService
+
+PUBLIC_BOOKING_NOTE = "Online randevu sayfasından alındı."
+
 
 class PublicBookingService:
     def __init__(
@@ -41,7 +49,20 @@ class PublicBookingService:
     def list_public_services(self, business_id: UUID):
         return self.service_repo.list_active_by_business(business_id)
 
+    def _check_branch_and_staff(self, business_id: UUID, branch_id: Optional[UUID], staff_id: Optional[UUID]) -> None:
+        """Branch and staff come from an anonymous page: they must belong to this business."""
+        db = self.appointment_repo.db
+        if branch_id is not None:
+            branch = db.get(Branch, branch_id)
+            if branch is None or branch.business_id != business_id or branch.is_deleted:
+                raise NotFoundException("Şube bulunamadı.")
+        if staff_id is not None:
+            staff = db.get(StaffProfile, staff_id)
+            if staff is None or staff.business_id != business_id or staff.is_deleted:
+                raise NotFoundException("Personel bulunamadı.")
+
     def get_available_slots(self, business_id: UUID, target_date: date, service_id: UUID, staff_id: Optional[UUID] = None, branch_id: Optional[UUID] = None) -> List[time]:
+        self._check_branch_and_staff(business_id, branch_id, staff_id)
         # get service duration
         service = self.service_repo.get_by_business(business_id, service_id)
         if not service:
@@ -61,29 +82,40 @@ class PublicBookingService:
     def create_public_booking(self, business_slug: str, data: PublicBookingCreate) -> Appointment:
         business = self.get_business_by_slug(business_slug)
         business_id = business.id
-        
+
         service = self.service_repo.get_by_business(business_id, data.service_id)
-        if not service:
-            raise NotFoundException("Service not found")
-            
-        # Find or create customer
+        if not service or getattr(service, "status", ServiceStatus.ACTIVE) != ServiceStatus.ACTIVE:
+            raise NotFoundException("Hizmet bulunamadı.")
+
+        self._check_branch_and_staff(business_id, data.branch_id, data.staff_id)
+
+        # Re-check the slot on the server: it may have been taken (or passed)
+        # since the page listed it.
+        duration = service.duration_minutes or 30
+        available = self.appointment_service.get_available_slots(
+            business_id, data.date, duration_minutes=duration,
+            staff_id=data.staff_id, branch_id=data.branch_id,
+        )
+        if data.start_time.strftime("%H:%M") not in available:
+            raise ConflictException("Seçtiğiniz saat artık müsait değil. Lütfen başka bir saat seçin.")
+
+        # Find or create the customer (matched by phone number).
         customer = self.customer_repo.get_by_phone(business_id, data.customer_phone)
         if not customer:
             customer = Customer(
                 business_id=business_id,
                 name=data.customer_name,
                 phone=data.customer_phone,
-                email=data.customer_email
+                email=data.customer_email,
             )
             with self.uow:
                 self.customer_repo.create(customer)
                 self.uow.flush()
                 self.uow.refresh(customer)
-        
-        from datetime import datetime
+
         start_datetime = datetime.combine(data.date, data.start_time)
-        end_datetime = start_datetime + timedelta(minutes=service.duration_minutes or 30)
-        
+        end_datetime = start_datetime + timedelta(minutes=duration)
+
         appointment = Appointment(
             business_id=business_id,
             customer_name=data.customer_name,
@@ -97,12 +129,12 @@ class PublicBookingService:
             start_time=data.start_time,
             end_time=end_datetime.time(),
             status=AppointmentStatus.PENDING,
-            notes="Booked via public booking page"
+            notes=PUBLIC_BOOKING_NOTE,
         )
-        
+
         with self.uow:
             self.appointment_repo.create(appointment)
             self.uow.flush()
             self.uow.refresh(appointment)
-            
+
         return appointment

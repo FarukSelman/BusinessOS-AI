@@ -66,6 +66,31 @@ class CustomerRepository(
         return self.db.scalar(statement)
 
 
+    def get_by_phone(
+        self,
+        business_id: UUID,
+        phone: str,
+    ) -> Customer | None:
+        """Matches on digits only, so '0532 111 22 33' and '05321112233' are the same customer."""
+
+        digits = "".join(ch for ch in phone if ch.isdigit())
+        if not digits:
+            return None
+
+        statement = (
+            select(self.model)
+            .where(
+                self.model.business_id == business_id,
+                self.model.is_deleted.is_(False),
+                func.regexp_replace(self.model.phone, r"\D", "", "g") == digits,
+            )
+            .order_by(self.model.created_at)
+            .limit(1)
+        )
+
+        return self.db.scalar(statement)
+
+
     def search_by_name(
         self,
         business_id: UUID,

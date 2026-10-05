@@ -139,4 +139,17 @@ def book_appointment(
     data: PublicBookingCreate,
     service: PublicBookingService = Depends(get_service)
 ):
-    return service.create_public_booking(business_slug, data)
+    appointment = service.create_public_booking(business_slug, data)
+    # Appointment columns are named differently from the public response.
+    return PublicBookingResponse(
+        id=appointment.id,
+        business_id=appointment.business_id,
+        service_id=appointment.service_id,
+        branch_id=appointment.branch_id,
+        staff_id=appointment.staff_id,
+        customer_id=appointment.customer_id,
+        date=appointment.appointment_date,
+        start_time=appointment.start_time,
+        end_time=appointment.end_time,
+        status=getattr(appointment.status, "value", appointment.status),
+    )

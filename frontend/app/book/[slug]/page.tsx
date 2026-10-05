@@ -115,21 +115,29 @@ export default function PublicBookingPage() {
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
+        // Backend errors look like {"success": false, "message": "..."}
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || "Randevu oluşturulamadı.");
+        throw new Error(err.message || err.detail || "Randevu oluşturulamadı.");
       }
       setSuccess(true);
     } catch (e: any) {
-      setError(e.message || "Randevu oluşturulamadı. Lütfen tekrar deneyin.");
+      const networkError = e instanceof TypeError; // fetch() itself failed: server unreachable
+      setError(
+        networkError
+          ? "Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin."
+          : e.message || "Randevu oluşturulamadı. Lütfen tekrar deneyin.",
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
   // Generate next 14 days
+  // Local calendar dates (toISOString() is UTC and shifts the day between 00:00 and 03:00 in Turkey).
   const dateOptions = Array.from({ length: 14 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() + i + 1);
-    return d.toISOString().split("T")[0];
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   });
 
   const canNext = () => {
