@@ -67,6 +67,13 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
 
     # ==========================
+    # AI insights card (dashboard)
+    # ==========================
+    INSIGHTS_MODEL: str = "gpt-4o-mini"
+    INSIGHTS_TIMEOUT_SECONDS: float = 20.0
+    INSIGHTS_REFRESH_COOLDOWN_MINUTES: int = 60
+
+    # ==========================
     # Public booking page protection
     # ==========================
     RATE_LIMIT_REDIS_URL: str = "redis://localhost:6379/1"

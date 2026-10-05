@@ -17,3 +17,4 @@ export * from './branch-staff';
 export * from './packages';
 export * from './reports';
 export * from './products';
+export * from './insights';

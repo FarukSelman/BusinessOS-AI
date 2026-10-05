@@ -232,6 +232,17 @@ export async function getBusiness(businessId: string): Promise<Business> {
   return apiFetch<Business>(`/api/v1/businesses/${businessId}`);
 }
 
+// ---------- AI içgörüleri (sahip / yönetici) ----------
+export async function getInsights(businessId: string) {
+  return apiFetch<import("@/types/insights").BusinessInsights>(`/api/v1/businesses/${businessId}/insights`);
+}
+
+export async function refreshInsights(businessId: string) {
+  return apiFetch<import("@/types/insights").BusinessInsights>(`/api/v1/businesses/${businessId}/insights/refresh`, {
+    method: "POST",
+  });
+}
+
 /** Owner / admin only (others get 403). */
 export async function updateBusinessSettings(
   businessId: string,

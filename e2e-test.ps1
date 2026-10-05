@@ -25,7 +25,7 @@ function Run($exe, [string[]]$arguments) {
 
 Set-Content -Path $log -Value "BusinessOS AI e2e test - $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -Encoding UTF8
 
-Say "`n[1/5] Docker kontrol ediliyor..."
+Say "`n[1/6] Docker kontrol ediliyor..."
 docker info *> $null
 if ($LASTEXITCODE -ne 0) { Say "HATA: Docker Desktop calismiyor. Docker Desktop'i acip tekrar dene." Red; Say "BITTI: HATA" Red; exit 1 }
 
@@ -34,7 +34,7 @@ try {
     if ($service.Status -eq "Running") { Stop-Service postgresql-x64-18; Say "Windows PostgreSQL servisi durduruldu." Yellow }
 } catch {}
 
-Say "[2/5] PostgreSQL ve Redis baslatiliyor..."
+Say "[2/6] PostgreSQL ve Redis baslatiliyor..."
 Push-Location (Join-Path $root "infrastructure")
 $null = Run "docker" @("compose", "up", "-d")
 Pop-Location
@@ -50,17 +50,21 @@ docker exec businessos-postgres psql -U postgres -d businessos_ai -c "CREATE EXT
 Set-Location $backend
 if (-not (Test-Path $py)) { Say "HATA: backend\.venv bulunamadi." Red; Say "BITTI: HATA" Red; exit 1 }
 
-Say "[3/5] Migration uygulaniyor (alembic upgrade head)..."
+Say "[3/6] Migration uygulaniyor (alembic upgrade head)..."
 $code = Run $alembic @("upgrade", "head")
 if ($code -ne 0) { Say "HATA: migration basarisiz." Red; Say "BITTI: HATA" Red; exit 1 }
 
-Say "`n[4/5] Hatirlatma maili testi (Mailtrap)..."
+Say "`n[4/6] Hatirlatma maili testi (Mailtrap)..."
 $mailCode = Run $py @("scripts\reminder_mail_check.py")
 
-Say "`n[5/5] Ajan testi (gercek OpenAI, 1-3 dakika surebilir)..."
+Say "`n[5/6] Ajan testi (gercek OpenAI, 1-3 dakika surebilir)..."
 $agentCode = Run $py @("scripts\agent_e2e.py")
+
+Say "`n[6/6] AI icgoru testi (gercek OpenAI)..."
+$insightCode = Run $py @("scripts\insights_check.py")
 
 Say "`n=================================="
 Say ("Mail testi : " + $(if ($mailCode -eq 0) { "BASARILI" } else { "BASARISIZ" }))
 Say ("Ajan testi : " + $(if ($agentCode -eq 0) { "kritik hata yok" } else { "KRITIK HATA / durduruldu" }))
+Say ("Icgoru testi: " + $(if ($insightCode -eq 0) { "BASARILI" } else { "BASARISIZ" }))
 Say "BITTI" Green

@@ -40,6 +40,7 @@ from app.modules.notifications.router import (
 )
 from app.modules.admin.router import router as admin_router
 from app.modules.agent_actions.router import router as agent_actions_router
+from app.modules.insights.router import router as insights_router
 
 from app.modules.schedule_blocks.router import router as schedule_blocks_router
 from app.modules.reminders.router import router as reminders_router
@@ -197,3 +198,4 @@ api_router.include_router(customer_packages_router)
 api_router.include_router(installments_router)
 api_router.include_router(reports_router)
 api_router.include_router(business_hours_router)
+api_router.include_router(insights_router)

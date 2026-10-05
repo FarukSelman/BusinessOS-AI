@@ -5,9 +5,10 @@ class DashboardStats(BaseModel):
     total_customers: int
     total_appointments_today: int
     total_appointments_this_month: int
-    total_revenue_this_month: float
-    total_expenses_this_month: float
-    net_profit_this_month: float
+    # None for roles without finance access (EMPLOYEE / VIEWER)
+    total_revenue_this_month: float | None = None
+    total_expenses_this_month: float | None = None
+    net_profit_this_month: float | None = None
     pending_appointments: int
     active_staff_count: int
 
@@ -21,14 +22,14 @@ class RevenueDataPoint(BaseModel):
 class ServiceStats(BaseModel):
     name: str
     booking_count: int
-    revenue: float
+    revenue: float | None = None  # None without finance access
     avg_rating: float | None = None
 
 class StaffPerformance(BaseModel):
     name: str
     title: str | None
     appointment_count: int
-    revenue: float
+    revenue: float | None = None  # None without finance access
     completion_rate: float
 
 class CustomerGrowthPoint(BaseModel):

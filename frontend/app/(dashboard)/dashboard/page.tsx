@@ -32,6 +32,7 @@ import {
   updateBusinessSettings,
 } from "@/lib/api";
 import { toast } from "sonner";
+import { AiInsightsCard } from "@/components/dashboard/ai-insights-card";
 import { DashboardStats } from "@/types/reports";
 import type { Appointment } from "@/types/appointment";
 import { formatCurrency } from "@/lib/utils";
@@ -105,7 +106,7 @@ export default function DashboardHomePage() {
   const confirmedToday = todayAppointments.filter((appointment) =>
     appointment.status === "CONFIRMED" || appointment.status === "PENDING"
   );
-  const availableSlotsEstimate = Math.max(0, 9 - confirmedToday.length);
+  const canSeeFinance = stats !== null && stats.total_revenue_this_month !== null;
 
   useEffect(() => {
     if (!businessId) {
@@ -206,7 +207,8 @@ export default function DashboardHomePage() {
               </CardContent>
             </Card>
 
-            {/* Row 2 */}
+            {/* Row 2 - finance boxes only for owner / admin (API returns null otherwise) */}
+            {canSeeFinance && (<>
             <Card className="border-l-2" style={{ borderLeftColor: "#22c55e" }}>
               <CardContent className="flex items-center gap-3 p-4">
                 <TrendingUp className="h-5 w-5" style={{ color: "#22c55e" }} />
@@ -234,6 +236,7 @@ export default function DashboardHomePage() {
                 </div>
               </CardContent>
             </Card>
+            </>)}
             <Card className="border-l-2" style={{ borderLeftColor: "var(--accent)" }}>
               <CardContent className="flex items-center gap-3 p-4">
                 <UserCog className="h-5 w-5 text-accent" />
@@ -269,6 +272,7 @@ export default function DashboardHomePage() {
                   {linkCopied ? "✓ Kopyalandı" : "Kopyala"}
                 </button>
               </CardContent>
+              {canSeeFinance && (
               <div className="flex items-center gap-3 border-t border-violet-500/10 px-4 py-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-ink">Online randevuları otomatik onayla</p>
@@ -314,23 +318,19 @@ export default function DashboardHomePage() {
                   />
                 </button>
               </div>
+              )}
             </Card>
           )}
 
-          <Card className="border-l-4 border-l-[var(--agent-marketing)] bg-gradient-to-r from-[color-mix(in_srgb,var(--agent-marketing)_10%,transparent)] to-surface">
-            <CardHeader className="flex-row items-start gap-3 space-y-0 pb-3">
-              <Sparkles className="mt-0.5 h-5 w-5 text-[var(--agent-marketing)]" />
-              <div>
-                <CardTitle className="text-base">Günlük AI özeti</CardTitle>
-                <CardDescription>Bugünün verilerine göre önceliklerin</CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent className="grid gap-2 pt-0 text-sm text-ink-muted sm:grid-cols-3">
-              <p><span className="font-medium text-ink">{confirmedToday.length} randevu</span> bugün planlandı.</p>
-              <p><span className="font-medium text-ink">Yaklaşık {availableSlotsEstimate} boş saat</span> için kampanya fırsatı var.</p>
-              <p>{documentsReady.total === 0 ? "Bilgi tabanı henüz boş; AI yanıtlarını güçlendirmek için belge yükleyebilirsin." : `${documentsReady.ready} bilgi kaynağı AI tarafından kullanılmaya hazır.`}</p>
-            </CardContent>
-          </Card>
+          <AiInsightsCard
+            businessId={businessId}
+            fallback={
+              <>
+                <p><span className="font-medium text-ink">{confirmedToday.length} randevu</span> bugün planlandı.</p>
+                <p>{documentsReady.total === 0 ? "Bilgi tabanı henüz boş; AI yanıtlarını güçlendirmek için belge yükleyebilirsin." : `${documentsReady.ready} bilgi kaynağı AI tarafından kullanılmaya hazır.`}</p>
+              </>
+            }
+          />
 
           {todayAppointments.length > 0 && (
             <Card>
@@ -369,6 +369,7 @@ export default function DashboardHomePage() {
               </CardContent>
             </Card>
 
+            {canSeeFinance && (
             <Card className="bg-surface-elevated/50 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-base">Gelir Dağılımı</CardTitle>
@@ -378,6 +379,7 @@ export default function DashboardHomePage() {
                 <RevenueOverviewChart appointments={allAppointments} services={servicesData} />
               </CardContent>
             </Card>
+            )}
 
             <Card className="bg-surface-elevated/50 backdrop-blur-sm">
               <CardHeader>

@@ -9,6 +9,7 @@ Start (from backend/, virtualenv active; start-dev.ps1 does this):
 --pool=solo is required on Windows. Redis comes from infrastructure/docker-compose.yml.
 """
 from celery import Celery
+from celery.schedules import crontab
 
 from app.core.config import settings
 
@@ -30,6 +31,12 @@ celery_app.conf.update(
             "schedule": float(settings.REMINDER_SCAN_INTERVAL_SECONDS),
             # A scan that could not start in time is dropped; the next one covers it.
             "options": {"expires": float(settings.REMINDER_SCAN_INTERVAL_SECONDS)},
+        },
+        # Dashboard "AI İçgörüleri" for every business, at night (APP_TIMEZONE).
+        "generate-business-insights-nightly": {
+            "task": "insights.generate_all",
+            "schedule": crontab(hour=3, minute=0),
+            "options": {"expires": 6 * 3600.0},
         },
     },
 )

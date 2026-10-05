@@ -18,7 +18,8 @@ import {
   getRevenueReport,
   getAppointmentReport,
   getCustomerReport,
-  getStaffPerformanceReport
+  getStaffPerformanceReport,
+  ApiError,
 } from "@/lib/api";
 import type { RevenueDataPoint, AppointmentReport, CustomerReport, StaffPerformance } from "@/types/reports";
 import { formatCurrency } from "@/lib/utils";
@@ -51,6 +52,9 @@ export default function ReportsPage() {
   const businessId = getActiveBusinessId();
 
   const [activeTab, setActiveTab] = useState("revenue");
+  // Revenue report is owner / admin only; others get 403 and the tab is hidden.
+  const [financeAllowed, setFinanceAllowed] = useState(true);
+  const visibleTabs = financeAllowed ? TABS : TABS.filter((t) => t.id !== "revenue");
   const [startDate, setStartDate] = useState(() => format(startOfMonth(new Date()), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(() => format(endOfMonth(new Date()), 'yyyy-MM-dd'));
   const [groupBy, setGroupBy] = useState("day");
@@ -73,8 +77,17 @@ export default function ReportsPage() {
     setLoading(true);
     try {
       if (activeTab === "revenue") {
-        const data = await getRevenueReport(businessId, startDate, endDate, groupBy);
-        setRevenueData(data);
+        try {
+          const data = await getRevenueReport(businessId, startDate, endDate, groupBy);
+          setRevenueData(data);
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 403) {
+            setFinanceAllowed(false);
+            setActiveTab("appointments");
+            return;
+          }
+          throw err;
+        }
       } else if (activeTab === "appointments") {
         const data = await getAppointmentReport(businessId, startDate, endDate);
         setAppointmentData(data);
@@ -144,7 +157,7 @@ export default function ReportsPage() {
       </div>
 
       <div className="flex border-b border-white/10">
-        {TABS.map((tab) => (
+        {visibleTabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -300,7 +313,7 @@ export default function ReportsPage() {
                       <tr key={idx} className="hover:bg-white/5">
                         <td className="py-2 text-ink">{service.name}</td>
                         <td className="py-2 text-ink">{service.booking_count}</td>
-                        <td className="py-2 text-ink">{formatCurrency(service.revenue)}</td>
+                        <td className="py-2 text-ink">{service.revenue == null ? "—" : formatCurrency(service.revenue)}</td>
                       </tr>
                     ))}
                     {appointmentData.by_service.length === 0 && (
@@ -378,7 +391,7 @@ export default function ReportsPage() {
                         <tr key={idx} className="hover:bg-white/5">
                           <td className="py-2 text-ink">{c.name}</td>
                           <td className="py-2 text-ink">{c.visit_count}</td>
-                          <td className="py-2 text-ink">{formatCurrency(c.total_spent)}</td>
+                          <td className="py-2 text-ink">{c.total_spent == null ? "—" : formatCurrency(c.total_spent)}</td>
                         </tr>
                       ))}
                       {customerData.top_customers.length === 0 && (
@@ -424,7 +437,7 @@ export default function ReportsPage() {
                         <td className="py-2 font-medium text-ink">{staff.name}</td>
                         <td className="py-2 text-ink-muted">{staff.title || "-"}</td>
                         <td className="py-2 text-ink">{staff.appointment_count}</td>
-                        <td className="py-2 text-ink">{formatCurrency(staff.revenue)}</td>
+                        <td className="py-2 text-ink">{staff.revenue == null ? "—" : formatCurrency(staff.revenue)}</td>
                         <td className={`py-2 font-medium ${rateColor}`}>%{staff.completion_rate.toFixed(1)}</td>
                       </tr>
                     );

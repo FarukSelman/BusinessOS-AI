@@ -77,3 +77,35 @@ class OpenAIClient:
         )
 
         return response.choices[0].message
+
+    def chat_json(
+        self,
+        *,
+        system_prompt: str,
+        user_prompt: str,
+        schema: dict,
+        schema_name: str,
+        model: str = "gpt-4o-mini",
+        temperature: float = 0.3,
+        timeout: float = 20.0,
+    ) -> str:
+        """
+        Chat completion whose answer must match `schema` (OpenAI structured
+        outputs). Returns the raw JSON text; the caller validates it again.
+        """
+
+        response = self.client.with_options(timeout=timeout, max_retries=1).chat.completions.create(
+            model=model,
+            temperature=temperature,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            response_format={
+                "type": "json_schema",
+                "json_schema": {"name": schema_name, "schema": schema, "strict": True},
+            },
+        )
+
+        return response.choices[0].message.content or ""
+

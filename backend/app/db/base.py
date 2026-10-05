@@ -15,6 +15,7 @@ from app.modules.appointments.models import Appointment
 from app.modules.invoice.models import Invoice
 from app.modules.notifications.models import Notification
 from app.modules.agent_actions.models import AgentAction
+from app.modules.insights.models import BusinessInsight
 
 from app.modules.schedule_blocks.models import ScheduleBlock
 from app.modules.business_hours.models import BusinessHours
@@ -59,6 +60,7 @@ __all__ = [
     "Invoice",
     "Notification",
     "AgentAction",
+    "BusinessInsight",
 
     "ScheduleBlock",
     "BusinessHours",
