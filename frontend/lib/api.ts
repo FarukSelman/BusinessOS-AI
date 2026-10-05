@@ -247,6 +247,27 @@ export async function sendChatMessage(
   });
 }
 
+/** A draft created by an agent that waits for approval (navbar panel). */
+export interface AgentActionRecord {
+  id: string;
+  action_type: string;
+  status: string;
+  payload: Record<string, unknown>;
+  requested_by: string;
+  requested_by_name: string | null;
+  created_at: string;
+}
+
+export async function listPendingAgentActions(businessId: string) {
+  return apiFetch<AgentActionRecord[]>(`/api/v1/businesses/${businessId}/agent-actions/pending`);
+}
+
+/** Lets the navbar badge refresh right after a chat creates or resolves a draft. */
+export const AGENT_ACTIONS_CHANGED = "agent-actions-changed";
+export function notifyAgentActionsChanged() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(AGENT_ACTIONS_CHANGED));
+}
+
 export async function approveAgentAction(businessId: string, actionId: string) {
   return apiFetch(`/api/v1/businesses/${businessId}/agent-actions/${actionId}/approve`, {
     method: "POST",

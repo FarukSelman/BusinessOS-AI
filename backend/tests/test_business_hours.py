@@ -2,7 +2,7 @@
 Slot calculation with business hours, branch overrides, staff schedules
 and schedule blocks. Uses in-memory fake repositories, no database needed.
 """
-from datetime import date, time
+from datetime import date, datetime, time
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -93,7 +93,7 @@ class FakeStaffProfileRepo:
         return SimpleNamespace(id=staff_id, branch_id=self.branch_id)
 
 
-def make_service(hours_rows=None, appointments=None, blocks=None, shifts=None, staff_branch=None):
+def make_service(hours_rows=None, appointments=None, blocks=None, shifts=None, staff_branch=None, now_fn=None):
     block_repo = FakeBlockRepo(blocks)
     service = AppointmentService(
         repository=FakeAppointmentRepo(appointments),
@@ -102,6 +102,7 @@ def make_service(hours_rows=None, appointments=None, blocks=None, shifts=None, s
         business_hours_service=BusinessHoursService(repository=FakeHoursRepo(hours_rows), uow=None),
         staff_schedule_repo=FakeStaffScheduleRepo(shifts),
         staff_profile_repo=FakeStaffProfileRepo(staff_branch),
+        now_fn=now_fn or (lambda: datetime(2026, 10, 4, 12, 0)),  # the day before MONDAY
     )
     return service, block_repo
 
@@ -243,3 +244,36 @@ def test_schema_rejects_duplicate_days():
             BusinessHoursItem(day_of_week=0, open_time=time(9), close_time=time(18)),
             BusinessHoursItem(day_of_week=0, is_closed=True),
         ])
+
+
+# ---------------------------------------------------------------- past slots
+
+def test_today_only_offers_slots_after_now():
+    service, _ = make_service(now_fn=lambda: datetime(2026, 10, 5, 14, 10))
+    slots = service.get_available_slots(BUSINESS, MONDAY, duration_minutes=60)
+    assert slots[0] == "14:30"
+    assert slots[-1] == "17:00"
+
+
+def test_slot_starting_exactly_now_is_not_offered():
+    service, _ = make_service(now_fn=lambda: datetime(2026, 10, 5, 14, 30))
+    assert service.get_available_slots(BUSINESS, MONDAY, duration_minutes=60)[0] == "15:00"
+
+
+def test_after_closing_time_today_has_no_slots():
+    service, _ = make_service(now_fn=lambda: datetime(2026, 10, 5, 18, 31))
+    assert service.get_available_slots(BUSINESS, MONDAY) == []
+
+
+def test_past_day_has_no_slots():
+    service, _ = make_service(now_fn=lambda: datetime(2026, 10, 6, 8, 0))
+    assert service.get_available_slots(BUSINESS, MONDAY) == []
+
+
+def test_default_clock_uses_app_timezone(monkeypatch):
+    from app.core.config import settings
+    from app.modules.appointments.service import local_now
+
+    monkeypatch.setattr(settings, "APP_TIMEZONE", "Europe/Istanbul")
+    now = local_now()
+    assert now.tzinfo is None

@@ -15,6 +15,7 @@ import {
   AppNotification
 } from "@/lib/api";
 import { getActiveBusinessId } from "@/lib/business";
+import { PendingActionsMenu } from "@/components/layout/pending-actions-menu";
 
 export function Navbar() {
   const router = useRouter();
@@ -91,6 +92,8 @@ export function Navbar() {
       </div>
 
       <div className="flex items-center gap-4">
+        <PendingActionsMenu />
+
         <div className="relative">
           <Button 
             variant="ghost" 

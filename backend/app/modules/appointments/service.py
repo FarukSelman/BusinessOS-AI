@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from datetime import date, datetime, time, timedelta
 from uuid import UUID
+from zoneinfo import ZoneInfo
+
+from app.core.config import settings
 
 from app.core.exceptions import NotFoundException
 from app.db.unit_of_work import UnitOfWork
@@ -14,6 +17,11 @@ from app.modules.appointments.schemas import (
 from app.shared.enums.appointment import AppointmentStatus
 
 
+def local_now() -> datetime:
+    """Current wall-clock time in APP_TIMEZONE (naive, like appointment times)."""
+    return datetime.now(ZoneInfo(settings.APP_TIMEZONE)).replace(tzinfo=None)
+
+
 class AppointmentService:
 
     def __init__(
@@ -24,8 +32,11 @@ class AppointmentService:
         business_hours_service = None,
         staff_schedule_repo = None,
         staff_profile_repo = None,
+        now_fn = None,
     ):
         self.repository = repository
+        # Injectable clock so slot tests do not depend on the real date.
+        self.now_fn = now_fn or local_now
         self.uow = uow
         self.schedule_block_repo = schedule_block_repo
         self.business_hours_service = business_hours_service
@@ -289,7 +300,13 @@ class AppointmentService:
         1. Opening window from business_hours (branch week > business week > 09:00-18:00 default).
         2. If a staff member is given, intersected with their staff_schedules for that weekday.
         3. Schedule blocks (business-wide + this branch) and existing appointments are removed.
+        4. Past days have no slots; for today only slots starting after "now" are offered.
         """
+
+        now = self.now_fn()
+        if target_date < now.date():
+            return []
+        not_before = now if target_date == now.date() else None
 
         # A staff member works at one branch; use it when no branch was given.
         if staff_id and branch_id is None and self.staff_profile_repo:
@@ -376,6 +393,10 @@ class AppointmentService:
             slot_end = current + timedelta(
                 minutes=duration_minutes,
             )
+
+            if not_before is not None and current <= not_before:
+                current += timedelta(minutes=30)
+                continue
 
             conflict = False
             for booked_start, booked_end in booked_ranges:

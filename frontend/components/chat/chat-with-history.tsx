@@ -15,6 +15,7 @@ import {
   PendingAgentAction,
   approveAgentAction,
   rejectAgentAction,
+  notifyAgentActionsChanged,
 } from "@/lib/api";
 import { PendingActionCard, type ActionOutcome } from "@/components/chat/pending-action-card";
 import { getActiveBusinessId } from "@/lib/business";
@@ -136,7 +137,8 @@ export function ChatWithHistory({ title, description, agentColor, examplePrompts
           pendingActions: response.pending_actions,
         },
       ]);
-      
+      if (response.pending_actions?.length) notifyAgentActionsChanged();
+
       if (!activeSessionId && response.conversation_id) {
         setActiveSessionId(response.conversation_id);
         loadSessions(); // reload list
@@ -159,6 +161,7 @@ export function ChatWithHistory({ title, description, agentColor, examplePrompts
       setLoading(true);
       await approveAgentAction(businessId, actionId);
       setActionOutcomes((previous) => ({ ...previous, [actionId]: "approved" }));
+      notifyAgentActionsChanged();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "İşlem onaylanamadı.");
     } finally {
@@ -172,6 +175,7 @@ export function ChatWithHistory({ title, description, agentColor, examplePrompts
       setLoading(true);
       await rejectAgentAction(businessId, actionId, reason);
       setActionOutcomes((previous) => ({ ...previous, [actionId]: "rejected" }));
+      notifyAgentActionsChanged();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "İşlem reddedilemedi.");
     } finally {

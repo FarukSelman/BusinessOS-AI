@@ -16,6 +16,8 @@ class AgentActionResponse(BaseModel):
     rejection_reason: str | None
     executed_at: datetime | None
     created_at: datetime
+    # Display name of the member whose chat request created the draft (list endpoint only).
+    requested_by_name: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

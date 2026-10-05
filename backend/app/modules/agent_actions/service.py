@@ -9,6 +9,7 @@ from app.modules.appointments.schemas import AppointmentCreate
 from app.modules.appointments.service import AppointmentService
 from app.modules.appointments.models import Appointment
 from app.modules.customers.models import Customer
+from app.modules.user.models import User
 from app.modules.invoice.repository import InvoiceRepository
 from app.modules.invoice.schemas import InvoiceCreatePayload
 from app.modules.invoice.service import InvoiceService
@@ -28,11 +29,23 @@ class AgentActionService:
         self.invoice_service = invoice_service
 
     def list_pending(self, business_id: UUID) -> list[AgentAction]:
-        return list(self.db.query(AgentAction).filter(
-            AgentAction.business_id == business_id,
-            AgentAction.status == "PENDING",
-            AgentAction.is_deleted.is_(False),
-        ).order_by(AgentAction.created_at.desc()).all())
+        rows = (
+            self.db.query(AgentAction, User.first_name, User.last_name)
+            .outerjoin(User, User.id == AgentAction.requested_by)
+            .filter(
+                AgentAction.business_id == business_id,
+                AgentAction.status == "PENDING",
+                AgentAction.is_deleted.is_(False),
+            )
+            .order_by(AgentAction.created_at.desc())
+            .all()
+        )
+        actions = []
+        for action, first_name, last_name in rows:
+            # Transient attribute for the response; not a column.
+            action.requested_by_name = " ".join(p for p in (first_name, last_name) if p) or None
+            actions.append(action)
+        return actions
 
     def get(self, business_id: UUID, action_id: UUID) -> AgentAction:
         action = self.db.query(AgentAction).filter(

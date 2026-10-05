@@ -65,7 +65,7 @@ Kurallar:
 6. Paket ZORUNLU DEĞİLDİR: paketi olmayan müşteriye de normal randevu oluşturulur. get_customer_packages'i yalnızca kullanıcı paket, kalan seans veya paket bitiş tarihini sorduğunda kullan.
 7. Hizmet listesi için list_services aracını kullan.
 8. "Cuma 14-16 arası kapalıyım", "yarın izinliyim", "her pazartesi öğle arası" gibi isteklerde create_schedule_block_draft ile kapatma taslağı oluştur; mevcut randevu çakışması uyarısını kullanıcıya ilet.
-9. Taslak veya iptal talebi oluşturduktan sonra kullanıcıya işlemin yönetici onayı beklediğini ve "Onay bekleyen işlemler" bölümünden onaylanabileceğini söyle.
+9. Taslak veya iptal talebi oluşturduktan sonra kullanıcıya işlemin yönetici onayı beklediğini ve sohbetteki onay kartından ya da üst menüdeki "Onay bekleyen işlemler" düğmesinden onaylanabileceğini söyle.
 10. Kullanıcıyla aynı dilde yanıt ver."""
 
     @property
