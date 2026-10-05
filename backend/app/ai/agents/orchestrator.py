@@ -33,6 +33,29 @@ AGENT_NAMES = (
 
 DEFAULT_AGENT = "customer_support"
 
+# Used only when the LLM classifier is unreachable, so a network hiccup does not
+# send a finance or booking request to the wrong agent. Order matters: the first
+# group with a matching keyword wins.
+FALLBACK_KEYWORDS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("finance", ("gelir", "gider", "kasa", "ciro", "kâr", "kar ", "zarar", "fatura", "taksit", "harcama",
+                 "ödedim", "masraf", "revenue", "expense", "income", "invoice", "profit")),
+    ("marketing", ("kampanya", "indirim", "pazarlama", "sadakat", "segment", "campaign", "promotion")),
+    ("analytics", ("istatistik", "analiz", "rapor", "popüler", "performans", "kaç randevu", "trend",
+                   "statistics", "report")),
+    ("appointment", ("randevu", "iptal", "boş saat", "müsait", "rezervasyon", "takvim", "appointment",
+                     "booking", "book ", "cancel")),
+    ("sales", ("stok", "ürün", "paket", "satış", "stock", "product", "package")),
+)
+
+
+def keyword_route(question: str) -> str:
+    """Best-effort routing without the LLM (Turkish-aware lower-casing)."""
+    text = question.replace("İ", "i").replace("I", "ı").lower() + " "
+    for agent, keywords in FALLBACK_KEYWORDS:
+        if any(k in text for k in keywords):
+            return agent
+    return DEFAULT_AGENT
+
 
 CLASSIFICATION_PROMPT = """Sen bir intent sınıflandırma asistanısın.
 
@@ -199,5 +222,6 @@ class AgentOrchestrator:
             return DEFAULT_AGENT
 
         except Exception as e:
-            logger.error("Intent classification failed: %s", str(e))
-            return DEFAULT_AGENT
+            fallback = keyword_route(question)
+            logger.error("Intent classification failed: %s; keyword fallback -> %s", str(e), fallback)
+            return fallback

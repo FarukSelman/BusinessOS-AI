@@ -53,7 +53,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from app.core.config import settings  # noqa: E402
 from app.main import app  # noqa: E402
-from app.db.session import SessionLocal  # noqa: E402
+from app.db.session import SessionLocal, engine  # noqa: E402
 from app.ai.agents.tools.common import money  # noqa: E402
 from app.modules.agent_actions.models import AgentAction  # noqa: E402
 from app.modules.appointments.models import Appointment  # noqa: E402
@@ -79,7 +79,11 @@ from app.shared.enums.review import ReviewStatus  # noqa: E402
 from app.shared.enums.user import UserStatus  # noqa: E402
 from app.shared.security.jwt import create_access_token  # noqa: E402
 
+engine.echo = False  # DEBUG=True echoes every SQL statement; keep the report readable
+
 API = "/api/v1"
+RETRYABLE = ("APIConnectionError", "APITimeoutError", "InternalServerError")
+FATAL = ("AuthenticationError", "PermissionDeniedError", "RateLimitError", "NotFoundError")
 HHMM = re.compile(r"\b([01]\d|2[0-3])[:.][0-5]\d\b")
 
 SECRET_CUSTOMER = "Zeynep Gizli"
@@ -287,14 +291,22 @@ class Runner:
         if session_id:
             body["session_id"] = str(session_id)
         started = _time.perf_counter()
-        try:
-            r = self.client.post(f"{self.base}/chat", json=body, headers=self.headers(user))
-        except Exception as exc:
-            turn.error = f"{type(exc).__name__}: {exc}"
-            name = type(exc).__name__
-            if name in ("AuthenticationError", "PermissionDeniedError", "RateLimitError", "APIConnectionError"):
-                raise Abort(f"OpenAI çağrısı başarısız ({name}). Anahtarı, kotayı veya internet bağlantısını kontrol et.") from None
-        else:
+        r = None
+        for attempt in range(3):  # transient network errors are retried twice
+            try:
+                r = self.client.post(f"{self.base}/chat", json=body, headers=self.headers(user))
+                break
+            except Exception as exc:
+                name = type(exc).__name__
+                turn.error = f"{name}: {exc}"
+                if name in FATAL:
+                    raise Abort(f"OpenAI çağrısı reddedildi ({name}). Anahtarı veya kotayı kontrol et.") from None
+                if name not in RETRYABLE or attempt == 2:
+                    break
+                print(f"(bağlantı hatası, yeniden deneniyor {attempt + 1}/2)", end=" ", flush=True)
+                _time.sleep(3 * (attempt + 1))
+        if r is not None:
+            turn.error = None
             turn.seconds = _time.perf_counter() - started
             if r.status_code == 200:
                 data = r.json()

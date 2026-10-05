@@ -10,8 +10,12 @@ class OpenAIClient:
     """
 
     def __init__(self):
+        # Connection resets on home/office networks are common; the SDK retries
+        # connection errors, timeouts, 429 and 5xx with exponential backoff.
         self.client = OpenAI(
             api_key=settings.OPENAI_API_KEY,
+            max_retries=4,
+            timeout=60.0,
         )
 
     def chat(

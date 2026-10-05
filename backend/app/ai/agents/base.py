@@ -24,6 +24,12 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
+LANGUAGE_NOTE = (
+    "Yanıt dili: kullanıcının son mesajı hangi dildeyse yanıtın tamamını o dilde yaz "
+    "(ör. İngilizce soruya İngilizce). Araç çıktıları Türkçe olsa bile gerekirse çevir."
+)
+
+
 def current_date_note(now: datetime | None = None) -> str:
     """
     Tells the model today's date and time in APP_TIMEZONE, so relative
@@ -221,7 +227,7 @@ class BaseAgent(ABC):
         # System message with agent-specific prompt
         system_content = self.system_prompt.format(
             business_name=context.business_name or "İşletme",
-        ) + "\n\n" + current_date_note()
+        ) + "\n\n" + current_date_note() + "\n" + LANGUAGE_NOTE
 
         messages = [
             {

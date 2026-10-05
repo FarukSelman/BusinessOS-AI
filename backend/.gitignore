@@ -25,3 +25,6 @@ celerybeat-schedule*
 
 # Agent E2E reports (scripts/agent_e2e.py)
 agent-e2e-report-*.md
+
+# e2e-test.bat output
+e2e-test-sonuc.log

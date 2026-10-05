@@ -111,3 +111,57 @@ def test_every_agent_system_message_contains_today():
         system = agent._build_messages(question="yarın boş saat var mı?", context=context)[0]["content"]
         assert "Bugünün tarihi:" in system, agent.name
         assert "Kuaför" in system
+
+
+def _orchestrator(client):
+    import uuid
+    from unittest import mock
+
+    from app.ai.agents.orchestrator import AgentOrchestrator
+
+    return AgentOrchestrator(
+        client=client, db=mock.MagicMock(), business_id=uuid.uuid4(),
+        user_id=uuid.uuid4(), embedding_service=mock.MagicMock(), role="OWNER",
+    )
+
+
+@pytest.mark.parametrize("question, expected", [
+    ("Bu ay ne kadar gelir elde ettik?", "finance"),
+    ("Bugün 500 TL elektrik faturası ödedim, gider olarak kaydet.", "finance"),
+    ("Yarın saat 15:00'e Ayşe Kaya için randevu oluştur.", "appointment"),
+    ("Mehmet'in randevusunu İPTAL et", "appointment"),
+    ("Son 30 günde kaç randevumuz oldu?", "analytics"),
+    ("%15 indirimli kampanya hazırla", "marketing"),
+    ("Stoğu azalan ürünler hangileri?", "sales"),
+    ("Çalışma saatleriniz nedir?", "customer_support"),
+])
+def test_classifier_outage_falls_back_to_keywords(question, expected):
+    client = MagicMock()
+    client.chat.side_effect = ConnectionError("Connection error.")
+    assert _orchestrator(client)._classify_intent(question=question) == expected
+
+
+def test_classifier_answer_still_wins_when_available():
+    client = MagicMock()
+    client.chat.return_value = "sales"
+    assert _orchestrator(client)._classify_intent(question="Bu ay ne kadar gelir elde ettik?") == "sales"
+
+
+def test_system_message_asks_for_the_users_language():
+    import uuid
+
+    from app.ai.agents.schemas import AgentContext
+
+    context = AgentContext(business_id=uuid.uuid4(), user_id=uuid.uuid4(), business_name="Kuaför")
+    for agent in _orchestrator(MagicMock()).agents.values():
+        system = agent._build_messages(question="What are your opening hours?", context=context)[0]["content"]
+        assert "İngilizce soruya İngilizce" in system, agent.name
+
+
+def test_openai_client_retries_transient_errors(monkeypatch):
+    from app.ai.openai.client import OpenAIClient
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "OPENAI_API_KEY", "test-key-not-used")
+    client = OpenAIClient()
+    assert client.client.max_retries >= 3

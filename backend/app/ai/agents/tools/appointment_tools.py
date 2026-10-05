@@ -116,8 +116,8 @@ class CreateAppointmentTool(BaseTool):
     @property
     def description(self) -> str:
         return (
-            "Yeni bir randevu oluşturur. "
-            "Müşteri adı, tarih ve saat bilgisi gereklidir."
+            "Yönetici onayı bekleyen bir randevu taslağı oluşturur (kayıt onaydan sonra oluşur). "
+            "Müşteri adı (CRM'deki kayıtlı ad), tarih ve saat gereklidir; paket gerekmez."
         )
 
     @property
@@ -377,8 +377,8 @@ class CancelAppointmentTool(BaseTool):
     @property
     def description(self) -> str:
         return (
-            "Mevcut bir randevuyu iptal eder. "
-            "Müşteri adı ve tarihe göre bulur."
+            "Mevcut bir randevu için yönetici onayı bekleyen bir iptal talebi oluşturur "
+            "(randevu onaydan sonra iptal edilir). Randevuyu müşteri adı ve tarihe göre bulur."
         )
 
     @property
