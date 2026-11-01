@@ -237,8 +237,8 @@ pytest -v --cov=app
 
 ## 👨‍💻 11. Geliştirici
 
-**[Adınız Soyadınız]**  
-*Üniversite Adı - Bilgisayar Mühendisliği / Yazılım Mühendisliği Bölümü*  
+**[Faruk SELMAN]**  
+*Burdur Mehmet Akif Ersoy Üniversitesi - Bucak Bilgisayar ve Bilişim Fakültesi / Yazılım Mühendisliği Bölümü*  
 Bitirme Tezi Projesi - 2026
 
 ---
