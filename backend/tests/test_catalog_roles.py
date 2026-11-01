@@ -212,3 +212,32 @@ def test_finance_roles_can_do_everything(client, w, role):
     for method, path, kwargs in staff_writes(w) + finance_writes(w):
         res = call(client, w, role, method, path, kwargs)
         assert res.status_code != 403 and res.status_code < 500, (method, path, res.status_code, res.text)
+
+
+# ---------------------------------------------------------------- names and timestamps
+
+@pytest.mark.parametrize("role", ALL)
+def test_customer_packages_and_installments_carry_names(client, w, role):
+    names = ("Ayşe Yılmaz", "4 seans cilt bakımı")
+    for cp in [get(client, w, role, f"/customer-packages/{w.cp['id']}"), get(client, w, role, "/customer-packages")[0]]:
+        assert (cp["customer_name"], cp["package_name"]) == names
+        assert all((i["customer_name"], i["package_name"]) == names for i in cp["installments"])
+    for inst in get(client, w, role, "/installments"):
+        assert (inst["customer_name"], inst["package_name"]) == names
+
+
+def test_selling_and_marking_sessions_store_aware_utc_times_without_warnings(client, w):
+    import warnings
+
+    b, h = base(w), auth(w.owner)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        res = client.post(f"{b}/customer-packages", headers=h,
+                          json={"customer_id": str(w.customer.id), "package_id": w.package["id"]})
+        assert res.status_code == 201, res.text
+        cp = res.json()
+        res = client.post(f"{b}/customer-packages/{cp['id']}/sessions/{cp['sessions'][0]['id']}/complete",
+                          headers=h, json={})
+        assert res.status_code == 200, res.text
+    assert not [m for m in caught if "utcnow" in str(m.message)]
+    assert cp["purchased_at"].endswith(("Z", "+00:00")) or "+" in cp["purchased_at"][10:]

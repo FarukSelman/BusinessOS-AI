@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import Enum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -52,7 +52,7 @@ class Invitation(BaseModel):
     )
 
     expires_at: Mapped[datetime] = mapped_column(
-        default=lambda: datetime.utcnow() + timedelta(days=7),
+        default=lambda: datetime.now(UTC) + timedelta(days=7),
         nullable=False,
     )
 

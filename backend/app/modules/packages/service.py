@@ -1,6 +1,6 @@
 from typing import List, Optional
 from uuid import UUID
-from datetime import datetime, date, timedelta
+from datetime import UTC, datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 
 from app.core.exceptions import NotFoundException, BadRequestException
@@ -93,7 +93,7 @@ class PackageService:
             raise BadRequestException(f"Maximum installments allowed is {pkg.max_installments}")
 
         with self.uow:
-            now = datetime.utcnow()
+            now = datetime.now(UTC)
             expires_at = None
             if pkg.validity_days and pkg.validity_days > 0:
                 expires_at = now + timedelta(days=pkg.validity_days)
@@ -171,8 +171,43 @@ class PackageService:
             
         return cp
 
+    def _attach_names(self, customer_packages: list[CustomerPackage]) -> None:
+        """customer_name / package_name on each customer package, two queries for any number of rows."""
+        from sqlalchemy import select
+        from app.modules.customers.models import Customer
+
+        if not customer_packages:
+            return
+        db = self.customer_package_repo.db
+        customer_ids = {cp.customer_id for cp in customer_packages}
+        package_ids = {cp.package_id for cp in customer_packages}
+        customers = dict(db.execute(select(Customer.id, Customer.name).where(Customer.id.in_(customer_ids))).all())
+        packages = dict(db.execute(select(ServicePackage.id, ServicePackage.name).where(ServicePackage.id.in_(package_ids))).all())
+        for cp in customer_packages:
+            cp.customer_name = customers.get(cp.customer_id)
+            cp.package_name = packages.get(cp.package_id)
+
+    def _attach_installment_names(self, installments: list[Installment]) -> list[Installment]:
+        from sqlalchemy import select
+
+        if not installments:
+            return installments
+        db = self.customer_package_repo.db
+        cps = list(db.scalars(
+            select(CustomerPackage).where(CustomerPackage.id.in_({i.customer_package_id for i in installments}))
+        ).all())
+        self._attach_names(cps)
+        by_id = {cp.id: cp for cp in cps}
+        for inst in installments:
+            cp = by_id.get(inst.customer_package_id)
+            inst.customer_name = cp.customer_name if cp else None
+            inst.package_name = cp.package_name if cp else None
+        return installments
+
     def list_customer_packages(self, business_id: UUID, page: int = 1, size: int = 20, status: Optional[CustomerPackageStatus] = None, customer_id: Optional[UUID] = None) -> list[CustomerPackage]:
-        return self.customer_package_repo.list_by_business(business_id=business_id, page=page, size=size, status=status, customer_id=customer_id)
+        cps = self.customer_package_repo.list_by_business(business_id=business_id, page=page, size=size, status=status, customer_id=customer_id)
+        self._attach_names(cps)
+        return cps
 
     def get_customer_package_detail(self, business_id: UUID, cp_id: UUID) -> CustomerPackage:
         cp = self.customer_package_repo.get_by_business(business_id, cp_id)
@@ -185,6 +220,9 @@ class PackageService:
         # we attach these so pydantic schema can read them
         cp.sessions = sessions
         cp.installments = installments
+        self._attach_names([cp])
+        for inst in installments:
+            inst.customer_name, inst.package_name = cp.customer_name, cp.package_name
         return cp
 
     def complete_session(self, business_id: UUID, cp_id: UUID, session_id: UUID, data: SessionComplete) -> PackageSession:
@@ -207,7 +245,7 @@ class PackageService:
             session.appointment_id = data.appointment_id
             session.completed_by = data.staff_id
             session.notes = data.notes
-            session.session_date = datetime.utcnow()
+            session.session_date = datetime.now(UTC)
             
             cp.used_sessions += 1
             cp.remaining_sessions = cp.total_sessions - cp.used_sessions
@@ -240,10 +278,10 @@ class PackageService:
         return session
 
     def list_installments(self, business_id: UUID, page: int = 1, size: int = 20, status: Optional[InstallmentStatus] = None) -> list[Installment]:
-        return self.installment_repo.list_by_business(business_id, page, size, status)
+        return self._attach_installment_names(self.installment_repo.list_by_business(business_id, page, size, status))
 
     def list_overdue_installments(self, business_id: UUID) -> list[Installment]:
-        return self.installment_repo.list_overdue(business_id)
+        return self._attach_installment_names(self.installment_repo.list_overdue(business_id))
 
     def pay_installment(self, business_id: UUID, installment_id: UUID, payment_method: Optional[PaymentMethod] = None) -> Installment:
         inst = self.installment_repo.get(installment_id)

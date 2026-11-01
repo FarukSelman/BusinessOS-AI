@@ -316,7 +316,7 @@ function CustomersPageContent() {
           <Card className="max-w-2xl bg-surface/50 border-dashed">
             <CardContent className="p-4 flex flex-col gap-4">
               <div className="flex gap-4 items-center">
-                <Label className="w-20 shrink-0">Durum:</Label>
+                <Label className="w-24 shrink-0">Durum:</Label>
                 <select className="text-sm rounded border px-2 py-1" value={statusFilter} onChange={e => list.setFilter("status", e.target.value === "ALL" ? "" : e.target.value)}>
                   <option value="ALL">Tümü</option>
                   <option value="ACTIVE">Aktif</option>
@@ -324,7 +324,7 @@ function CustomersPageContent() {
                 </select>
               </div>
               <div className="flex gap-4 items-center">
-                <Label htmlFor="min-visits" className="w-20 shrink-0">Min. ziyaret:</Label>
+                <Label htmlFor="min-visits" className="w-24 shrink-0">Min. ziyaret:</Label>
                 <Input
                   id="min-visits"
                   type="number"
@@ -341,7 +341,7 @@ function CustomersPageContent() {
                 <span className="text-xs text-ink-muted">tamamlanmış randevu</span>
               </div>
               <div className="flex gap-4 items-start">
-                <Label className="w-20 shrink-0 mt-1">Etiketler:</Label>
+                <Label className="w-24 shrink-0 mt-1">Etiketler:</Label>
                 <div className="flex flex-wrap gap-2">
                   {tags.map(t => {
                     const isSelected = selectedTagFilters.includes(t.id);

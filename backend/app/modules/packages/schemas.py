@@ -83,6 +83,9 @@ class InstallmentResponse(BaseModel):
     status: InstallmentStatus
     payment_method: Optional[PaymentMethod]
     notes: Optional[str]
+    # Whose package this instalment belongs to (filled by the service)
+    customer_name: Optional[str] = None
+    package_name: Optional[str] = None
 
 
 class PackageSessionResponse(BaseModel):
@@ -116,13 +119,15 @@ class CustomerPackageResponse(BaseModel):
     paid_amount: Optional[float]
     status: CustomerPackageStatus
     notes: Optional[str]
+    # Filled by the service, so cards need no lookup per row
+    customer_name: Optional[str] = None
+    package_name: Optional[str] = None
     sessions: List[PackageSessionResponse] = []
     installments: List[InstallmentResponse] = []
 
 
 class OverdueInstallmentResponse(InstallmentResponse):
-    customer_name: Optional[str] = None
-    package_name: Optional[str] = None
+    """Kept for the route signature; names now live on InstallmentResponse."""
 
 
 # ---------------------------------------------------------------- role views

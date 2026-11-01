@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, date
+from datetime import UTC, datetime, date
 from sqlalchemy import String, Text, Boolean, Integer, Numeric, DateTime, Date, ForeignKey, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -38,7 +38,7 @@ class CustomerPackage(BaseModel):
     package_id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("service_packages.id", ondelete="CASCADE"), nullable=False)
     branch_id: Mapped[uuid.UUID | None] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("branches.id", ondelete="SET NULL"), nullable=True)
     
-    purchased_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    purchased_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     
     total_sessions: Mapped[int] = mapped_column(Integer, nullable=False)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { LogOut, Building2, Bell, CheckCircle2, User, Menu, ArrowLeftRight } from "lucide-react";
@@ -155,17 +155,83 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void } = {}) {
           )}
         </div>
 
-        <Link href="/profile">
-          <Button variant="ghost" size="icon">
-            <User className="h-5 w-5 text-ink-muted hover:text-ink" />
-          </Button>
-        </Link>
+        {/* Geniş ekran: profil ve çıkış ayrı; telefonda tek hesap menüsü (işletme adına yer kalsın) */}
+        <div className="hidden items-center gap-4 sm:flex">
+          <Link href="/profile">
+            <Button variant="ghost" size="icon" aria-label="Profil">
+              <User className="h-5 w-5 text-ink-muted hover:text-ink" />
+            </Button>
+          </Link>
 
-        <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2" aria-label="Çıkış yap">
-          <LogOut className="h-4 w-4" />
-          <span className="hidden sm:inline">Çıkış yap</span>
-        </Button>
+          <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2" aria-label="Çıkış yap">
+            <LogOut className="h-4 w-4" />
+            <span>Çıkış yap</span>
+          </Button>
+        </div>
+        <AccountMenu className="sm:hidden" onLogout={handleLogout} />
       </div>
     </header>
+  );
+}
+
+function AccountMenu({ onLogout, className }: { onLogout: () => void; className?: string }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className={`relative ${className ?? ""}`}>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Hesap menüsü"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <User className="h-5 w-5 text-ink-muted hover:text-ink" />
+      </Button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 z-50 mt-2 w-44 overflow-hidden rounded-lg border border-border bg-surface-elevated shadow-lg"
+        >
+          <Link
+            href="/profile"
+            role="menuitem"
+            className="flex items-center gap-2 px-3 py-2.5 text-sm text-ink hover:bg-surface"
+            onClick={() => setOpen(false)}
+          >
+            <User className="h-4 w-4 text-ink-muted" /> Profil
+          </Link>
+          <button
+            type="button"
+            role="menuitem"
+            className="flex w-full items-center gap-2 border-t border-border px-3 py-2.5 text-left text-sm text-danger hover:bg-surface"
+            onClick={() => {
+              setOpen(false);
+              onLogout();
+            }}
+          >
+            <LogOut className="h-4 w-4" /> Çıkış yap
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
