@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -81,3 +81,6 @@ class CustomerListItem(CustomerResponse):
     """List row: the customer plus its tags, so the page needs no request per customer."""
 
     tags: list[CustomerTagBrief] = []
+    # Completed appointments, and the latest non-cancelled appointment up to today
+    completed_visits: int = 0
+    last_visit_date: date | None = None

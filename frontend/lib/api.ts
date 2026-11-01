@@ -372,21 +372,14 @@ export async function listCustomers(businessId: string, page = 1, size = 20): Pr
 
 export async function listCustomersPage(
   businessId: string,
-  q: ListPageQuery & { status?: string; tagIds?: string[] }
+  q: ListPageQuery & { status?: string; tagIds?: string[]; minVisits?: string }
 ): Promise<Page<Customer>> {
-  const params = pageParams(q, { status: q.status, tag_ids: q.tagIds });
+  const params = pageParams(q, { status: q.status, tag_ids: q.tagIds, min_visits: q.minVisits });
   return apiFetchPage<Customer>(`/api/v1/businesses/${businessId}/customers?${params}`, { signal: q.signal });
 }
 
 export async function getCustomer(businessId: string, customerId: string): Promise<Customer> {
   return apiFetch<Customer>(`/api/v1/businesses/${businessId}/customers/${customerId}`);
-}
-
-// Seçim listeleri ve ad eşleştirme için. Tam sayfalama/arama gelene kadar geçici üst sınır.
-export const CUSTOMER_PICKER_LIMIT = 1000;
-
-export async function listCustomersForPicker(businessId: string): Promise<Customer[]> {
-  return listCustomers(businessId, 1, CUSTOMER_PICKER_LIMIT);
 }
 
 export async function createCustomer(

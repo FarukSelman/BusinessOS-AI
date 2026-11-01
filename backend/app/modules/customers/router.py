@@ -103,6 +103,8 @@ def list_customers(
     search: str | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
+    # At least this many completed appointments
+    min_visits: int | None = Query(None, ge=1),
 
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1),
@@ -123,17 +125,21 @@ def list_customers(
         search=search,
         date_from=date_from,
         date_to=date_to,
+        min_visits=min_visits,
         page=page,
         size=size,
     )
     response.headers["X-Total-Count"] = str(total)
-    return [
-        CustomerListItem(
-            **CustomerResponse.model_validate(row["customer"]).model_dump(),
-            tags=[CustomerTagBrief.model_validate(t) for t in row["tags"]],
-        )
-        for row in rows
-    ]
+    return [_list_item(row) for row in rows]
+
+
+def _list_item(row: dict) -> CustomerListItem:
+    return CustomerListItem(
+        **CustomerResponse.model_validate(row["customer"]).model_dump(),
+        tags=[CustomerTagBrief.model_validate(t) for t in row["tags"]],
+        completed_visits=row["completed_visits"],
+        last_visit_date=row["last_visit_date"],
+    )
 
 @router.get(
     "/{customer_id}/history",
@@ -165,7 +171,7 @@ def get_customer_history(
 
 @router.get(
     "/{customer_id}",
-    response_model=CustomerResponse,
+    response_model=CustomerListItem,
     summary="Get customer",
 )
 def get_customer(
@@ -181,10 +187,7 @@ def get_customer(
     ),
 ):
 
-    return service.get(
-        business_id=business_id,
-        customer_id=customer_id,
-    )
+    return _list_item(service.get_detail(business_id, customer_id))
 
 
 # --------------------------------------------------

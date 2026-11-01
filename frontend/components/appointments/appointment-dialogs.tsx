@@ -17,7 +17,6 @@ import {
   type Appointment,
   type Branch,
   type BusinessService,
-  type Customer,
   type StaffProfile,
 } from "@/lib/api";
 import { fromISODate, toHm } from "@/lib/date";
@@ -239,12 +238,11 @@ export type FormDialogState =
 
 interface FormDialogProps extends Lookups {
   state: FormDialogState | null;
-  customers: Customer[];
   onClose: () => void;
   onSubmit: (state: FormDialogState, values: AppointmentFormValues) => Promise<void>;
 }
 
-export function AppointmentFormDialog({ state, customers, services, staff, branches, onClose, onSubmit }: FormDialogProps) {
+export function AppointmentFormDialog({ state, services, staff, branches, onClose, onSubmit }: FormDialogProps) {
   return (
     <Dialog open={state !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[90vh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto">
@@ -255,7 +253,6 @@ export function AppointmentFormDialog({ state, customers, services, staff, branc
               // her açılışta form temiz başlasın
               key={state.mode === "edit" ? state.appointmentId : `${state.initial.appointment_date}-${state.initial.start_time}`}
               state={state}
-              customers={customers}
               services={services}
               staff={staff}
               branches={branches}
@@ -271,7 +268,6 @@ export function AppointmentFormDialog({ state, customers, services, staff, branc
 
 function FormDialogBody({
   state,
-  customers,
   services,
   staff,
   branches,
@@ -284,7 +280,6 @@ function FormDialogBody({
       idPrefix="dlg"
       values={values}
       onChange={setValues}
-      customers={customers}
       services={services}
       staff={staff}
       branches={branches}

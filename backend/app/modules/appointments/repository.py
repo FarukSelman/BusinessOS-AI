@@ -22,6 +22,19 @@ class AppointmentRepository(
             model=Appointment,
         )
 
+    def list_by_customer(self, business_id: UUID, customer_id: UUID) -> list[Appointment]:
+        """Every appointment of one customer, newest first."""
+        statement = (
+            select(self.model)
+            .where(
+                self.model.business_id == business_id,
+                self.model.customer_id == customer_id,
+                self.model.is_deleted.is_(False),
+            )
+            .order_by(self.model.appointment_date.desc(), self.model.start_time.desc())
+        )
+        return list(self.db.scalars(statement).all())
+
     def list_by_business(
         self,
         business_id: UUID,

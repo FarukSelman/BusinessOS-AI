@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { CustomerCombobox } from "@/components/customers/customer-combobox";
 import type {
   Appointment,
   AppointmentCreatePayload,
@@ -83,7 +84,6 @@ interface Props {
   idPrefix: string;
   values: AppointmentFormValues;
   onChange: Dispatch<SetStateAction<AppointmentFormValues>>;
-  customers: Customer[];
   services: BusinessService[];
   staff: StaffProfile[];
   branches: Branch[];
@@ -100,7 +100,6 @@ export function AppointmentForm({
   idPrefix,
   values: v,
   onChange: setV,
-  customers,
   services,
   staff,
   branches,
@@ -115,11 +114,10 @@ export function AppointmentForm({
   const id = (name: string) => `${idPrefix}-${name}`;
   const set = (patch: Partial<AppointmentFormValues>) => setV((prev) => ({ ...prev, ...patch }));
 
-  function selectCustomer(customerId: string) {
-    const c = customers.find((x) => x.id === customerId);
+  function selectCustomer(c: Customer | null) {
     setV((f) => ({
       ...f,
-      customer_id: customerId,
+      customer_id: c?.id ?? "",
       customer_name: c ? c.name : f.customer_name,
       customer_phone: c?.phone ?? f.customer_phone,
       customer_email: c?.email ?? f.customer_email,
@@ -155,20 +153,13 @@ export function AppointmentForm({
     <form onSubmit={handleSubmit} className={cn("grid grid-cols-1 gap-4 sm:grid-cols-2", className)}>
       <div className="flex flex-col gap-1.5 sm:col-span-2">
         <Label htmlFor={id("customer")}>Müşteri</Label>
-        <Select id={id("customer")} value={v.customer_id} onChange={(e) => selectCustomer(e.target.value)}>
-          <option value="">Listeden seç ya da aşağıya elle yaz</option>
-          {customers.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-              {c.phone ? ` · ${c.phone}` : ""}
-            </option>
-          ))}
-        </Select>
-        {customers.length === 0 && (
-          <p className="text-xs text-ink-muted">
-            Henüz kayıtlı müşteri yok — &quot;Müşteriler&quot; sayfasından ekleyebilir ya da aşağıya elle yazabilirsin.
-          </p>
-        )}
+        <CustomerCombobox
+          id={id("customer")}
+          value={v.customer_id}
+          selectedLabel={v.customer_name}
+          onSelect={selectCustomer}
+          placeholder="Kayıtlı müşteri ara ya da aşağıya elle yaz"
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor={id("name")}>Müşteri adı</Label>

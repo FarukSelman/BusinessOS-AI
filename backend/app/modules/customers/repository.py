@@ -2,12 +2,14 @@ from datetime import date, datetime, time, timedelta
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import select, func
+from sqlalchemy import case, select, func
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.base_repository import BaseRepository
+from app.modules.appointments.models import Appointment
 from app.modules.customers.models import Customer
+from app.shared.enums.appointment import AppointmentStatus
 from app.shared.utils.search import count_rows, text_search
 
 
@@ -175,6 +177,21 @@ class CustomerRepository(
         if status:
             statement = statement.where(self.model.status == status)
 
+        # At least N completed appointments
+        if min_visits and min_visits > 0:
+            statement = statement.where(
+                self.model.id.in_(
+                    select(Appointment.customer_id)
+                    .where(
+                        Appointment.business_id == business_id,
+                        Appointment.status == AppointmentStatus.COMPLETED,
+                        Appointment.is_deleted.is_(False),
+                    )
+                    .group_by(Appointment.customer_id)
+                    .having(func.count() >= min_visits)
+                )
+            )
+
         # Whole local days: date_to includes customers created on that day.
         if date_from:
             statement = statement.where(self.model.created_at >= _local_midnight(date_from))
@@ -204,4 +221,38 @@ class CustomerRepository(
         ).all()
         for customer_id, tag in rows:
             result[customer_id].append(tag)
+        return result
+
+    def visit_stats(self, business_id: UUID, customer_ids: list[UUID]) -> dict[UUID, dict]:
+        """Completed visits and last visit of many customers in one query.
+
+        Last visit: the latest appointment that was not cancelled and is not in
+        the future (today counts), so an upcoming booking is not a "visit".
+        """
+        result: dict[UUID, dict] = {cid: {"completed_visits": 0, "last_visit_date": None} for cid in customer_ids}
+        if not customer_ids:
+            return result
+        today = datetime.now(ZoneInfo(settings.APP_TIMEZONE)).date()
+        rows = self.db.execute(
+            select(
+                Appointment.customer_id,
+                func.count().filter(Appointment.status == AppointmentStatus.COMPLETED),
+                func.max(
+                    case(
+                        (
+                            (Appointment.status != AppointmentStatus.CANCELLED) & (Appointment.appointment_date <= today),
+                            Appointment.appointment_date,
+                        )
+                    )
+                ),
+            )
+            .where(
+                Appointment.business_id == business_id,
+                Appointment.customer_id.in_(customer_ids),
+                Appointment.is_deleted.is_(False),
+            )
+            .group_by(Appointment.customer_id)
+        ).all()
+        for customer_id, completed, last_visit in rows:
+            result[customer_id] = {"completed_visits": completed, "last_visit_date": last_visit}
         return result

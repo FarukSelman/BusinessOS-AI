@@ -14,14 +14,12 @@ import {
   cancelAppointment,
   completeAppointment,
   getAvailableSlots,
-  listCustomersForPicker,
   listServices,
   listStaff,
   listBranches,
   type Appointment,
   type AppointmentStatus,
   type Branch,
-  type Customer,
   type BusinessService,
   type StaffProfile,
   ApiError,
@@ -67,7 +65,6 @@ function AppointmentsPageContent() {
   const [selectedDate, setSelectedDate] = useState(todayISO());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [slots, setSlots] = useState<string[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
   const [services, setServices] = useState<BusinessService[]>([]);
   const [staff, setStaff] = useState<StaffProfile[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -93,7 +90,6 @@ function AppointmentsPageContent() {
   // Dropdown listeleri - bir kez, tarih değişse de yeniden çekilmesine gerek yok
   useEffect(() => {
     if (!businessId) return;
-    listCustomersForPicker(businessId).then(setCustomers).catch(() => setCustomers([]));
     listServices(businessId).then(setServices).catch(() => setServices([]));
     listStaff(businessId)
       .then((s) => setStaff(s as StaffProfile[]))
@@ -353,7 +349,6 @@ function AppointmentsPageContent() {
                   idPrefix="a"
                   values={createForm}
                   onChange={setCreateForm}
-                  customers={customers}
                   services={services}
                   staff={activeStaff}
                   branches={branches}
@@ -390,7 +385,6 @@ function AppointmentsPageContent() {
                             idPrefix={`e-${a.id}`}
                             values={editForm}
                             onChange={setEditForm}
-                            customers={customers}
                             services={services}
                             staff={activeStaff}
                             branches={branches}
@@ -478,7 +472,6 @@ function AppointmentsPageContent() {
       )}
       <AppointmentFormDialog
         state={formDialog}
-        customers={customers}
         services={services}
         staff={activeStaff}
         branches={branches}

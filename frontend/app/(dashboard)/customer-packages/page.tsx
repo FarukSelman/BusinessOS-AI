@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useMyAccess } from "@/lib/use-my-access";
+import { CustomerCombobox } from "@/components/customers/customer-combobox";
 import { Users, CheckCircle2, Clock, Plus, Search, Calendar, CreditCard, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,6 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import {
   listCustomerPackages,
   sellPackage,
-  listCustomersForPicker,
   listPackages,
   getCustomerPackageDetail,
   completeSession,
@@ -19,7 +19,6 @@ import {
   payInstallment,
   ApiError,
   CustomerPackage,
-  Customer,
   ServicePackage
 } from "@/lib/api";
 import { getActiveBusinessId } from "@/lib/business";
@@ -46,7 +45,6 @@ export default function CustomerPackagesPage() {
   const canSell = access !== null && access.role !== "VIEWER";
 
   const [cPackages, setCPackages] = useState<CustomerPackage[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
   const [packages, setPackages] = useState<ServicePackage[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -74,13 +72,11 @@ export default function CustomerPackagesPage() {
     if (!businessId) return;
     setLoading(true);
     try {
-      const [cps, custs, pkgs] = await Promise.all([
+      const [cps, pkgs] = await Promise.all([
         listCustomerPackages(businessId, { status: statusFilter || undefined }),
-        listCustomersForPicker(businessId),
         listPackages(businessId)
       ]);
       setCPackages(cps);
-      setCustomers(custs);
       setPackages(pkgs);
     } catch (err) {
       toast.error("Veriler yüklenemedi.");
@@ -200,14 +196,11 @@ export default function CustomerPackagesPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label>Müşteri *</Label>
-                <select 
-                  className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                <CustomerCombobox
                   value={sellForm.customer_id}
-                  onChange={e => setSellForm({...sellForm, customer_id: e.target.value})}
-                >
-                  <option value="">Seçiniz...</option>
-                  {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                  onSelect={(c) => setSellForm({ ...sellForm, customer_id: c?.id ?? "" })}
+                  required
+                />
               </div>
               <div className="space-y-1">
                 <Label>Paket *</Label>

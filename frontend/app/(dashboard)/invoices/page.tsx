@@ -28,14 +28,12 @@ import {
   markInvoicePaid,
   cancelInvoice,
   getRevenueStats,
-  listCustomersForPicker,
   listServices,
   type Invoice,
   type InvoiceItem,
   type InvoiceStatus,
   type PaymentMethod,
   type RevenueStats,
-  type Customer,
   type BusinessService,
   ApiError,
 } from "@/lib/api";
@@ -46,6 +44,7 @@ import { useConfirm } from "@/components/providers/confirm-dialog-provider";
 import { useCsvExport } from "@/lib/use-csv-export";
 import { useListQuery } from "@/lib/use-list-query";
 import { useDeepLink } from "@/lib/use-deep-link";
+import { CustomerCombobox } from "@/components/customers/customer-combobox";
 import { useMyAccess } from "@/lib/use-my-access";
 import { Pagination } from "@/components/ui/pagination";
 
@@ -134,7 +133,8 @@ function InvoicesPageContent() {
   const [creating, setCreating] = useState(false);
 
   /* lookups */
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  // Listeden seçilen müşteri (ad/e-posta alanlarını doldurur; elle de yazılabilir).
+  const [invoiceCustomerId, setInvoiceCustomerId] = useState("");
   const [services, setServices] = useState<BusinessService[]>([]);
 
   /* expanded row */
@@ -162,7 +162,6 @@ function InvoicesPageContent() {
       .then(setStats)
       .catch((err) => setError(err instanceof ApiError ? err.message : "İstatistikler yüklenemedi."));
     // fetch lookups for form dropdowns
-    listCustomersForPicker(businessId).then(setCustomers).catch(() => {});
     listServices(businessId).then(setServices).catch(() => {});
   }, [businessId]);
 
@@ -235,6 +234,7 @@ function InvoicesPageContent() {
 
       toast.success("Fatura oluşturuldu.");
       setForm({ ...emptyForm, items: [{ ...emptyItem }] });
+      setInvoiceCustomerId("");
       setShowCreate(false);
       refresh();
     } catch (err) {
@@ -369,21 +369,14 @@ function InvoicesPageContent() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label>Müşteri *</Label>
-                <select
-                  value=""
-                  onChange={(e) => {
-                    const c = customers.find((c) => c.id === e.target.value);
-                    if (c) {
-                      setForm({ ...form, customer_name: c.name, customer_email: c.email || "" });
-                    }
+                <CustomerCombobox
+                  value={invoiceCustomerId}
+                  onSelect={(c) => {
+                    setInvoiceCustomerId(c?.id ?? "");
+                    if (c) setForm({ ...form, customer_name: c.name, customer_email: c.email || "" });
                   }}
-                  className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink focus:outline-none focus:ring-1 focus:ring-accent"
-                >
-                  <option value="" disabled>Listeden müşteri seçin...</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}{c.email ? ` (${c.email})` : ''}</option>
-                  ))}
-                </select>
+                  placeholder="Kayıtlı müşteri ara..."
+                />
                 <Input
                   value={form.customer_name}
                   onChange={(e) => setForm({ ...form, customer_name: e.target.value })}

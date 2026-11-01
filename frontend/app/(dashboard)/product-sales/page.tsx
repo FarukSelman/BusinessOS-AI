@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useMyAccess } from "@/lib/use-my-access";
+import { CustomerCombobox } from "@/components/customers/customer-combobox";
 import { ShoppingCart, Plus, Trash2, Search, Receipt, CheckCircle2, ChevronRight, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,12 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   listProducts,
-  listCustomersForPicker,
   createProductSale,
   listProductSales,
   ApiError,
   Product,
-  Customer,
   ProductSale
 } from "@/lib/api";
 import { getActiveBusinessId } from "@/lib/business";
@@ -46,7 +45,6 @@ export default function ProductSalesPage() {
   const canSell = access !== null && access.role !== "VIEWER";
 
   const [products, setProducts] = useState<Product[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
   const [sales, setSales] = useState<ProductSale[]>([]);
   
   const [search, setSearch] = useState("");
@@ -65,14 +63,12 @@ export default function ProductSalesPage() {
     if (!businessId) return;
     setLoading(true);
     try {
-      const [prodRes, custRes, salesRes] = await Promise.all([
+      const [prodRes, salesRes] = await Promise.all([
         listProducts(businessId, { status: "ACTIVE", size: 100 }),
-        listCustomersForPicker(businessId),
         listProductSales(businessId, { page: 1 })
       ]);
       setProducts(prodRes);
       setFilteredProducts(prodRes);
-      setCustomers(custRes);
       setSales(salesRes);
     } catch (err) {
       toast.error("Veriler yüklenirken hata oluştu.");
@@ -275,10 +271,11 @@ export default function ProductSalesPage() {
                   <div className="pt-4 border-t border-border space-y-3">
                     <div className="space-y-1">
                       <Label className="text-xs">Müşteri (Opsiyonel)</Label>
-                      <select className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink focus:outline-none" value={selectedCustomerId} onChange={e => setSelectedCustomerId(e.target.value)}>
-                        <option value="">Genel Müşteri</option>
-                        {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
+                      <CustomerCombobox
+                        value={selectedCustomerId}
+                        onSelect={(c) => setSelectedCustomerId(c?.id ?? "")}
+                        emptyLabel="Genel Müşteri (aramak için yazın)"
+                      />
                     </div>
                   
                     <div className="space-y-1">

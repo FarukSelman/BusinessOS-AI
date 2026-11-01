@@ -33,6 +33,8 @@ class LoyaltyWalletResponse(BaseModel):
     id: UUID
     business_id: UUID
     customer_id: UUID
+    # Filled on the wallet list
+    customer_name: str | None = None
     balance: int
     lifetime_earned: int
     lifetime_spent: int

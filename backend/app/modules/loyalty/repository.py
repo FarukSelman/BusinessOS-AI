@@ -65,11 +65,18 @@ class LoyaltyWalletRepository(BaseRepository[LoyaltyWallet]):
         ).all())
 
     def list_by_business(self, business_id: UUID, page: int = 1, size: int = 20) -> List[LoyaltyWallet]:
-        statement = select(self.model).where(
+        from app.modules.customers.models import Customer
+
+        statement = select(self.model, Customer.name).join(Customer, Customer.id == self.model.customer_id).where(
             self.model.business_id == business_id,
             self.model.is_deleted.is_(False)
         ).order_by(self.model.created_at.desc()).offset((page - 1) * size).limit(size)
-        return list(self.db.scalars(statement).all())
+        wallets = []
+        # The page shows whose wallet it is without loading every customer.
+        for wallet, customer_name in self.db.execute(statement).all():
+            wallet.customer_name = customer_name
+            wallets.append(wallet)
+        return wallets
         
     def create_wallet(self, business_id: UUID, customer_id: UUID) -> LoyaltyWallet:
         wallet = LoyaltyWallet(business_id=business_id, customer_id=customer_id)

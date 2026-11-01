@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   listCustomersPage,
   getCustomer,
-  listAppointments,
   createCustomer,
   updateCustomer,
   deleteCustomer,
@@ -23,7 +22,6 @@ import {
   getCustomerWallet,
   type Customer,
   type CustomerStatus,
-  type Appointment,
   type CustomerTag,
   type CustomerTagBrief,
   ApiError,
@@ -56,7 +54,7 @@ export default function CustomersPage() {
   );
 }
 
-const CUSTOMER_FILTERS = ["status", "tags"] as const;
+const CUSTOMER_FILTERS = ["status", "tags", "min_visits"] as const;
 
 function CustomersPageContent() {
   const confirmDialog = useConfirm();
@@ -74,6 +72,7 @@ function CustomersPageContent() {
         search,
         status: filters.status,
         tagIds: filters.tags ? filters.tags.split(",") : undefined,
+        minVisits: filters.min_visits || undefined,
         signal,
       }),
     !!businessId
@@ -82,10 +81,9 @@ function CustomersPageContent() {
   const statusFilter = list.filters.status || "ALL";
   const selectedTagFilters = list.filters.tags ? list.filters.tags.split(",") : [];
   const setSelectedTagFilters = (ids: string[]) => list.setFilter("tags", ids.join(","));
-  const filtersActive = !!(list.search || list.filters.status || list.filters.tags);
+  const filtersActive = !!(list.search || list.filters.status || list.filters.tags || list.filters.min_visits);
 
   // Data
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [tags, setTags] = useState<CustomerTag[]>([]);
   // Etiket ata/kaldır sonrası listeyi yeniden çekmeden güncel göstermek için.
   const [tagOverrides, setTagOverrides] = useState<Record<string, CustomerTagBrief[]>>({});
@@ -125,25 +123,20 @@ function CustomersPageContent() {
 
   useEffect(() => {
     if (!businessId) return;
-    Promise.all([listAppointments(businessId, 1, 200), listCustomerTags(businessId)])
-      .then(([aData, tData]) => {
-        setAppointments(aData);
-        setTags(tData);
-      })
+    listCustomerTags(businessId)
+      .then(setTags)
       .catch(() => setError("Veriler yüklenemedi."));
   }, [businessId]);
 
 
+  // Ziyaret sayısı ve son ziyaret backend'den (müşterinin tüm randevuları üzerinden) gelir.
   function getInsight(customer: Customer) {
-    const customerAppointments = appointments.filter((appointment) => appointment.customer_id === customer.id);
-    const completed = customerAppointments.filter((appointment) => appointment.status === "COMPLETED").length;
-    const latest = customerAppointments
-      .filter((appointment) => appointment.status !== "CANCELLED")
-      .sort((a, b) => `${b.appointment_date}${b.start_time}`.localeCompare(`${a.appointment_date}${a.start_time}`))[0];
-    if (!latest) return "Henüz randevu geçmişi yok. İlk ziyaret için hoş geldin kampanyası önerilebilir.";
-    const daysSince = Math.floor((Date.now() - fromISODate(latest.appointment_date).getTime()) / 86400000);
+    const completed = customer.completed_visits ?? 0;
+    const last = customer.last_visit_date;
+    if (!last) return "Henüz randevu geçmişi yok. İlk ziyaret için hoş geldin kampanyası önerilebilir.";
+    const daysSince = Math.floor((Date.now() - fromISODate(last).getTime()) / 86400000);
     if (daysSince > 60) return `${daysSince} gündür ziyaret etmedi. Yeniden kazanım kampanyası için uygun.`;
-    return `${completed} tamamlanan randevu var. Son ziyaret: ${fromISODate(latest.appointment_date).toLocaleDateString("tr-TR")}.`;
+    return `${completed} tamamlanan randevu var. Son ziyaret: ${fromISODate(last).toLocaleDateString("tr-TR")}.`;
   }
 
   // --- Actions ---
@@ -292,6 +285,7 @@ function CustomersPageContent() {
                     search: list.search,
                     status: list.filters.status,
                     tagIds: selectedTagFilters.length ? selectedTagFilters : undefined,
+                    minVisits: list.filters.min_visits || undefined,
                   }).then((p) => p.items),
                 (c) => [c.name, c.phone || ""]
               )
@@ -328,6 +322,23 @@ function CustomersPageContent() {
                   <option value="ACTIVE">Aktif</option>
                   <option value="INACTIVE">Pasif</option>
                 </select>
+              </div>
+              <div className="flex gap-4 items-center">
+                <Label htmlFor="min-visits" className="w-20 shrink-0">Min. ziyaret:</Label>
+                <Input
+                  id="min-visits"
+                  type="number"
+                  min={1}
+                  inputMode="numeric"
+                  className="h-8 w-24"
+                  placeholder="—"
+                  value={list.filters.min_visits ?? ""}
+                  onChange={(e) => {
+                    const n = parseInt(e.target.value, 10);
+                    list.setFilter("min_visits", n > 0 ? String(n) : "");
+                  }}
+                />
+                <span className="text-xs text-ink-muted">tamamlanmış randevu</span>
               </div>
               <div className="flex gap-4 items-start">
                 <Label className="w-20 shrink-0 mt-1">Etiketler:</Label>

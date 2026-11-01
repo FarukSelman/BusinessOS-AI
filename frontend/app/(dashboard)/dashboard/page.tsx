@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
-  listCustomersForPicker,
+  listCustomersPage,
   listAppointments,
   listAppointmentsByDate,
   listServices,
@@ -112,7 +112,7 @@ export default function DashboardHomePage() {
       return;
     }
     Promise.allSettled([
-      listCustomersForPicker(businessId),
+      listCustomersPage(businessId, { page: 1, size: 1, status: "ACTIVE" }),
       listAppointments(businessId, 1, 100),
       listAppointmentsByDate(businessId, todayISO()),
       listServices(businessId),
@@ -122,7 +122,7 @@ export default function DashboardHomePage() {
     ])
       .then((results) => {
         if (results[0].status === "fulfilled") {
-          setActiveCustomers(results[0].value.filter((c) => c.status === "ACTIVE").length);
+          setActiveCustomers(results[0].value.total);
         }
         if (results[1].status === "fulfilled") {
           setAllAppointments(results[1].value);

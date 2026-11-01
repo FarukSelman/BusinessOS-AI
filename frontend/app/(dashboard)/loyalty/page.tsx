@@ -14,14 +14,13 @@ import {
   spendPoints,
   adjustPoints,
   listLoyaltyTransactions,
-  listCustomersForPicker,
   type LoyaltyRule,
   type LoyaltyWallet,
   type LoyaltyTransaction,
-  type Customer,
   ApiError,
 } from "@/lib/api";
 import { getActiveBusinessId } from "@/lib/business";
+import { CustomerCombobox } from "@/components/customers/customer-combobox";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
@@ -33,7 +32,6 @@ export default function LoyaltyPage() {
 
   const [rules, setRules] = useState<LoyaltyRule | null>(null);
   const [wallets, setWallets] = useState<LoyaltyWallet[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
   const [transactions, setTransactions] = useState<LoyaltyTransaction[]>([]);
 
   // Rules form
@@ -50,9 +48,8 @@ export default function LoyaltyPage() {
     Promise.all([
       getLoyaltyRules(businessId).catch(() => null),
       listLoyaltyWallets(businessId).catch(() => []),
-      listCustomersForPicker(businessId).catch(() => []),
       listLoyaltyTransactions(businessId).catch(() => []),
-    ]).then(([r, w, c, t]) => {
+    ]).then(([r, w, t]) => {
       if (r) {
         setRules(r);
         setRuleForm({
@@ -65,7 +62,6 @@ export default function LoyaltyPage() {
         });
       }
       setWallets(w);
-      setCustomers(c);
       setTransactions(t);
     }).finally(() => setLoading(false));
   }, [businessId]);
@@ -115,8 +111,9 @@ export default function LoyaltyPage() {
     }
   }
 
-  function getCustomerName(id: string) {
-    return customers.find(c => c.id === id)?.name || "Bilinmiyor";
+  // Cüzdan listesi müşteri adını kendisi getirir.
+  function walletOwner(w: LoyaltyWallet | undefined) {
+    return w?.customer_name || "Bilinmiyor";
   }
 
   if (loading) return <div className="text-sm text-ink-muted">Yükleniyor...</div>;
@@ -238,15 +235,11 @@ export default function LoyaltyPage() {
                 </h4>
                 <div className="space-y-1.5">
                   <Label>Müşteri</Label>
-                  <select
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  <CustomerCombobox
                     value={txForm.customer_id}
-                    onChange={(e) => setTxForm({ ...txForm, customer_id: e.target.value })}
+                    onSelect={(c) => setTxForm({ ...txForm, customer_id: c?.id ?? "" })}
                     required
-                  >
-                    <option value="">Seçiniz</option>
-                    {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Puan</Label>
@@ -286,7 +279,7 @@ export default function LoyaltyPage() {
                 {wallets.length === 0 && <tr><td colSpan={5} className="py-4 text-center text-ink-muted">Cüzdan bulunamadı.</td></tr>}
                 {wallets.map(w => (
                   <tr key={w.id} className="hover:bg-surface">
-                    <td className="py-3">{getCustomerName(w.customer_id)}</td>
+                    <td className="py-3">{walletOwner(w)}</td>
                     <td className="py-3 font-medium text-success">{w.balance}</td>
                     <td className="py-3 text-success">{w.lifetime_earned}</td>
                     <td className="py-3 text-danger">{w.lifetime_spent}</td>
@@ -311,7 +304,7 @@ export default function LoyaltyPage() {
           <div className="space-y-4">
             {transactions.slice(0, 20).map(t => {
               const w = wallets.find(w => w.id === t.wallet_id);
-              const cName = w ? getCustomerName(w.customer_id) : "Bilinmiyor";
+              const cName = walletOwner(w);
               const typeColor = t.transaction_type === "EARN" || t.transaction_type === "BONUS" ? "text-success" : 
                                t.transaction_type === "SPEND" ? "text-danger" : "text-warning";
               const typeSign = t.transaction_type === "EARN" || t.transaction_type === "BONUS" || (t.transaction_type === "ADJUSTMENT" && t.points > 0) ? "+" : "";

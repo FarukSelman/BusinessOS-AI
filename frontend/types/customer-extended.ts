@@ -34,6 +34,8 @@ export interface LoyaltyWallet {
   id: string;
   business_id: string;
   customer_id: string;
+  /** Cüzdan listesinde dolu gelir. */
+  customer_name?: string | null;
   balance: number;
   lifetime_earned: number;
   lifetime_spent: number;

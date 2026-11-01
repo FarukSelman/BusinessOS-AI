@@ -12,6 +12,10 @@ export interface Customer {
   updated_at: string;
   /** Liste uç noktası etiketleri de döner (müşteri başına ayrı istek gerekmez). */
   tags?: CustomerTagBrief[];
+  /** Tamamlanan randevu sayısı (liste ve tek müşteri uç noktası döner). */
+  completed_visits?: number;
+  /** İptal edilmemiş, bugün ya da önceki son randevunun tarihi. */
+  last_visit_date?: string | null;
 }
 
 export interface CustomerTagBrief {

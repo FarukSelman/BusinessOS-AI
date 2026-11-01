@@ -85,8 +85,19 @@ class CustomerService:
             page=page,
             size=size,
         )
-        tags = self.repository.tags_by_customer([c.id for c in customers])
-        return [{"customer": c, "tags": tags[c.id]} for c in customers], total
+        ids = [c.id for c in customers]
+        tags = self.repository.tags_by_customer(ids)
+        stats = self.repository.visit_stats(business_id, ids)
+        return [{"customer": c, "tags": tags[c.id], **stats[c.id]} for c in customers], total
+
+    def get_detail(self, business_id: UUID, customer_id: UUID) -> dict:
+        """One customer with its tags and visit stats (same shape as a list row)."""
+        customer = self.get(business_id, customer_id)
+        return {
+            "customer": customer,
+            "tags": self.repository.tags_by_customer([customer.id])[customer.id],
+            **self.repository.visit_stats(business_id, [customer.id])[customer.id],
+        }
 
     def get_history(self, business_id: UUID, customer_id: UUID) -> dict:
         self.get(business_id, customer_id)
@@ -98,16 +109,20 @@ class CustomerService:
         loyalty_repo = LoyaltyWalletRepository(self.repository.db)
         tag_repo = CustomerTagAssignmentRepository(self.repository.db)
         
-        appointments = appointment_repo.list_by_business(business_id) # Should ideally be by customer, but keeping simple for now
-        customer_appointments = [a for a in appointments if a.customer_id == customer_id]
+        customer_appointments = appointment_repo.list_by_customer(business_id, customer_id)
         
         wallet = loyalty_repo.get_by_customer(business_id, customer_id)
         tags = tag_repo.get_tags_for_customer(customer_id)
         
+        # Serialised here: the route returns a plain dict, which cannot hold ORM objects.
+        from app.modules.appointments.schemas import AppointmentResponse
+        from app.modules.customers.schemas import CustomerTagBrief
+        from app.modules.loyalty.schemas import LoyaltyWalletResponse
+
         return {
-            "appointments": customer_appointments,
-            "loyalty_wallet": wallet,
-            "tags": tags
+            "appointments": [AppointmentResponse.model_validate(a).model_dump(mode="json") for a in customer_appointments],
+            "loyalty_wallet": LoyaltyWalletResponse.model_validate(wallet).model_dump(mode="json") if wallet else None,
+            "tags": [CustomerTagBrief.model_validate(t).model_dump(mode="json") for t in tags],
         }
     # --------------------------------------------------
     # GET
