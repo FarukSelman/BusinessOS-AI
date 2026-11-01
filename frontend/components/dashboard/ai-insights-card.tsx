@@ -11,10 +11,10 @@ const POLL_MS = 4000;
 const POLL_LIMIT_MS = 90_000;
 
 const TYPE_STYLE: Record<InsightItemType, { emoji: string; label: string; badge: string }> = {
-  positive: { emoji: "🟢", label: "Olumlu", badge: "bg-green-500/10 text-green-700 dark:text-green-400" },
-  negative: { emoji: "🔴", label: "Olumsuz", badge: "bg-red-500/10 text-red-700 dark:text-red-400" },
+  positive: { emoji: "🟢", label: "Olumlu", badge: "bg-success-soft text-success" },
+  negative: { emoji: "🔴", label: "Olumsuz", badge: "bg-danger-soft text-danger" },
   neutral: { emoji: "⚪", label: "Nötr", badge: "bg-ink-muted/10 text-ink-muted" },
-  suggestion: { emoji: "💡", label: "Öneri", badge: "bg-amber-500/10 text-amber-700 dark:text-amber-400" },
+  suggestion: { emoji: "💡", label: "Öneri", badge: "bg-warning-soft text-warning" },
 };
 
 function formatWhen(iso: string | null) {
@@ -175,12 +175,12 @@ export function AiInsightsCard({ businessId, fallback }: Props) {
               ))}
             </ul>
             {suggestion && (
-              <div className="rounded-lg border border-amber-400/40 bg-amber-50/60 p-3 dark:bg-amber-500/5">
+              <div className="rounded-lg border border-warning-border bg-warning-soft p-3">
                 <p className="font-medium text-ink">
                   <span className="mr-1.5" aria-label="Öneri">💡</span>
                   {suggestion.title}
                   {suggestion.badge && (
-                    <span className="ml-2 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                    <span className="ml-2 rounded-full bg-warning-soft px-2 py-0.5 text-[11px] font-semibold text-warning">
                       {suggestion.badge}
                     </span>
                   )}
@@ -209,7 +209,7 @@ export function AiInsightsCard({ businessId, fallback }: Props) {
                 <div className="mt-2 flex items-center gap-2 text-xs text-ink-muted">
                   <div className="h-1.5 w-40 overflow-hidden rounded-full bg-ink-muted/15">
                     <div
-                      className="h-full rounded-full bg-[var(--agent-marketing)]"
+                      className="h-full rounded-full bg-[var(--agent-marketing-solid)]"
                       style={{ width: `${Math.min(100, (data.progress.appointments / Math.max(1, data.progress.required)) * 100)}%` }}
                     />
                   </div>

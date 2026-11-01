@@ -19,13 +19,14 @@ import {
 import { format, subDays } from "date-fns";
 import { tr } from "date-fns/locale";
 
+// Seri renkleri tema değişkenlerinden (globals.css --chart-*): karanlıkta daha parlak tonlar.
 const COLORS = {
-  primary: "#6366f1",
-  success: "#22c55e",
-  warning: "#f59e0b",
-  danger: "#ef4444",
-  info: "#06b6d4",
-  purple: "#a855f7",
+  primary: "var(--chart-1)",
+  success: "var(--chart-2)",
+  warning: "var(--chart-3)",
+  danger: "var(--chart-4)",
+  info: "var(--chart-5)",
+  purple: "var(--chart-6)",
 };
 
 export function WeeklyAppointmentsChart({ appointments }: { appointments: any[] }) {
@@ -148,7 +149,8 @@ export function StatusDistributionChart({ appointments }: { appointments: any[] 
             contentStyle={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border)', borderRadius: '8px', color: 'var(--ink)' }}
             itemStyle={{ color: 'var(--ink)' }}
           />
-          <Legend wrapperStyle={{ fontSize: '12px', color: 'var(--ink)' }} />
+          {/* Etiket yazısı seri renginde değil metin renginde: açık zeminde de okunur */}
+          <Legend wrapperStyle={{ fontSize: '12px' }} formatter={(value) => <span style={{ color: 'var(--ink)' }}>{value}</span>} />
         </PieChart>
       </ResponsiveContainer>
     </div>

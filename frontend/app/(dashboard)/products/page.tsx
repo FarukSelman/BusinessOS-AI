@@ -168,7 +168,7 @@ export default function ProductsPage() {
           <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Ürün & Stok Yönetimi</h1>
           <p className="mt-1 text-sm text-ink-muted">Ürünlerinizi ve stok seviyelerinizi takip edin.</p>
         </div>
-        <Button onClick={() => { setShowCreate(!showCreate); setEditProduct(null); setForm(initialForm); }} className="gap-2" style={{ backgroundColor: "var(--agent-sales)" }}>
+        <Button onClick={() => { setShowCreate(!showCreate); setEditProduct(null); setForm(initialForm); }} className="gap-2" style={{ backgroundColor: "var(--agent-sales-solid)" }}>
           <Plus className="h-4 w-4" />
           {showCreate ? "Kapat" : "Yeni Ürün"}
         </Button>
@@ -182,22 +182,22 @@ export default function ProductsPage() {
               <p className="text-xl font-bold mt-1 text-ink">{summary.total_products}</p>
             </CardContent>
           </Card>
-          <Card className="bg-surface-elevated border-border border-l-4 border-l-yellow-500">
+          <Card className="bg-surface-elevated border-border border-l-4 border-l-warning">
             <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-ink-muted font-medium flex items-center gap-1"><AlertTriangle className="w-3 h-3 text-yellow-500"/> Düşük Stok</p>
-              <p className="text-xl font-bold mt-1 text-yellow-500">{summary.low_stock_count}</p>
+              <p className="text-xs text-ink-muted font-medium flex items-center gap-1"><AlertTriangle className="w-3 h-3 text-warning"/> Düşük Stok</p>
+              <p className="text-xl font-bold mt-1 text-warning">{summary.low_stock_count}</p>
             </CardContent>
           </Card>
-          <Card className="bg-surface-elevated border-border border-l-4 border-l-red-500">
+          <Card className="bg-surface-elevated border-border border-l-4 border-l-danger">
             <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-ink-muted font-medium flex items-center gap-1"><XCircle className="w-3 h-3 text-red-500"/> Stokta Yok</p>
-              <p className="text-xl font-bold mt-1 text-red-500">{summary.out_of_stock_count}</p>
+              <p className="text-xs text-ink-muted font-medium flex items-center gap-1"><XCircle className="w-3 h-3 text-danger"/> Stokta Yok</p>
+              <p className="text-xl font-bold mt-1 text-danger">{summary.out_of_stock_count}</p>
             </CardContent>
           </Card>
-          <Card className="bg-surface-elevated border-border border-l-4 border-l-emerald-500">
+          <Card className="bg-surface-elevated border-border border-l-4 border-l-success">
             <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-ink-muted font-medium flex items-center gap-1"><Wallet className="w-3 h-3 text-emerald-500"/> Stok Değeri</p>
-              <p className="text-xl font-bold mt-1 text-emerald-500">{formatCurrency(summary.total_stock_value)}</p>
+              <p className="text-xs text-ink-muted font-medium flex items-center gap-1"><Wallet className="w-3 h-3 text-success"/> Stok Değeri</p>
+              <p className="text-xl font-bold mt-1 text-success">{formatCurrency(summary.total_stock_value)}</p>
             </CardContent>
           </Card>
         </div>
@@ -233,7 +233,7 @@ export default function ProductsPage() {
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setShowCreate(false)}>İptal</Button>
-              <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: "var(--agent-sales)" }}>{saving ? "Kaydediliyor..." : "Kaydet"}</Button>
+              <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: "var(--agent-sales-solid)" }}>{saving ? "Kaydediliyor..." : "Kaydet"}</Button>
             </div>
           </CardContent>
         </Card>
@@ -273,7 +273,7 @@ export default function ProductsPage() {
                 const isOutOfStock = prod.current_stock === 0;
                 return (
                   <React.Fragment key={prod.id}>
-                    <tr className={cn("border-t border-border hover:bg-white/[0.02]", isLowStock && "border-l-4 border-l-amber-500", isOutOfStock && "border-l-4 border-l-red-500")}>
+                    <tr className={cn("border-t border-border hover:bg-surface", isLowStock && "border-l-4 border-l-warning", isOutOfStock && "border-l-4 border-l-danger")}>
                       <td className="px-4 py-3 text-center">
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleRow(prod.id)}>
                           {expandedRow === prod.id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -283,24 +283,24 @@ export default function ProductsPage() {
                       <td className="px-4 py-3 text-ink-muted">{prod.sku || '-'}<br/><span className="text-xs">{prod.category || 'Kategorisiz'}</span></td>
                       <td className="px-4 py-3 text-right text-ink-muted">{formatCurrency(prod.purchase_price)}<br/><span className="text-ink font-medium">{formatCurrency(prod.sale_price)}</span></td>
                       <td className="px-4 py-3 text-center">
-                        <span className={cn("px-2 py-1 text-xs rounded-full inline-flex font-bold", isOutOfStock ? "bg-red-500/15 text-red-500" : isLowStock ? "bg-amber-500/15 text-amber-500" : "bg-emerald-500/15 text-emerald-500")}>
+                        <span className={cn("px-2 py-1 text-xs rounded-full inline-flex font-bold", isOutOfStock ? "bg-danger-soft text-danger" : isLowStock ? "bg-warning-soft text-warning" : "bg-success-soft text-success")}>
                           {prod.current_stock} {prod.unit}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <span className={cn("px-2 py-1 text-xs rounded-full", prod.status === 'ACTIVE' ? "bg-emerald-500/15 text-emerald-400" : prod.status === 'INACTIVE' ? "bg-zinc-500/15 text-zinc-400" : "bg-red-500/15 text-red-400")}>
+                        <span className={cn("px-2 py-1 text-xs rounded-full", prod.status === 'ACTIVE' ? "bg-success-soft text-success" : prod.status === 'INACTIVE' ? "bg-neutral-soft text-ink-muted" : "bg-danger-soft text-danger")}>
                           {prod.status === 'ACTIVE' ? 'Aktif' : prod.status === 'INACTIVE' ? 'Pasif' : 'Yok'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right space-x-1">
-                        <Button variant="ghost" size="icon" onClick={() => { setShowStockForm(showStockForm === prod.id ? null : prod.id); }} title="Stok Ekle"><PackagePlus className="h-4 w-4 text-emerald-500" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => { setShowStockForm(showStockForm === prod.id ? null : prod.id); }} title="Stok Ekle"><PackagePlus className="h-4 w-4 text-success" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => { setEditProduct(prod); setForm(prod as any); setShowCreate(true); }}><Pencil className="h-4 w-4 text-ink-muted" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => handleDelete(prod.id)}><Trash2 className="h-4 w-4 text-danger" /></Button>
                       </td>
                     </tr>
                     
                     {showStockForm === prod.id && (
-                      <tr className="border-b border-border bg-black/20">
+                      <tr className="border-b border-border bg-border">
                         <td colSpan={7} className="px-8 py-4">
                           <div className="flex items-end gap-4 p-4 border border-border rounded-lg bg-surface">
                             <div className="space-y-1"><Label>İşlem Tipi</Label>
@@ -311,27 +311,27 @@ export default function ProductsPage() {
                             <div className="space-y-1"><Label>Miktar (+ / -)</Label><Input type="number" value={stockForm.quantity} onChange={e => setStockForm({...stockForm, quantity: parseFloat(e.target.value) || 0})} /></div>
                             <div className="space-y-1"><Label>Birim Fiyat (Opsiyonel)</Label><Input type="number" min="0" step="0.01" value={stockForm.unit_price} onChange={e => setStockForm({...stockForm, unit_price: parseFloat(e.target.value) || 0})} /></div>
                             <div className="space-y-1 flex-1"><Label>Notlar</Label><Input value={stockForm.notes} onChange={e => setStockForm({...stockForm, notes: e.target.value})} placeholder="Açıklama..." /></div>
-                            <Button onClick={() => handleAddStock(prod.id)} className="bg-emerald-600 hover:bg-emerald-700">Stok Güncelle</Button>
+                            <Button onClick={() => handleAddStock(prod.id)} className="bg-success-solid hover:brightness-110">Stok Güncelle</Button>
                           </div>
                         </td>
                       </tr>
                     )}
 
                     {expandedRow === prod.id && (
-                      <tr className="border-b border-border bg-black/10">
+                      <tr className="border-b border-border bg-border">
                         <td colSpan={7} className="px-8 py-4">
                           <h4 className="text-sm font-semibold mb-2">Stok Hareketleri</h4>
                           {!movements[prod.id] ? <div className="text-xs text-ink-muted">Yükleniyor...</div> : movements[prod.id].length === 0 ? <div className="text-xs text-ink-muted">Hareket bulunamadı.</div> : (
                             <table className="w-full text-xs text-left">
-                              <thead className="text-ink-muted border-b border-white/5">
+                              <thead className="text-ink-muted border-b border-border">
                                 <tr><th>Tarih</th><th>İşlem</th><th>Miktar</th><th>Birim Fiyat</th><th>Not</th></tr>
                               </thead>
                               <tbody>
                                 {movements[prod.id].map(m => (
-                                  <tr key={m.id} className="border-b border-white/5 last:border-0">
+                                  <tr key={m.id} className="border-b border-border last:border-0">
                                     <td className="py-2">{formatDate(m.created_at)}</td>
                                     <td className="py-2">{m.movement_type}</td>
-                                    <td className={cn("py-2 font-bold", m.quantity > 0 ? "text-emerald-500" : "text-red-500")}>{m.quantity > 0 ? '+' : ''}{m.quantity}</td>
+                                    <td className={cn("py-2 font-bold", m.quantity > 0 ? "text-success" : "text-danger")}>{m.quantity > 0 ? '+' : ''}{m.quantity}</td>
                                     <td className="py-2">{m.unit_price ? formatCurrency(m.unit_price) : '-'}</td>
                                     <td className="py-2 text-ink-muted">{m.notes || '-'}</td>
                                   </tr>

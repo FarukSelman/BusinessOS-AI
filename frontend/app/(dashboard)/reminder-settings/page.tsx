@@ -47,7 +47,7 @@ const STATUS_STYLES: Record<ReminderStatusType, { label: string; className: stri
   SENT: { label: "Gönderildi", className: "bg-agent-sales/15 text-agent-sales" },
   FAILED: { label: "Başarısız", className: "bg-danger/15 text-danger" },
   SKIPPED: { label: "Atlandı", className: "bg-ink-muted/15 text-ink-muted" },
-  PENDING: { label: "Gönderiliyor", className: "bg-accent/15 text-accent" },
+  PENDING: { label: "Gönderiliyor", className: "bg-accent/15 text-accent-text" },
 };
 
 const LOG_PAGE_SIZE = 20;
@@ -73,7 +73,7 @@ function renderTemplate(template: string) {
     if (match) {
       const label = VARIABLE_LABELS[match[1]] || match[1];
       return (
-        <span key={i} className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded bg-accent/15 text-accent text-xs font-medium">
+        <span key={i} className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded bg-accent/15 text-accent-text text-xs font-medium">
           {label}
         </span>
       );
@@ -271,7 +271,7 @@ export default function ReminderSettingsPage() {
                     <button
                       key={key}
                       type="button"
-                      className="px-2 py-0.5 rounded-full bg-accent/10 text-accent text-[11px] font-medium hover:bg-accent/20 transition-colors cursor-pointer"
+                      className="px-2 py-0.5 rounded-full bg-accent/10 text-accent-text text-[11px] font-medium hover:bg-accent/20 transition-colors cursor-pointer"
                       onClick={() => setForm({ ...form, message_template: form.message_template + `{{${key}}}` })}
                     >
                       + {label}

@@ -168,7 +168,7 @@ export function AppointmentCalendar({
         onHideCancelledChange={(v) => setPrefs((p) => ({ ...p, hideCancelled: v }))}
       />
 
-      {error && <p className="rounded-md bg-red-50 p-3 text-sm text-danger">{error}</p>}
+      {error && <p className="rounded-md bg-danger-soft p-3 text-sm text-danger">{error}</p>}
 
       {view === "MONTH" ? (
         <MonthView

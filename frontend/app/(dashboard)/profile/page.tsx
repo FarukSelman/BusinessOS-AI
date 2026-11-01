@@ -114,7 +114,7 @@ export default function ProfilePage() {
         <div className="md:col-span-1 space-y-6">
           <Card>
             <CardContent className="p-6 flex flex-col items-center text-center">
-              <div className="h-20 w-20 rounded-full bg-accent/10 flex items-center justify-center text-accent mb-4">
+              <div className="h-20 w-20 rounded-full bg-accent/10 flex items-center justify-center text-accent-text mb-4">
                 <User className="h-10 w-10" />
               </div>
               <h2 className="text-xl font-semibold text-ink">{user.first_name} {user.last_name}</h2>

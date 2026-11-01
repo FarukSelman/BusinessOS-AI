@@ -168,7 +168,7 @@ function ExpensesPageContent() {
           <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Gelir-Gider Yönetimi</h1>
           <p className="mt-1 text-sm text-ink-muted">Tüm gelir ve giderlerinizi takip edin.</p>
         </div>
-        <Button onClick={() => setShowCreate(!showCreate)} className="gap-2" style={{ backgroundColor: "var(--agent-finance)" }}>
+        <Button onClick={() => setShowCreate(!showCreate)} className="gap-2" style={{ backgroundColor: "var(--agent-finance-solid)" }}>
           <Plus className="h-4 w-4" />
           {showCreate ? "Kapat" : "Yeni İşlem"}
         </Button>
@@ -182,28 +182,28 @@ function ExpensesPageContent() {
         const show = (text: string) => (summary ? text : "—");
         return (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="bg-surface-elevated border-border border-l-4 border-l-emerald-500">
+            <Card className="bg-surface-elevated border-border border-l-4 border-l-success">
               <CardContent className="pt-4 pb-4">
-                <p className="text-xs text-ink-muted font-medium flex items-center gap-1"><TrendingUp className="w-3 h-3 text-emerald-500"/> Bu Ay Gelir</p>
-                <p className="text-xl font-bold text-emerald-400 mt-1">{show(formatCurrency(totalIncome))}</p>
+                <p className="text-xs text-ink-muted font-medium flex items-center gap-1"><TrendingUp className="w-3 h-3 text-success"/> Bu Ay Gelir</p>
+                <p className="text-xl font-bold text-success mt-1">{show(formatCurrency(totalIncome))}</p>
               </CardContent>
             </Card>
-            <Card className="bg-surface-elevated border-border border-l-4 border-l-red-500">
+            <Card className="bg-surface-elevated border-border border-l-4 border-l-danger">
               <CardContent className="pt-4 pb-4">
-                <p className="text-xs text-ink-muted font-medium flex items-center gap-1"><TrendingDown className="w-3 h-3 text-red-500"/> Bu Ay Gider</p>
-                <p className="text-xl font-bold text-red-400 mt-1">{show(formatCurrency(totalExpense))}</p>
+                <p className="text-xs text-ink-muted font-medium flex items-center gap-1"><TrendingDown className="w-3 h-3 text-danger"/> Bu Ay Gider</p>
+                <p className="text-xl font-bold text-danger mt-1">{show(formatCurrency(totalExpense))}</p>
               </CardContent>
             </Card>
-            <Card className="bg-surface-elevated border-border border-l-4 border-l-blue-500">
+            <Card className="bg-surface-elevated border-border border-l-4 border-l-info">
               <CardContent className="pt-4 pb-4">
                 <p className="text-xs text-ink-muted font-medium">Bu Ay Net Kâr</p>
-                <p className={cn("text-xl font-bold mt-1", netProfit >= 0 ? "text-blue-400" : "text-red-400")}>{show(formatCurrency(netProfit))}</p>
+                <p className={cn("text-xl font-bold mt-1", netProfit >= 0 ? "text-info" : "text-danger")}>{show(formatCurrency(netProfit))}</p>
               </CardContent>
             </Card>
-            <Card className="bg-surface-elevated border-border border-l-4 border-l-violet-500">
+            <Card className="bg-surface-elevated border-border border-l-4 border-l-violet">
               <CardContent className="pt-4 pb-4">
                 <p className="text-xs text-ink-muted font-medium">Bu Ay İşlem</p>
-                <p className="text-xl font-bold text-violet-400 mt-1">{show(String(summary?.transaction_count ?? 0))}</p>
+                <p className="text-xl font-bold text-violet mt-1">{show(String(summary?.transaction_count ?? 0))}</p>
               </CardContent>
             </Card>
           </div>
@@ -220,12 +220,12 @@ function ExpensesPageContent() {
             <div className="flex gap-4">
               <Button 
                 variant={form.direction === 'INCOME' ? 'default' : 'outline'} 
-                className={cn("flex-1", form.direction === 'INCOME' && "bg-emerald-600 hover:bg-emerald-700")}
+                className={cn("flex-1", form.direction === 'INCOME' && "bg-success-solid hover:brightness-110")}
                 onClick={() => setForm({...form, direction: 'INCOME'})}
               >Gelir</Button>
               <Button 
                 variant={form.direction === 'EXPENSE' ? 'default' : 'outline'} 
-                className={cn("flex-1", form.direction === 'EXPENSE' && "bg-red-600 hover:bg-red-700")}
+                className={cn("flex-1", form.direction === 'EXPENSE' && "bg-danger-solid hover:brightness-110")}
                 onClick={() => setForm({...form, direction: 'EXPENSE'})}
               >Gider</Button>
             </div>
@@ -289,7 +289,7 @@ function ExpensesPageContent() {
               </div>
             </div>
             <div className="flex justify-end">
-              <Button onClick={handleCreate} disabled={creating} className="gap-2" style={{ backgroundColor: "var(--agent-finance)" }}>
+              <Button onClick={handleCreate} disabled={creating} className="gap-2" style={{ backgroundColor: "var(--agent-finance-solid)" }}>
                 <Wallet className="h-4 w-4" />
                 {creating ? "Kaydediliyor..." : "Kaydet"}
               </Button>
@@ -345,24 +345,24 @@ function ExpensesPageContent() {
             </thead>
             <tbody>
               {expenses.map((exp) => (
-                <tr key={exp.id} className="border-t border-border hover:bg-white/[0.02]">
+                <tr key={exp.id} className="border-t border-border hover:bg-surface">
                   <td className="px-4 py-3">{formatDate(exp.transaction_date)}</td>
                   <td className="px-4 py-3 text-ink font-medium">
                     {exp.title}
-                    {exp.is_auto_generated && <span className="ml-2 text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">Otomatik</span>}
+                    {exp.is_auto_generated && <span className="ml-2 text-[10px] bg-info-soft text-info px-1.5 py-0.5 rounded">Otomatik</span>}
                   </td>
                   <td className="px-4 py-3 text-ink-muted">
                     {exp.category_name || "Kategorisiz"}
                   </td>
-                  <td className={cn("px-4 py-3 text-right font-bold whitespace-nowrap", exp.direction === 'INCOME' ? 'text-emerald-400' : 'text-red-400')}>
+                  <td className={cn("px-4 py-3 text-right font-bold whitespace-nowrap", exp.direction === 'INCOME' ? 'text-success' : 'text-danger')}>
                     {exp.direction === 'INCOME' ? '+' : '-'} {formatCurrency(exp.amount)}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <span className={cn(
                       "px-2 py-1 text-xs rounded-full inline-flex items-center gap-1",
-                      exp.status === 'PAID' ? 'bg-emerald-500/15 text-emerald-400' : 
-                      exp.status === 'PENDING' ? 'bg-yellow-500/15 text-yellow-400' : 
-                      'bg-zinc-500/15 text-zinc-400'
+                      exp.status === 'PAID' ? 'bg-success-soft text-success' : 
+                      exp.status === 'PENDING' ? 'bg-warning-soft text-warning' : 
+                      'bg-neutral-soft text-ink-muted'
                     )}>
                       {exp.status === 'PAID' ? 'Ödendi' : exp.status === 'PENDING' ? 'Bekliyor' : 'İptal'}
                     </span>

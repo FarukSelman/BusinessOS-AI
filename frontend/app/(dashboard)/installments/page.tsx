@@ -82,13 +82,13 @@ export default function InstallmentsPage() {
       </div>
 
       {statusFilter !== "OVERDUE" && overdueCount > 0 && (
-        <Card className="bg-red-500/10 border-red-500/30">
+        <Card className="bg-danger-soft border-danger-border">
           <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3 text-red-400">
+            <div className="flex items-center gap-3 text-danger">
               <AlertCircle className="w-5 h-5" />
               <span className="font-medium">{overdueCount} adet gecikmiş taksit ödemesi bulunuyor.</span>
             </div>
-            <Button size="sm" variant="outline" className="border-red-500/30 text-red-400 hover:bg-red-500/20" onClick={() => setStatusFilter("OVERDUE")}>
+            <Button size="sm" variant="outline" className="border-danger-border text-danger hover:bg-danger-soft" onClick={() => setStatusFilter("OVERDUE")}>
               Gecikmişleri Göster
             </Button>
           </CardContent>
@@ -129,20 +129,20 @@ export default function InstallmentsPage() {
               </thead>
               <tbody>
                 {installments.map((inst) => (
-                  <tr key={inst.id} className={cn("border-t border-border hover:bg-white/[0.02]", inst.status === "OVERDUE" && "border-l-2 border-l-red-500")}>
+                  <tr key={inst.id} className={cn("border-t border-border hover:bg-surface", inst.status === "OVERDUE" && "border-l-2 border-l-danger")}>
                     <td className="px-4 py-3 text-ink font-medium">{inst.customer_name}</td>
                     <td className="px-4 py-3 text-ink-muted">{inst.package_name}</td>
                     <td className="px-4 py-3 text-center text-ink-muted font-medium">{inst.installment_number}</td>
                     <td className="px-4 py-3 text-right font-bold text-ink">{formatCurrency(inst.amount)}</td>
-                    <td className={cn("px-4 py-3", inst.status === "OVERDUE" && "text-red-400 font-medium")}>{formatDate(inst.due_date)}</td>
+                    <td className={cn("px-4 py-3", inst.status === "OVERDUE" && "text-danger font-medium")}>{formatDate(inst.due_date)}</td>
                     <td className="px-4 py-3 text-ink-muted">{formatDate(inst.paid_date)}</td>
                     <td className="px-4 py-3 text-center">
                       <span className={cn(
                         "px-2 py-1 text-[10px] uppercase tracking-wider font-bold rounded-full",
-                        inst.status === 'PAID' ? 'bg-emerald-500/15 text-emerald-400' : 
-                        inst.status === 'PENDING' ? 'bg-yellow-500/15 text-yellow-400' : 
-                        inst.status === 'OVERDUE' ? 'bg-red-500/15 text-red-400' : 
-                        'bg-zinc-500/15 text-zinc-400'
+                        inst.status === 'PAID' ? 'bg-success-soft text-success' : 
+                        inst.status === 'PENDING' ? 'bg-warning-soft text-warning' : 
+                        inst.status === 'OVERDUE' ? 'bg-danger-soft text-danger' : 
+                        'bg-neutral-soft text-ink-muted'
                       )}>
                         {inst.status === 'PAID' ? 'Ödendi' : inst.status === 'PENDING' ? 'Bekliyor' : inst.status === 'OVERDUE' ? 'Gecikmiş' : 'İptal'}
                       </span>
@@ -153,7 +153,7 @@ export default function InstallmentsPage() {
                           size="sm" 
                           disabled={paying === inst.id}
                           onClick={() => handlePay(inst.id)}
-                          style={{ backgroundColor: "var(--agent-finance)" }}
+                          style={{ backgroundColor: "var(--agent-finance-solid)" }}
                         >
                           <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
                           {paying === inst.id ? "..." : "Öde"}

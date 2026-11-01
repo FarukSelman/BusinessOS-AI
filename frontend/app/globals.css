@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: light;
+
   /* Zemin katmanları */
   --surface: #eef1f8;       /* sayfa arka planı - soğuk açık gri-mavi, düz beyaz değil */
   --surface-elevated: #ffffff; /* kart / panel yüzeyleri */
@@ -10,14 +12,17 @@
   --ink: #10131a;           /* birincil metin, neredeyse siyah */
   --ink-muted: #4b5468;     /* ikincil metin - hâlâ okunaklı, WCAG AA geçer */
 
-  /* Sidebar - koyu lacivert, içerik alanından net ayrışır */
+  /* Sidebar - koyu lacivert, içerik alanından net ayrışır (iki temada da koyu) */
   --sidebar-bg: #12172a;
   --sidebar-ink: #e7eaf3;
   --sidebar-muted: #8b93ac;
 
-  /* Birincil aksiyon rengi */
-  --accent: #4c6fff;
+  /* Birincil aksiyon rengi (zemin; üstünde beyaz yazı 4.5:1 geçer) */
+  --accent: #4566f5;
+  --accent-hover: #3d5ce0;
   --accent-ink: #ffffff;
+  /* Accent rengindeki yazı/bağlantı */
+  --accent-text: #3d5ce0;
 
   /* Ajan renk kodlaması - her modülün kendi kimliği (sidebar, chat, rozetler hep aynı rengi kullanır) */
   --agent-support: #4c6fff;
@@ -25,9 +30,76 @@
   --agent-sales: #10b981;
   --agent-finance: #a855f7;
   --agent-marketing: #f43f5e;
+  /* Ajan renkleri dolu zemin olarak (üstünde beyaz yazı, iki temada aynı) */
+  --agent-support-solid: #4566f5;
+  --agent-appointments-solid: #b45309;
+  --agent-sales-solid: #047857;
+  --agent-finance-solid: #7e22ce;
+  --agent-marketing-solid: #be123c;
 
-  --danger: #dc2626;
+  /* Anlamsal durum renkleri: yazı/ikon (taban), hafif zemin (soft), kenarlık, dolu zemin (solid, üstünde beyaz yazı) */
+  --success: #047857;  --success-soft: #e6f6ef; --success-border: #a7e3c8; --success-solid: #047857;
+  --warning: #a14a06;  --warning-soft: #fdf3dc; --warning-border: #f3d58a; --warning-solid: #b45309;
+  --danger: #c42020;   --danger-soft: #fdecec;  --danger-border: #f5bcbc;  --danger-solid: #b91c1c;
+  --info: #1d4ed8;     --info-soft: #e8effd;    --info-border: #bcd0f7;    --info-solid: #1d4ed8;
+  --violet: #7e22ce;   --violet-soft: #f4ebfd;  --violet-border: #dcc3f5;  --violet-solid: #7e22ce;
+  --neutral: #4b5468;  --neutral-soft: #e9edf4; --neutral-border: #d0d6e2; --neutral-solid: #475569;
+
+  /* Grafik serileri */
+  --chart-1: #6366f1;
+  --chart-2: #16a34a;
+  --chart-3: #d97706;
+  --chart-4: #dc2626;
+  --chart-5: #0891b2;
+  --chart-6: #9333ea;
+  --chart-7: #2563eb;
 }
+
+/* Karanlık tema: <html class="dark"> (bkz. app/layout.tsx'teki tema script'i) */
+:root.dark {
+  color-scheme: dark;
+
+  /* İçerik zemini sol menüden biraz açık, böylece ikisi ayrışır */
+  --surface: #161c2e;
+  --surface-elevated: #1e2539;
+  --border: #2f3852;
+
+  --ink: #e8ebf4;
+  --ink-muted: #a6aec4;
+
+  --sidebar-bg: #0c1120;
+  --sidebar-ink: #e7eaf3;
+  --sidebar-muted: #8b93ac;
+
+  --accent: #4566f5;
+  --accent-hover: #5a78ff;
+  --accent-ink: #ffffff;
+  --accent-text: #8aa0ff;
+
+  --agent-support: #7590ff;
+  --agent-appointments: #fbbf24;
+  --agent-sales: #34d399;
+  --agent-finance: #c084fc;
+  --agent-marketing: #fb7185;
+
+  --success: #4ade80;  --success-soft: #173a31; --success-border: #22614a; --success-solid: #047857;
+  --warning: #fbbf24;  --warning-soft: #3d3420; --warning-border: #6e5719; --warning-solid: #b45309;
+  --danger: #f87171;   --danger-soft: #42232c;  --danger-border: #7a3038;  --danger-solid: #b91c1c;
+  --info: #7aa7ff;     --info-soft: #1d2f55;    --info-border: #2f4b85;    --info-solid: #1d4ed8;
+  --violet: #c99bff;   --violet-soft: #33264f;  --violet-border: #563c80;  --violet-solid: #7e22ce;
+  --neutral: #a6aec4;  --neutral-soft: #273049; --neutral-border: #3a4562; --neutral-solid: #475569;
+
+  --chart-1: #818cf8;
+  --chart-2: #4ade80;
+  --chart-3: #fbbf24;
+  --chart-4: #f87171;
+  --chart-5: #22d3ee;
+  --chart-6: #c084fc;
+  --chart-7: #60a5fa;
+}
+
+/* dark: varyantı işletim sistemine değil <html class="dark">'a bakar */
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
   --color-surface: var(--surface);
@@ -39,13 +111,44 @@
   --color-sidebar-ink: var(--sidebar-ink);
   --color-sidebar-muted: var(--sidebar-muted);
   --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
   --color-accent-ink: var(--accent-ink);
+  --color-accent-text: var(--accent-text);
   --color-agent-support: var(--agent-support);
   --color-agent-appointments: var(--agent-appointments);
   --color-agent-sales: var(--agent-sales);
   --color-agent-finance: var(--agent-finance);
   --color-agent-marketing: var(--agent-marketing);
+  --color-agent-support-solid: var(--agent-support-solid);
+  --color-agent-appointments-solid: var(--agent-appointments-solid);
+  --color-agent-sales-solid: var(--agent-sales-solid);
+  --color-agent-finance-solid: var(--agent-finance-solid);
+  --color-agent-marketing-solid: var(--agent-marketing-solid);
   --color-danger: var(--danger);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-border: var(--success-border);
+  --color-success-solid: var(--success-solid);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-border: var(--warning-border);
+  --color-warning-solid: var(--warning-solid);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-border: var(--danger-border);
+  --color-danger-solid: var(--danger-solid);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-border: var(--info-border);
+  --color-info-solid: var(--info-solid);
+  --color-violet: var(--violet);
+  --color-violet-soft: var(--violet-soft);
+  --color-violet-border: var(--violet-border);
+  --color-violet-solid: var(--violet-solid);
+  --color-neutral: var(--neutral);
+  --color-neutral-soft: var(--neutral-soft);
+  --color-neutral-border: var(--neutral-border);
+  --color-neutral-solid: var(--neutral-solid);
 
   --font-display: var(--font-sora);
   --font-sans: var(--font-inter);

@@ -16,6 +16,7 @@ import {
 } from "@/lib/api";
 import { getActiveBusinessId } from "@/lib/business";
 import { PendingActionsMenu } from "@/components/layout/pending-actions-menu";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 export function Navbar({ onMenuClick }: { onMenuClick?: () => void } = {}) {
   const router = useRouter();
@@ -97,6 +98,7 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void } = {}) {
       </div>
 
       <div className="flex shrink-0 items-center gap-1 sm:gap-4">
+        <ThemeToggle />
         <PendingActionsMenu />
 
         <div className="relative">
@@ -119,7 +121,7 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void } = {}) {
               <div className="flex items-center justify-between border-b border-border p-3">
                 <h3 className="font-semibold text-ink">Bildirimler</h3>
                 {unreadCount > 0 && (
-                  <Button variant="ghost" size="sm" onClick={handleMarkAllRead} className="h-auto p-0 text-xs text-accent">
+                  <Button variant="ghost" size="sm" onClick={handleMarkAllRead} className="h-auto p-0 text-xs text-accent-text">
                     Tümünü Okundu İşaretle
                   </Button>
                 )}

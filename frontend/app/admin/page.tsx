@@ -117,7 +117,7 @@ function AdminPageContent() {
     <div className="min-h-screen bg-surface p-6">
       <div className="mx-auto max-w-5xl">
         <div className="mb-6 flex items-center gap-2">
-          <ShieldCheck className="h-6 w-6 text-accent" />
+          <ShieldCheck className="h-6 w-6 text-accent-text" />
           <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">
             Platform Admin
           </h1>

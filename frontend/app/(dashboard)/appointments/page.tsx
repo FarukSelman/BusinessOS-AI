@@ -31,7 +31,7 @@ import { todayISO, toHm } from "@/lib/date";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
 import { useCsvExport } from "@/lib/use-csv-export";
-import { statusStyles, statusTint } from "@/components/appointments/constants";
+import { statusStyles } from "@/components/appointments/constants";
 import {
   AppointmentForm,
   emptyFormValues,
@@ -294,7 +294,7 @@ export default function AppointmentsPage() {
         </div>
       </div>
 
-      {error && <p className="rounded-md bg-red-50 p-3 text-sm text-danger">{error}</p>}
+      {error && <p className="rounded-md bg-danger-soft p-3 text-sm text-danger">{error}</p>}
 
       {viewMode === "CALENDAR" && businessId ? (
         <AppointmentCalendar
@@ -320,7 +320,7 @@ export default function AppointmentsPage() {
                     setShowCreateForm(true);
                     setCreateForm((f) => ({ ...f, start_time: toHm(s) }));
                   }}
-                  className="rounded-full border border-border bg-surface-elevated px-3 py-1 text-xs font-medium text-ink hover:border-accent hover:text-accent"
+                  className="rounded-full border border-border bg-surface-elevated px-3 py-1 text-xs font-medium text-ink hover:border-accent hover:text-accent-text"
                 >
                   {toHm(s)}
                 </button>
@@ -395,7 +395,7 @@ export default function AppointmentsPage() {
                                 </span>
                                 <span
                                   className="rounded-full px-2 py-0.5 text-xs font-medium"
-                                  style={{ backgroundColor: statusTint(style.color), color: style.color }}
+                                  style={{ backgroundColor: style.soft, color: style.color }}
                                 >
                                   {style.label}
                                 </span>

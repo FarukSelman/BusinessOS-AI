@@ -207,7 +207,7 @@ export default function DocumentsPage() {
         </div>
       )}
 
-      {error && <p className="rounded-md bg-red-50 p-3 text-sm text-danger">{error}</p>}
+      {error && <p className="rounded-md bg-danger-soft p-3 text-sm text-danger">{error}</p>}
 
       <div
         onDragOver={(e) => {
@@ -226,7 +226,7 @@ export default function DocumentsPage() {
         )}
       >
         {uploading ? (
-          <Loader2 className="h-8 w-8 animate-spin text-accent" />
+          <Loader2 className="h-8 w-8 animate-spin text-accent-text" />
         ) : (
           <Upload className="h-8 w-8 text-ink-muted" />
         )}

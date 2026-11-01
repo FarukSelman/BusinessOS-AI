@@ -153,7 +153,7 @@ export default function PackagesPage() {
           <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Paket Hizmetler</h1>
           <p className="mt-1 text-sm text-ink-muted">Hizmet paketlerinizi oluşturun ve müşterilere satın.</p>
         </div>
-        <Button onClick={() => setShowCreate(!showCreate)} className="gap-2" style={{ backgroundColor: "var(--agent-appointments)" }}>
+        <Button onClick={() => setShowCreate(!showCreate)} className="gap-2" style={{ backgroundColor: "var(--agent-appointments-solid)" }}>
           <Plus className="h-4 w-4" />
           {showCreate ? "Kapat" : "Yeni Paket"}
         </Button>
@@ -162,7 +162,7 @@ export default function PackagesPage() {
       {showCreate && (
         <Card className="bg-surface-elevated border-border">
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2"><Gift className="w-5 h-5 text-accent"/> Yeni Paket Oluştur</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2"><Gift className="w-5 h-5 text-accent-text"/> Yeni Paket Oluştur</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -231,7 +231,7 @@ export default function PackagesPage() {
               </div>
             </div>
             <div className="flex justify-end">
-              <Button onClick={handleCreate} disabled={creating} style={{ backgroundColor: "var(--agent-appointments)" }}>
+              <Button onClick={handleCreate} disabled={creating} style={{ backgroundColor: "var(--agent-appointments-solid)" }}>
                 {creating ? "Kaydediliyor..." : "Kaydet"}
               </Button>
             </div>
@@ -250,7 +250,7 @@ export default function PackagesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {packages.map(pkg => (
             <Card key={pkg.id} className="bg-surface-elevated border-border overflow-hidden flex flex-col">
-              <div className="h-2 w-full" style={{ backgroundColor: "var(--agent-appointments)", opacity: 0.8 }} />
+              <div className="h-2 w-full" style={{ backgroundColor: "var(--agent-appointments-solid)", opacity: 0.8 }} />
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
                   <CardTitle className="text-lg">{pkg.name}</CardTitle>
@@ -269,7 +269,7 @@ export default function PackagesPage() {
                   <p className="text-xs font-semibold text-ink-muted uppercase">İçerik ({pkg.total_sessions} Seans)</p>
                   <div className="flex flex-wrap gap-1">
                     {pkg.services.map((s, i) => (
-                      <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-ink">
+                      <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-surface border border-border text-ink">
                         {s.service_name} x{s.session_count}
                       </span>
                     ))}
@@ -279,7 +279,7 @@ export default function PackagesPage() {
                 <div className="mt-auto pt-4 flex items-center justify-between text-xs text-ink-muted">
                   <span>Süre: {pkg.validity_days} Gün</span>
                   {pkg.is_installment_allowed ? (
-                    <span className="text-blue-400 bg-blue-400/10 px-2 py-1 rounded">Maks {pkg.max_installments} Taksit</span>
+                    <span className="text-info bg-info-soft px-2 py-1 rounded">Maks {pkg.max_installments} Taksit</span>
                   ) : (
                     <span className="text-ink-muted">Taksit Yok</span>
                   )}

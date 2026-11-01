@@ -389,7 +389,7 @@ function CustomersPageContent() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <button onClick={() => openCustomerDetail(c)} className="font-semibold text-lg hover:underline text-ink">{c.name}</button>
-                        <button onClick={() => toggleStatus(c)} className={cn("rounded-full px-2 py-0.5 text-xs font-medium", c.status === "ACTIVE" ? "bg-[color-mix(in_srgb,var(--agent-sales)_15%,transparent)] text-[var(--agent-sales)]" : "bg-surface text-ink-muted")}>
+                        <button onClick={() => toggleStatus(c)} className={cn("rounded-full px-2 py-0.5 text-xs font-medium", c.status === "ACTIVE" ? "bg-success-soft text-success" : "bg-surface text-ink-muted")}>
                           {c.status === "ACTIVE" ? "Aktif" : "Pasif"}
                         </button>
                       </div>
@@ -417,7 +417,7 @@ function CustomersPageContent() {
                       <Button variant="ghost" size="sm" onClick={() => { setEditingId(c.id); setEditForm({ name: c.name, email: c.email||"", phone: c.phone||"", notes: c.notes||"" }); }}>
                         <Pencil className="h-4 w-4 mr-1" /> Düzenle
                       </Button>
-                      <Button variant="ghost" size="sm" className="text-danger hover:text-danger hover:bg-red-50" onClick={() => handleDelete(c.id)}>
+                      <Button variant="ghost" size="sm" className="text-danger hover:text-danger hover:bg-danger-soft" onClick={() => handleDelete(c.id)}>
                         <Trash2 className="h-4 w-4 mr-1" /> Sil
                       </Button>
                     </div>
@@ -497,9 +497,9 @@ function CustomersPageContent() {
                 <div className="space-y-4">
                   {detailData?.wallet ? (
                     <div className="grid grid-cols-3 gap-4">
-                      <div className="bg-surface p-4 rounded-lg text-center"><span className="block text-xs text-ink-muted">Mevcut Bakiye</span><span className="text-xl font-bold text-[var(--agent-sales)]">{detailData.wallet.balance}</span></div>
-                      <div className="bg-green-50 p-4 rounded-lg text-center"><span className="block text-xs text-green-700 opacity-70">Kazanılan</span><span className="text-xl font-bold text-green-700">{detailData.wallet.lifetime_earned}</span></div>
-                      <div className="bg-red-50 p-4 rounded-lg text-center"><span className="block text-xs text-red-700 opacity-70">Harcanan</span><span className="text-xl font-bold text-red-700">{detailData.wallet.lifetime_spent}</span></div>
+                      <div className="bg-surface p-4 rounded-lg text-center"><span className="block text-xs text-ink-muted">Mevcut Bakiye</span><span className="text-xl font-bold text-success">{detailData.wallet.balance}</span></div>
+                      <div className="bg-success-soft p-4 rounded-lg text-center"><span className="block text-xs text-success opacity-70">Kazanılan</span><span className="text-xl font-bold text-success">{detailData.wallet.lifetime_earned}</span></div>
+                      <div className="bg-danger-soft p-4 rounded-lg text-center"><span className="block text-xs text-danger opacity-70">Harcanan</span><span className="text-xl font-bold text-danger">{detailData.wallet.lifetime_spent}</span></div>
                     </div>
                   ) : <p className="text-sm text-ink-muted">Parapuan cüzdanı bulunamadı.</p>}
                 </div>
@@ -516,7 +516,7 @@ function CustomersPageContent() {
                             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: t.color }} />
                             <span className="text-sm font-medium">{t.name}</span>
                           </div>
-                          <Button size="sm" variant={isAssigned ? "destructive" : "outline"} className={isAssigned ? "bg-red-50 text-red-600 hover:bg-red-100 border-red-200" : ""} onClick={() => handleToggleCustomerTag(selectedCustomer.id, t.id, isAssigned)}>
+                          <Button size="sm" variant={isAssigned ? "destructive" : "outline"} className={isAssigned ? "bg-danger-soft text-danger hover:bg-danger-soft border-danger-border" : ""} onClick={() => handleToggleCustomerTag(selectedCustomer.id, t.id, isAssigned)}>
                             {isAssigned ? "Kaldır" : "Ekle"}
                           </Button>
                         </div>
@@ -545,7 +545,7 @@ function CustomersPageContent() {
                   <Label>Renk Seç</Label>
                   <div className="flex gap-2">
                     {["#ef4444", "#f97316", "#f59e0b", "#10b981", "#3b82f6", "#6366f1", "#8b5cf6", "#ec4899", "#64748b"].map(c => (
-                      <button key={c} type="button" className={cn("w-6 h-6 rounded-full cursor-pointer ring-offset-2", tagForm.color === c && "ring-2 ring-gray-400")} style={{ backgroundColor: c }} onClick={() => setTagForm({...tagForm, color: c})} />
+                      <button key={c} type="button" className={cn("w-6 h-6 rounded-full cursor-pointer ring-offset-2", tagForm.color === c && "ring-2 ring-border")} style={{ backgroundColor: c }} onClick={() => setTagForm({...tagForm, color: c})} />
                     ))}
                   </div>
                 </div>

@@ -22,7 +22,7 @@ import {
 } from "@/lib/api";
 import { fromISODate, toHm } from "@/lib/date";
 import { AppointmentForm, type AppointmentFormValues } from "./appointment-form";
-import { statusStyles, statusTint } from "./constants";
+import { statusStyles } from "./constants";
 
 interface Lookups {
   services: BusinessService[];
@@ -140,7 +140,7 @@ export function AppointmentDetailDialog({
               </div>
               <span
                 className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
-                style={{ backgroundColor: statusTint(status.color), color: status.color }}
+                style={{ backgroundColor: status.soft, color: status.color }}
               >
                 {status.label}
               </span>
@@ -161,7 +161,7 @@ export function AppointmentDetailDialog({
               {branch && <Row icon={<MapPin className="h-3.5 w-3.5" />}>{branch.name}</Row>}
               {a.customer_phone && (
                 <Row icon={<Phone className="h-3.5 w-3.5" />}>
-                  <a href={`tel:${a.customer_phone}`} className="hover:text-accent">
+                  <a href={`tel:${a.customer_phone}`} className="hover:text-accent-text">
                     {a.customer_phone}
                   </a>
                 </Row>

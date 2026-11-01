@@ -25,10 +25,11 @@ import type { RevenueDataPoint, AppointmentReport, CustomerReport, StaffPerforma
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
 
+// Seri renkleri tema değişkenlerinden (globals.css --chart-*).
 const COLORS = {
-  income: "#22c55e",
-  expense: "#ef4444",
-  net: "#3b82f6",
+  income: "var(--chart-2)",
+  expense: "var(--chart-4)",
+  net: "var(--chart-7)",
   appointments: "var(--agent-appointments)",
   customers: "var(--accent)",
 };
@@ -156,7 +157,7 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <div className="flex overflow-x-auto border-b border-white/10">
+      <div className="flex overflow-x-auto border-b border-border">
         {visibleTabs.map((tab) => (
           <button
             key={tab.id}
@@ -164,7 +165,7 @@ export default function ReportsPage() {
             className={`shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               activeTab === tab.id 
                 ? "border-[var(--agent-finance)] text-ink" 
-                : "border-transparent text-ink-muted hover:text-ink hover:border-white/20"
+                : "border-transparent text-ink-muted hover:text-ink hover:border-border"
             }`}
           >
             {tab.label}
@@ -243,7 +244,8 @@ export default function ReportsPage() {
                     formatter={(value: number, name: string) => [formatCurrency(value), name === 'income' ? 'Gelir' : 'Gider']}
                     contentStyle={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border)', borderRadius: '8px', color: 'var(--ink)' }}
                   />
-                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  {/* Etiket yazısı seri renginde değil metin renginde: açık zeminde de okunur */}
+                  <Legend wrapperStyle={{ fontSize: '12px' }} formatter={(value) => <span style={{ color: "var(--ink)" }}>{value}</span>} />
                   <Area type="monotone" dataKey="income" name="Gelir" stroke={COLORS.income} fillOpacity={1} fill="url(#colorIncome)" />
                   <Area type="monotone" dataKey="expense" name="Gider" stroke={COLORS.expense} fillOpacity={1} fill="url(#colorExpense)" />
                 </AreaChart>
@@ -301,16 +303,16 @@ export default function ReportsPage() {
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="border-b border-white/10 text-ink-muted">
+                  <thead className="border-b border-border text-ink-muted">
                     <tr>
                       <th className="pb-2 font-medium">Hizmet Adı</th>
                       <th className="pb-2 font-medium">Randevu Sayısı</th>
                       <th className="pb-2 font-medium">Gelir</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-border">
                     {appointmentData.by_service.map((service, idx) => (
-                      <tr key={idx} className="hover:bg-white/5">
+                      <tr key={idx} className="hover:bg-surface">
                         <td className="py-2 text-ink">{service.name}</td>
                         <td className="py-2 text-ink">{service.booking_count}</td>
                         <td className="py-2 text-ink">{service.revenue == null ? "—" : formatCurrency(service.revenue)}</td>
@@ -379,16 +381,16 @@ export default function ReportsPage() {
               <CardContent>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
-                    <thead className="border-b border-white/10 text-ink-muted">
+                    <thead className="border-b border-border text-ink-muted">
                       <tr>
                         <th className="pb-2 font-medium">Müşteri</th>
                         <th className="pb-2 font-medium">Ziyaret</th>
                         <th className="pb-2 font-medium">Toplam Harcama</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-border">
                       {customerData.top_customers.map((c, idx) => (
-                        <tr key={idx} className="hover:bg-white/5">
+                        <tr key={idx} className="hover:bg-surface">
                           <td className="py-2 text-ink">{c.name}</td>
                           <td className="py-2 text-ink">{c.visit_count}</td>
                           <td className="py-2 text-ink">{c.total_spent == null ? "—" : formatCurrency(c.total_spent)}</td>
@@ -417,7 +419,7 @@ export default function ReportsPage() {
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="border-b border-white/10 text-ink-muted">
+                <thead className="border-b border-border text-ink-muted">
                   <tr>
                     <th className="pb-2 font-medium">Personel</th>
                     <th className="pb-2 font-medium">Ünvan</th>
@@ -426,14 +428,14 @@ export default function ReportsPage() {
                     <th className="pb-2 font-medium">Tamamlanma Oranı</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-border">
                   {staffData.map((staff, idx) => {
-                    let rateColor = "text-red-400";
-                    if (staff.completion_rate >= 80) rateColor = "text-green-400";
-                    else if (staff.completion_rate >= 50) rateColor = "text-yellow-400";
+                    let rateColor = "text-danger";
+                    if (staff.completion_rate >= 80) rateColor = "text-success";
+                    else if (staff.completion_rate >= 50) rateColor = "text-warning";
 
                     return (
-                      <tr key={idx} className="hover:bg-white/5">
+                      <tr key={idx} className="hover:bg-surface">
                         <td className="py-2 font-medium text-ink">{staff.name}</td>
                         <td className="py-2 text-ink-muted">{staff.title || "-"}</td>
                         <td className="py-2 text-ink">{staff.appointment_count}</td>

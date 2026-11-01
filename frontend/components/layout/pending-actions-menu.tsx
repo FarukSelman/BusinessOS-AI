@@ -110,7 +110,7 @@ export function PendingActionsMenu() {
       >
         <ClipboardCheck className="h-5 w-5 text-ink-muted hover:text-ink" />
         {count > 0 && (
-          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-white">
+          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-warning-solid px-1 text-[9px] font-bold text-white">
             {count > 99 ? "99+" : count}
           </span>
         )}

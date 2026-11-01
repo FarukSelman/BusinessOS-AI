@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Sora, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "sonner";
+import { ThemedToaster } from "@/components/providers/themed-toaster";
+import { ThemeProvider, themeInitScript } from "@/lib/theme";
 
 
 const sora = Sora({
@@ -34,10 +35,18 @@ export default function RootLayout({
     <html
       lang="tr"
       className={`${sora.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      // Tema script'i "dark" sınıfını React'ten önce ekler; sunucu HTML'iyle farkı beklenen bir fark.
+      suppressHydrationWarning
     >
+      <head>
+        {/* İlk boyamadan önce temayı uygula: önce aydınlık açılıp kararma (flaş) olmasın. */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="min-h-full flex flex-col">
-        {children}
-        <Toaster richColors position="top-right" />
+        <ThemeProvider>
+          {children}
+          <ThemedToaster />
+        </ThemeProvider>
       </body>
     </html>
   );

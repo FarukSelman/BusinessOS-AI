@@ -142,7 +142,7 @@ export default function TeamPage() {
         <p className="text-sm text-ink-muted">İşletmendeki kişileri ve rollerini yönet.</p>
       </div>
 
-      {error && <p className="rounded-md bg-red-50 p-3 text-sm text-danger">{error}</p>}
+      {error && <p className="rounded-md bg-danger-soft p-3 text-sm text-danger">{error}</p>}
 
       {loading ? (
         <p className="text-sm text-ink-muted">Yükleniyor...</p>
@@ -221,7 +221,7 @@ export default function TeamPage() {
                         className={cn(
                           "rounded-full px-2.5 py-1 text-xs font-medium",
                           m.role === "OWNER"
-                            ? "bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] text-accent"
+                            ? "bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] text-accent-text"
                             : "bg-surface text-ink-muted"
                         )}
                       >

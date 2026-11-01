@@ -246,19 +246,19 @@ export default function StaffPage() {
             <div className="flex gap-4 mt-4">
               <button 
                 onClick={() => setActiveTab("PROFILE")}
-                className={`pb-2 text-sm font-medium border-b-2 transition-colors ${activeTab === "PROFILE" ? "border-accent text-accent" : "border-transparent text-ink-muted hover:text-ink"}`}
+                className={`pb-2 text-sm font-medium border-b-2 transition-colors ${activeTab === "PROFILE" ? "border-accent text-accent-text" : "border-transparent text-ink-muted hover:text-ink"}`}
               >
                 Profil Bilgileri
               </button>
               <button 
                 onClick={() => setActiveTab("SERVICES")}
-                className={`pb-2 text-sm font-medium border-b-2 transition-colors ${activeTab === "SERVICES" ? "border-accent text-accent" : "border-transparent text-ink-muted hover:text-ink"}`}
+                className={`pb-2 text-sm font-medium border-b-2 transition-colors ${activeTab === "SERVICES" ? "border-accent text-accent-text" : "border-transparent text-ink-muted hover:text-ink"}`}
               >
                 Hizmetler
               </button>
               <button 
                 onClick={() => setActiveTab("SCHEDULE")}
-                className={`pb-2 text-sm font-medium border-b-2 transition-colors ${activeTab === "SCHEDULE" ? "border-accent text-accent" : "border-transparent text-ink-muted hover:text-ink"}`}
+                className={`pb-2 text-sm font-medium border-b-2 transition-colors ${activeTab === "SCHEDULE" ? "border-accent text-accent-text" : "border-transparent text-ink-muted hover:text-ink"}`}
               >
                 Çalışma Saatleri
               </button>

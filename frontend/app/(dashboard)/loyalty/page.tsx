@@ -126,7 +126,7 @@ export default function LoyaltyPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--agent-sales)_15%,transparent)]">
-            <Coins className="h-5 w-5 text-[var(--agent-sales)]" />
+            <Coins className="h-5 w-5 text-success" />
           </div>
           <div>
             <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Parapuan Sistemi</h1>
@@ -170,7 +170,7 @@ export default function LoyaltyPage() {
                     <Input type="number" value={ruleForm.expiry_days} onChange={e => setRuleForm({ ...ruleForm, expiry_days: e.target.value })} />
                   </div>
                   <div className="flex items-center gap-2 mt-6">
-                    <input type="checkbox" checked={ruleForm.is_active} onChange={e => setRuleForm({ ...ruleForm, is_active: e.target.checked })} className="rounded border-gray-300" />
+                    <input type="checkbox" checked={ruleForm.is_active} onChange={e => setRuleForm({ ...ruleForm, is_active: e.target.checked })} className="rounded border-border" />
                     <Label>Sistem Aktif</Label>
                   </div>
                 </div>
@@ -203,7 +203,7 @@ export default function LoyaltyPage() {
                 </div>
                 <div>
                   <p className="text-ink-muted">Durum</p>
-                  <p className={cn("font-medium", rules.is_active ? "text-green-600" : "text-danger")}>
+                  <p className={cn("font-medium", rules.is_active ? "text-success" : "text-danger")}>
                     {rules.is_active ? "Aktif" : "Pasif"}
                   </p>
                 </div>
@@ -220,13 +220,13 @@ export default function LoyaltyPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" className="flex-1 text-green-600 hover:text-green-700" onClick={() => setShowTxForm("EARN")}>
+              <Button variant="outline" className="flex-1 text-success hover:text-success" onClick={() => setShowTxForm("EARN")}>
                 <Plus className="mr-2 h-4 w-4" /> Puan Ekle
               </Button>
-              <Button variant="outline" className="flex-1 text-red-600 hover:text-red-700" onClick={() => setShowTxForm("SPEND")}>
+              <Button variant="outline" className="flex-1 text-danger hover:text-danger" onClick={() => setShowTxForm("SPEND")}>
                 <Coins className="mr-2 h-4 w-4" /> Puan Harca
               </Button>
-              <Button variant="outline" className="flex-1 text-yellow-600 hover:text-yellow-700" onClick={() => setShowTxForm("ADJUST")}>
+              <Button variant="outline" className="flex-1 text-warning hover:text-warning" onClick={() => setShowTxForm("ADJUST")}>
                 <Pencil className="mr-2 h-4 w-4" /> Düzeltme
               </Button>
             </div>
@@ -287,11 +287,11 @@ export default function LoyaltyPage() {
                 {wallets.map(w => (
                   <tr key={w.id} className="hover:bg-surface">
                     <td className="py-3">{getCustomerName(w.customer_id)}</td>
-                    <td className="py-3 font-medium text-[var(--agent-sales)]">{w.balance}</td>
-                    <td className="py-3 text-green-600">{w.lifetime_earned}</td>
-                    <td className="py-3 text-red-600">{w.lifetime_spent}</td>
+                    <td className="py-3 font-medium text-success">{w.balance}</td>
+                    <td className="py-3 text-success">{w.lifetime_earned}</td>
+                    <td className="py-3 text-danger">{w.lifetime_spent}</td>
                     <td className="py-3">
-                      <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", w.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}>
+                      <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", w.status === "ACTIVE" ? "bg-success-soft text-success" : "bg-danger-soft text-danger")}>
                         {w.status === "ACTIVE" ? "Aktif" : "Dondurulmuş"}
                       </span>
                     </td>
@@ -312,8 +312,8 @@ export default function LoyaltyPage() {
             {transactions.slice(0, 20).map(t => {
               const w = wallets.find(w => w.id === t.wallet_id);
               const cName = w ? getCustomerName(w.customer_id) : "Bilinmiyor";
-              const typeColor = t.transaction_type === "EARN" || t.transaction_type === "BONUS" ? "text-green-600" : 
-                               t.transaction_type === "SPEND" ? "text-red-600" : "text-yellow-600";
+              const typeColor = t.transaction_type === "EARN" || t.transaction_type === "BONUS" ? "text-success" : 
+                               t.transaction_type === "SPEND" ? "text-danger" : "text-warning";
               const typeSign = t.transaction_type === "EARN" || t.transaction_type === "BONUS" || (t.transaction_type === "ADJUSTMENT" && t.points > 0) ? "+" : "";
               
               return (

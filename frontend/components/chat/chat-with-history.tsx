@@ -203,7 +203,7 @@ export function ChatWithHistory({ title, description, agentColor, examplePrompts
               onClick={() => loadSessionMessages(s.id)}
               className={cn(
                 "group flex items-center justify-between rounded-md px-3 py-2 text-sm cursor-pointer transition-colors",
-                activeSessionId === s.id ? "bg-accent/10 text-accent" : "hover:bg-surface-elevated text-ink-muted hover:text-ink"
+                activeSessionId === s.id ? "bg-accent/10 text-accent-text" : "hover:bg-surface-elevated text-ink-muted hover:text-ink"
               )}
             >
               <div className="flex items-center gap-2 truncate">
@@ -243,7 +243,7 @@ export function ChatWithHistory({ title, description, agentColor, examplePrompts
                       <button
                         key={p}
                         onClick={() => sendQuestion(p)}
-                        className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:border-accent hover:text-accent transition-colors"
+                        className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:border-accent hover:text-accent-text transition-colors"
                       >
                         {p}
                       </button>
@@ -330,7 +330,7 @@ export function ChatWithHistory({ title, description, agentColor, examplePrompts
             </Button>
           </form>
 
-          {error && <p className="px-4 pb-3 text-sm text-red-600">{error}</p>}
+          {error && <p className="px-4 pb-3 text-sm text-danger">{error}</p>}
         </div>
       </div>
     </div>

@@ -216,8 +216,8 @@ export default function ProductSalesPage() {
                     >
                       <div className="font-medium text-sm line-clamp-2 leading-tight">{prod.name}</div>
                       <div className="flex justify-between items-end mt-2">
-                        <span className="font-bold text-accent">{formatCurrency(prod.sale_price)}</span>
-                        <span className={cn("text-xs font-medium", prod.current_stock > 0 ? "text-emerald-500" : "text-red-500")}>
+                        <span className="font-bold text-accent-text">{formatCurrency(prod.sale_price)}</span>
+                        <span className={cn("text-xs font-medium", prod.current_stock > 0 ? "text-success" : "text-danger")}>
                           {prod.current_stock} {prod.unit}
                         </span>
                       </div>
@@ -275,8 +275,8 @@ export default function ProductSalesPage() {
                   <div className="space-y-1">
                     <Label className="text-xs">Ödeme Yöntemi</Label>
                     <div className="flex gap-2">
-                      <Button variant={paymentMethod === 'CASH' ? 'default' : 'outline'} className={cn("flex-1 h-8 text-xs", paymentMethod === 'CASH' && "bg-emerald-600")} onClick={() => setPaymentMethod('CASH')}>Nakit</Button>
-                      <Button variant={paymentMethod === 'CREDIT_CARD' ? 'default' : 'outline'} className={cn("flex-1 h-8 text-xs", paymentMethod === 'CREDIT_CARD' && "bg-blue-600")} onClick={() => setPaymentMethod('CREDIT_CARD')}>Kredi K.</Button>
+                      <Button variant={paymentMethod === 'CASH' ? 'default' : 'outline'} className={cn("flex-1 h-8 text-xs", paymentMethod === 'CASH' && "bg-success-solid")} onClick={() => setPaymentMethod('CASH')}>Nakit</Button>
+                      <Button variant={paymentMethod === 'CREDIT_CARD' ? 'default' : 'outline'} className={cn("flex-1 h-8 text-xs", paymentMethod === 'CREDIT_CARD' && "bg-info-solid")} onClick={() => setPaymentMethod('CREDIT_CARD')}>Kredi K.</Button>
                     </div>
                   </div>
 
@@ -287,12 +287,12 @@ export default function ProductSalesPage() {
 
                   <div className="bg-surface p-3 rounded-lg border border-border mt-2">
                     <div className="flex justify-between text-sm text-ink-muted mb-1"><span>Ara Toplam</span><span>{formatCurrency(cartSubtotal)}</span></div>
-                    <div className="flex justify-between font-bold text-lg mt-2 pt-2 border-t border-border"><span>Genel Toplam</span><span className="text-accent">{formatCurrency(cartSubtotal)}</span></div>
+                    <div className="flex justify-between font-bold text-lg mt-2 pt-2 border-t border-border"><span>Genel Toplam</span><span className="text-accent-text">{formatCurrency(cartSubtotal)}</span></div>
                   </div>
 
                   <Button 
                     className="w-full h-12 text-md gap-2" 
-                    style={{ backgroundColor: "var(--agent-sales)" }}
+                    style={{ backgroundColor: "var(--agent-sales-solid)" }}
                     disabled={cart.length === 0 || completing}
                     onClick={handleCompleteSale}
                   >
@@ -327,7 +327,7 @@ export default function ProductSalesPage() {
                 <tbody>
                   {sales.map(sale => (
                     <React.Fragment key={sale.id}>
-                      <tr className="border-t border-border hover:bg-white/[0.02]">
+                      <tr className="border-t border-border hover:bg-surface">
                         <td className="px-4 py-3">
                           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleSaleRow(sale.id)}>
                             {expandedSale === sale.id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -338,18 +338,18 @@ export default function ProductSalesPage() {
                         <td className="px-4 py-3">
                           <span className="px-2 py-1 bg-surface rounded text-xs">{sale.payment_method === 'CASH' ? 'Nakit' : sale.payment_method === 'CREDIT_CARD' ? 'Kredi Kartı' : sale.payment_method}</span>
                         </td>
-                        <td className="px-4 py-3 text-right font-bold text-emerald-500">{formatCurrency(sale.total_amount)}</td>
+                        <td className="px-4 py-3 text-right font-bold text-success">{formatCurrency(sale.total_amount)}</td>
                       </tr>
                       {expandedSale === sale.id && (
-                        <tr className="border-b border-border bg-black/10">
+                        <tr className="border-b border-border bg-border">
                           <td colSpan={5} className="px-8 py-3">
                             <table className="w-full text-xs">
-                              <thead className="text-ink-muted border-b border-white/5">
+                              <thead className="text-ink-muted border-b border-border">
                                 <tr><th className="text-left pb-1">Ürün</th><th className="text-center pb-1">Miktar</th><th className="text-right pb-1">Birim Fiyat</th><th className="text-right pb-1">Toplam</th></tr>
                               </thead>
                               <tbody>
                                 {sale.items.map((item, idx) => (
-                                  <tr key={idx} className="border-b border-white/5 last:border-0">
+                                  <tr key={idx} className="border-b border-border last:border-0">
                                     <td className="py-2">{item.product_name}</td>
                                     <td className="py-2 text-center">{item.quantity}</td>
                                     <td className="py-2 text-right">{formatCurrency(item.unit_price)}</td>

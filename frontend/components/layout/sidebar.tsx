@@ -155,7 +155,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
 
   return (
     <aside className="flex h-screen w-64 flex-col bg-sidebar-bg">
-      <div className="flex h-16 items-center border-b border-white/10 px-6">
+      <div className="flex h-16 items-center border-b border-border px-6">
         <span className="font-display text-lg font-semibold tracking-tight text-sidebar-ink">
           İşletme Paneli
         </span>
@@ -176,7 +176,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
                   "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold transition-colors",
                   hasActiveChild
                     ? "text-sidebar-ink"
-                    : "text-sidebar-muted hover:bg-white/5 hover:text-sidebar-ink"
+                    : "text-sidebar-muted hover:bg-surface hover:text-sidebar-ink"
                 )}
               >
                 <GroupIcon
@@ -200,7 +200,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
                   isOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
                 )}
               >
-                <div className="ml-3 border-l border-white/5 pl-2 mt-1 space-y-0.5">
+                <div className="ml-3 border-l border-border pl-2 mt-1 space-y-0.5">
                   {group.items.map(({ href, label, icon: Icon, color }) => {
                     const active = pathname === href;
                     return (
@@ -220,7 +220,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
                           "flex items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-1.5 text-[13px] font-medium transition-colors",
                           active
                             ? "text-sidebar-ink"
-                            : "text-sidebar-muted hover:bg-white/5 hover:text-sidebar-ink"
+                            : "text-sidebar-muted hover:bg-surface hover:text-sidebar-ink"
                         )}
                       >
                         <Icon

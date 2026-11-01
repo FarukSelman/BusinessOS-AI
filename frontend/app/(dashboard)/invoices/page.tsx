@@ -49,11 +49,11 @@ import { Pagination } from "@/components/ui/pagination";
 
 /* ---------- helpers ---------- */
 const statusConfig: Record<InvoiceStatus, { label: string; color: string; icon: React.ElementType }> = {
-  DRAFT: { label: "Taslak", color: "bg-gray-500/15 text-gray-400 border-gray-500/30", icon: FileText },
-  SENT: { label: "Gönderildi", color: "bg-blue-500/15 text-blue-400 border-blue-500/30", icon: Send },
-  PAID: { label: "Ödendi", color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", icon: CheckCircle2 },
-  OVERDUE: { label: "Gecikmiş", color: "bg-red-500/15 text-red-400 border-red-500/30", icon: AlertTriangle },
-  CANCELLED: { label: "İptal", color: "bg-zinc-500/15 text-zinc-500 border-zinc-500/30", icon: Ban },
+  DRAFT: { label: "Taslak", color: "bg-neutral-soft text-ink-muted border-border", icon: FileText },
+  SENT: { label: "Gönderildi", color: "bg-info-soft text-info border-info-border", icon: Send },
+  PAID: { label: "Ödendi", color: "bg-success-soft text-success border-success-border", icon: CheckCircle2 },
+  OVERDUE: { label: "Gecikmiş", color: "bg-danger-soft text-danger border-danger-border", icon: AlertTriangle },
+  CANCELLED: { label: "İptal", color: "bg-neutral-soft text-ink-muted border-border", icon: Ban },
 };
 
 const paymentMethodLabels: Record<PaymentMethod, string> = {
@@ -320,7 +320,7 @@ function InvoicesPageContent() {
           <Card className="bg-surface-elevated border-border">
             <CardContent className="pt-4 pb-4">
               <p className="text-xs text-ink-muted font-medium">Toplam Gelir</p>
-              <p className="text-xl font-bold text-emerald-400 mt-1">{formatCurrency(stats.total_revenue)}</p>
+              <p className="text-xl font-bold text-success mt-1">{formatCurrency(stats.total_revenue)}</p>
             </CardContent>
           </Card>
           <Card className="bg-surface-elevated border-border">
@@ -332,13 +332,13 @@ function InvoicesPageContent() {
           <Card className="bg-surface-elevated border-border">
             <CardContent className="pt-4 pb-4">
               <p className="text-xs text-ink-muted font-medium">Bekleyen</p>
-              <p className="text-xl font-bold text-amber-400 mt-1">{stats.pending_count} <span className="text-sm text-ink-muted font-normal">fatura</span></p>
+              <p className="text-xl font-bold text-warning mt-1">{stats.pending_count} <span className="text-sm text-ink-muted font-normal">fatura</span></p>
             </CardContent>
           </Card>
           <Card className="bg-surface-elevated border-border">
             <CardContent className="pt-4 pb-4">
               <p className="text-xs text-ink-muted font-medium">Gecikmiş</p>
-              <p className="text-xl font-bold text-red-400 mt-1">{stats.overdue_count} <span className="text-sm text-ink-muted font-normal">fatura</span></p>
+              <p className="text-xl font-bold text-danger mt-1">{stats.overdue_count} <span className="text-sm text-ink-muted font-normal">fatura</span></p>
             </CardContent>
           </Card>
         </div>
@@ -576,7 +576,7 @@ function InvoicesPageContent() {
                 {/* Main Row */}
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : inv.id)}
-                  className="w-full flex items-center gap-4 p-4 text-left hover:bg-white/[0.02] transition-colors"
+                  className="w-full flex items-center gap-4 p-4 text-left hover:bg-surface transition-colors"
                 >
                   <div className={cn("flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium border", cfg.color)}>
                     <StatusIcon className="h-3 w-3" />

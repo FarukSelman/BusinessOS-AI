@@ -90,7 +90,7 @@ export function PendingActionCard({ action, disabled, outcome, onApprove, onReje
     return (
       <div
         className={`mt-3 rounded-lg border p-3 text-xs ${
-          outcome === "approved" ? "border-green-500/40 bg-green-50 text-green-900" : "border-border bg-surface text-ink-muted"
+          outcome === "approved" ? "border-success-border bg-success-soft text-success" : "border-border bg-surface text-ink-muted"
         }`}
       >
         <span className="font-semibold">{title}:</span> {outcome === "approved" ? "onaylandı ve uygulandı." : "reddedildi."}
@@ -99,14 +99,14 @@ export function PendingActionCard({ action, disabled, outcome, onApprove, onReje
   }
 
   return (
-    <div className="mt-3 rounded-lg border border-amber-400/50 bg-amber-50 p-3 text-amber-950">
+    <div className="mt-3 rounded-lg border border-warning-border bg-warning-soft p-3 text-warning">
       <p className="text-xs font-semibold">Yönetici onayı bekleniyor · {title}</p>
 
       {fields.length > 0 && (
         <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
           {fields.map(([key, value]) => (
             <div key={key} className="contents">
-              <dt className="text-amber-900/70">{FIELD_LABELS[key]}</dt>
+              <dt className="text-warning/70">{FIELD_LABELS[key]}</dt>
               <dd className={LONG_FIELDS.has(key) ? "whitespace-pre-wrap font-medium" : "font-medium"}>
                 {formatValue(key, value)}
               </dd>
@@ -116,7 +116,7 @@ export function PendingActionCard({ action, disabled, outcome, onApprove, onReje
       )}
 
       {items.length > 0 && (
-        <ul className="mt-2 space-y-0.5 border-t border-amber-400/40 pt-2 text-xs">
+        <ul className="mt-2 space-y-0.5 border-t border-warning-border pt-2 text-xs">
           {items.map((item, idx) => (
             <li key={idx} className="flex justify-between gap-3">
               <span>
@@ -128,7 +128,7 @@ export function PendingActionCard({ action, disabled, outcome, onApprove, onReje
         </ul>
       )}
 
-      <p className="mt-2 text-[11px] text-amber-900/70">Onaylandığında işlem tekrar doğrulanır ve uygulanır.</p>
+      <p className="mt-2 text-[11px] text-warning/70">Onaylandığında işlem tekrar doğrulanır ve uygulanır.</p>
 
       {rejecting ? (
         <form
@@ -144,7 +144,7 @@ export function PendingActionCard({ action, disabled, outcome, onApprove, onReje
             maxLength={500}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Reddetme sebebi (opsiyonel)"
-            className="h-8 min-w-0 flex-1 bg-white text-xs"
+            className="h-8 min-w-0 flex-1 bg-surface-elevated text-xs"
           />
           <Button type="submit" size="sm" variant="outline" disabled={disabled}>
             Reddet

@@ -83,7 +83,7 @@ export default function ReviewsPage() {
 
   function renderStars(rating: number) {
     return Array.from({ length: 5 }).map((_, i) => (
-      <Star key={i} className={cn("h-4 w-4", i < rating ? "fill-amber-400 text-amber-400" : "fill-gray-200 text-gray-200")} />
+      <Star key={i} className={cn("h-4 w-4", i < rating ? "fill-warning text-warning" : "fill-border text-ink-muted")} />
     ));
   }
 
@@ -93,7 +93,7 @@ export default function ReviewsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--agent-sales)_15%,transparent)]">
-          <Star className="h-5 w-5 text-[var(--agent-sales)]" />
+          <Star className="h-5 w-5 text-success" />
         </div>
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Müşteri Yorumları</h1>
@@ -117,8 +117,8 @@ export default function ReviewsPage() {
                   return (
                     <div key={r} className="flex items-center gap-3 text-sm">
                       <div className="w-8 font-medium">{r} Puan</div>
-                      <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
-                        <div className="h-full bg-amber-400 rounded-full" style={{ width: `${pct}%` }} />
+                      <div className="flex-1 h-2 rounded-full bg-surface overflow-hidden">
+                        <div className="h-full bg-warning-solid rounded-full" style={{ width: `${pct}%` }} />
                       </div>
                       <div className="w-8 text-right text-ink-muted">{count}</div>
                     </div>
@@ -136,7 +136,7 @@ export default function ReviewsPage() {
           return (
             <button
               key={s}
-              className={cn("shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium rounded-md transition-colors", statusFilter === s ? "bg-[var(--agent-sales)] text-white" : "hover:bg-surface text-ink-muted")}
+              className={cn("shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium rounded-md transition-colors", statusFilter === s ? "bg-[var(--agent-sales-solid)] text-white" : "hover:bg-surface text-ink-muted")}
               onClick={() => setStatusFilter(s)}
             >
               {labels[s]}
@@ -155,9 +155,9 @@ export default function ReviewsPage() {
                     <span className="font-semibold text-ink">{r.reviewer_name}</span>
                     <span className="text-xs text-ink-muted">{new Date(r.created_at).toLocaleString("tr-TR")}</span>
                     <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium border", 
-                      r.status === "PUBLISHED" ? "bg-green-50 text-green-700 border-green-200" : 
-                      r.status === "REJECTED" ? "bg-red-50 text-red-700 border-red-200" : 
-                      "bg-yellow-50 text-yellow-700 border-yellow-200"
+                      r.status === "PUBLISHED" ? "bg-success-soft text-success border-success-border" : 
+                      r.status === "REJECTED" ? "bg-danger-soft text-danger border-danger-border" : 
+                      "bg-warning-soft text-warning border-warning-border"
                     )}>
                       {r.status === "PUBLISHED" ? "YAYINDA" : r.status === "REJECTED" ? "REDDEDİLDİ" : "BEKLİYOR"}
                     </span>
@@ -193,10 +193,10 @@ export default function ReviewsPage() {
                 <div className="flex flex-col gap-2 shrink-0">
                   {r.status === "PENDING" && (
                     <>
-                      <Button size="sm" variant="outline" className="text-green-600 hover:text-green-700 border-green-200 hover:bg-green-50" onClick={() => handleAction(r.id, 'approve')} disabled={actionLoading}>
+                      <Button size="sm" variant="outline" className="text-success hover:text-success border-success-border hover:bg-success-soft" onClick={() => handleAction(r.id, 'approve')} disabled={actionLoading}>
                         <CheckCircle className="mr-1.5 h-4 w-4" /> Onayla
                       </Button>
-                      <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50" onClick={() => handleAction(r.id, 'reject')} disabled={actionLoading}>
+                      <Button size="sm" variant="outline" className="text-danger hover:text-danger border-danger-border hover:bg-danger-soft" onClick={() => handleAction(r.id, 'reject')} disabled={actionLoading}>
                         <XCircle className="mr-1.5 h-4 w-4" /> Reddet
                       </Button>
                     </>

@@ -159,7 +159,7 @@ export default function DashboardHomePage() {
         <p className="text-sm text-ink-muted">İşletmenin tüm ajanlarına buradan göz atabilirsin.</p>
       </div>
 
-      {error && <p className="rounded-md bg-red-50 p-3 text-sm text-danger">{error}</p>}
+      {error && <p className="rounded-md bg-danger-soft p-3 text-sm text-danger">{error}</p>}
 
       {loading ? (
         <p className="text-sm text-ink-muted">Yükleniyor...</p>
@@ -169,7 +169,7 @@ export default function DashboardHomePage() {
             {/* Row 1 */}
             <Card className="border-l-2" style={{ borderLeftColor: "var(--accent)" }}>
               <CardContent className="flex items-center gap-3 p-4">
-                <Users className="h-5 w-5 text-accent" />
+                <Users className="h-5 w-5 text-accent-text" />
                 <div>
                   <p className="text-2xl font-semibold text-ink">{stats?.total_customers ?? activeCustomers}</p>
                   <p className="text-xs text-ink-muted">Toplam Müşteri</p>
@@ -236,7 +236,7 @@ export default function DashboardHomePage() {
             </>)}
             <Card className="border-l-2" style={{ borderLeftColor: "var(--accent)" }}>
               <CardContent className="flex items-center gap-3 p-4">
-                <UserCog className="h-5 w-5 text-accent" />
+                <UserCog className="h-5 w-5 text-accent-text" />
                 <div>
                   <p className="text-2xl font-semibold text-ink">{stats?.active_staff_count ?? 0}</p>
                   <p className="text-xs text-ink-muted">Aktif Personel</p>
@@ -247,10 +247,10 @@ export default function DashboardHomePage() {
 
           {/* Online Booking Link */}
           {businessSlug && (
-            <Card className="border border-violet-500/20 bg-gradient-to-r from-violet-500/5 to-blue-500/5">
+            <Card className="border border-violet-border bg-gradient-to-r from-violet/5 to-info/5">
               <CardContent className="flex items-center gap-3 p-4">
-                <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-violet-500/10 flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-violet-400" />
+                <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-violet-soft flex items-center justify-center">
+                  <Sparkles className="h-4 w-4 text-violet" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-ink-muted font-medium">Online Randevu Linki</p>
@@ -264,13 +264,13 @@ export default function DashboardHomePage() {
                       setTimeout(() => setLinkCopied(false), 2000);
                     });
                   }}
-                  className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 transition-colors"
+                  className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium bg-violet-soft text-violet hover:bg-violet-soft transition-colors"
                 >
                   {linkCopied ? "✓ Kopyalandı" : "Kopyala"}
                 </button>
               </CardContent>
               {canSeeFinance && (
-              <div className="flex items-center gap-3 border-t border-violet-500/10 px-4 py-3">
+              <div className="flex items-center gap-3 border-t border-violet-border px-4 py-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-ink">Online randevuları otomatik onayla</p>
                   <p className="text-[11px] text-ink-muted">
@@ -305,7 +305,7 @@ export default function DashboardHomePage() {
                     }
                   }}
                   className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
-                    autoConfirm ? "bg-violet-500" : "bg-ink-muted/30"
+                    autoConfirm ? "bg-violet-solid" : "bg-ink-muted/30"
                   }`}
                 >
                   <span
@@ -347,7 +347,7 @@ export default function DashboardHomePage() {
                     </div>
                   ))}
                 {todayAppointments.length > 5 && (
-                  <Link href="/appointments" className="text-xs text-accent underline">
+                  <Link href="/appointments" className="text-xs text-accent-text underline">
                     Tümünü gör ({todayAppointments.length})
                   </Link>
                 )}

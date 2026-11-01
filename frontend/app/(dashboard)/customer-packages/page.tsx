@@ -175,7 +175,7 @@ export default function CustomerPackagesPage() {
           <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Müşteri Paketleri</h1>
           <p className="mt-1 text-sm text-ink-muted">Satılan paketlerin seans ve ödeme takibi.</p>
         </div>
-        <Button onClick={() => setShowSell(!showSell)} className="gap-2" style={{ backgroundColor: "var(--agent-appointments)" }}>
+        <Button onClick={() => setShowSell(!showSell)} className="gap-2" style={{ backgroundColor: "var(--agent-appointments-solid)" }}>
           <Plus className="h-4 w-4" />
           {showSell ? "İptal" : "Paket Sat"}
         </Button>
@@ -246,7 +246,7 @@ export default function CustomerPackagesPage() {
               </div>
             </div>
             <div className="flex justify-end">
-              <Button onClick={handleSell} disabled={selling} style={{ backgroundColor: "var(--agent-appointments)" }}>
+              <Button onClick={handleSell} disabled={selling} style={{ backgroundColor: "var(--agent-appointments-solid)" }}>
                 {selling ? "İşleniyor..." : "Satışı Onayla"}
               </Button>
             </div>
@@ -294,14 +294,14 @@ export default function CustomerPackagesPage() {
                   <div className="flex justify-between items-start">
                     <div>
                       <CardTitle className="text-base text-ink">{cp.customer_name}</CardTitle>
-                      <p className="text-sm font-medium text-accent mt-0.5">{cp.package_name}</p>
+                      <p className="text-sm font-medium text-accent-text mt-0.5">{cp.package_name}</p>
                     </div>
                     <span className={cn(
                       "px-2 py-0.5 text-[10px] rounded-full uppercase font-bold tracking-wider",
-                      cp.status === 'ACTIVE' ? "bg-emerald-500/15 text-emerald-400" :
-                      cp.status === 'COMPLETED' ? "bg-blue-500/15 text-blue-400" :
-                      cp.status === 'CANCELLED' ? "bg-red-500/15 text-red-400" :
-                      "bg-zinc-500/15 text-zinc-400"
+                      cp.status === 'ACTIVE' ? "bg-success-soft text-success" :
+                      cp.status === 'COMPLETED' ? "bg-info-soft text-info" :
+                      cp.status === 'CANCELLED' ? "bg-danger-soft text-danger" :
+                      "bg-neutral-soft text-ink-muted"
                     )}>
                       {cp.status === 'ACTIVE' ? 'Aktif' : cp.status === 'COMPLETED' ? 'Bitti' : cp.status === 'EXPIRED' ? 'Süresi Doldu' : 'İptal'}
                     </span>
@@ -313,12 +313,12 @@ export default function CustomerPackagesPage() {
                       <span>Kullanılan Seans</span>
                       <span className="font-medium text-ink">{cp.used_sessions} / {cp.total_sessions}</span>
                     </div>
-                    <div className="h-2 w-full bg-black/20 rounded-full overflow-hidden">
+                    <div className="h-2 w-full bg-border rounded-full overflow-hidden">
                       <div className="h-full bg-accent transition-all" style={{ width: `${progress}%` }} />
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-1 text-sm border-t border-white/5 pt-3">
+                  <div className="flex flex-col gap-1 text-sm border-t border-border pt-3">
                     <div className="flex justify-between">
                       <span className="text-ink-muted">Ödenen Tutar:</span>
                       <span className="text-ink font-medium">{formatCurrency(cp.paid_amount)} / {formatCurrency(cp.total_price)}</span>
@@ -344,18 +344,18 @@ export default function CustomerPackagesPage() {
             <div className="space-y-6">
               <div>
                 <DialogTitle className="text-xl mb-1">{selectedCp.customer_name}</DialogTitle>
-                <DialogDescription className="text-base text-accent font-medium">{selectedCp.package_name}</DialogDescription>
+                <DialogDescription className="text-base text-accent-text font-medium">{selectedCp.package_name}</DialogDescription>
               </div>
 
               <div className="flex gap-4 border-b border-border">
                 <button 
-                  className={cn("pb-2 px-1 text-sm font-medium border-b-2 transition-colors", activeTab === "SESSIONS" ? "border-accent text-accent" : "border-transparent text-ink-muted hover:text-ink")}
+                  className={cn("pb-2 px-1 text-sm font-medium border-b-2 transition-colors", activeTab === "SESSIONS" ? "border-accent text-accent-text" : "border-transparent text-ink-muted hover:text-ink")}
                   onClick={() => setActiveTab("SESSIONS")}
                 >
                   Seanslar ({selectedCp.used_sessions}/{selectedCp.total_sessions})
                 </button>
                 <button 
-                  className={cn("pb-2 px-1 text-sm font-medium border-b-2 transition-colors", activeTab === "INSTALLMENTS" ? "border-accent text-accent" : "border-transparent text-ink-muted hover:text-ink")}
+                  className={cn("pb-2 px-1 text-sm font-medium border-b-2 transition-colors", activeTab === "INSTALLMENTS" ? "border-accent text-accent-text" : "border-transparent text-ink-muted hover:text-ink")}
                   onClick={() => setActiveTab("INSTALLMENTS")}
                 >
                   Taksitler ({selectedCp.installments?.filter(i => i.status === 'PAID').length || 0}/{selectedCp.installments?.length || 0})
@@ -367,7 +367,7 @@ export default function CustomerPackagesPage() {
                   {selectedCp.sessions?.map(session => (
                     <div key={session.id} className="flex items-center justify-between p-3 rounded-md border border-border bg-surface hover:bg-surface-elevated transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-accent/10 text-accent flex items-center justify-center text-xs font-bold">
+                        <div className="w-8 h-8 rounded-full bg-accent/10 text-accent-text flex items-center justify-center text-xs font-bold">
                           {session.session_number}
                         </div>
                         <div>
@@ -375,10 +375,10 @@ export default function CustomerPackagesPage() {
                             Seans {session.session_number}
                             <span className={cn(
                               "px-1.5 py-0.5 text-[10px] rounded uppercase font-bold tracking-wider",
-                              session.status === 'COMPLETED' ? "bg-emerald-500/15 text-emerald-400" :
-                              session.status === 'PENDING' ? "bg-yellow-500/15 text-yellow-400" :
-                              session.status === 'CANCELLED' ? "bg-zinc-500/15 text-zinc-400" :
-                              "bg-red-500/15 text-red-400"
+                              session.status === 'COMPLETED' ? "bg-success-soft text-success" :
+                              session.status === 'PENDING' ? "bg-warning-soft text-warning" :
+                              session.status === 'CANCELLED' ? "bg-neutral-soft text-ink-muted" :
+                              "bg-danger-soft text-danger"
                             )}>
                               {session.status}
                             </span>
@@ -390,7 +390,7 @@ export default function CustomerPackagesPage() {
                       {session.status === 'PENDING' && selectedCp.status === 'ACTIVE' && (
                         <div className="flex gap-2">
                           <Button size="sm" variant="outline" className="h-8 text-danger border-danger/30 hover:bg-danger/10" onClick={() => handleCancelSession(session.id)}>İptal</Button>
-                          <Button size="sm" className="h-8 bg-emerald-600 hover:bg-emerald-700" onClick={() => handleCompleteSession(session.id)}>Tamamla</Button>
+                          <Button size="sm" className="h-8 bg-success-solid hover:brightness-110" onClick={() => handleCompleteSession(session.id)}>Tamamla</Button>
                         </div>
                       )}
                     </div>
@@ -406,10 +406,10 @@ export default function CustomerPackagesPage() {
                   {selectedCp.installments?.map(inst => (
                     <div key={inst.id} className={cn(
                       "flex items-center justify-between p-3 rounded-md border border-border bg-surface hover:bg-surface-elevated transition-colors",
-                      inst.status === "OVERDUE" && "border-l-2 border-l-red-500"
+                      inst.status === "OVERDUE" && "border-l-2 border-l-danger"
                     )}>
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center text-xs font-bold">
+                        <div className="w-8 h-8 rounded-full bg-info-soft text-info flex items-center justify-center text-xs font-bold">
                           {inst.installment_number}
                         </div>
                         <div>
@@ -417,23 +417,23 @@ export default function CustomerPackagesPage() {
                             {formatCurrency(inst.amount)}
                             <span className={cn(
                               "px-1.5 py-0.5 text-[10px] rounded uppercase font-bold tracking-wider",
-                              inst.status === 'PAID' ? "bg-emerald-500/15 text-emerald-400" :
-                              inst.status === 'PENDING' ? "bg-yellow-500/15 text-yellow-400" :
-                              inst.status === 'OVERDUE' ? "bg-red-500/15 text-red-400" :
-                              "bg-zinc-500/15 text-zinc-400"
+                              inst.status === 'PAID' ? "bg-success-soft text-success" :
+                              inst.status === 'PENDING' ? "bg-warning-soft text-warning" :
+                              inst.status === 'OVERDUE' ? "bg-danger-soft text-danger" :
+                              "bg-neutral-soft text-ink-muted"
                             )}>
                               {inst.status === 'OVERDUE' ? 'Gecikmiş' : inst.status === 'PAID' ? 'Ödendi' : inst.status === 'PENDING' ? 'Bekliyor' : 'İptal'}
                             </span>
                           </div>
                           <div className="text-xs text-ink-muted flex items-center mt-1">
                             <Clock className="w-3 h-3 mr-1" /> Vade: {formatDate(inst.due_date)}
-                            {inst.paid_date && <span className="ml-2 text-emerald-400/80">Ödendi: {formatDate(inst.paid_date)}</span>}
+                            {inst.paid_date && <span className="ml-2 text-success/80">Ödendi: {formatDate(inst.paid_date)}</span>}
                           </div>
                         </div>
                       </div>
                       
                       {(inst.status === 'PENDING' || inst.status === 'OVERDUE') && (
-                        <Button size="sm" onClick={() => handlePayInstallment(inst.id)} style={{ backgroundColor: "var(--agent-finance)" }}>
+                        <Button size="sm" onClick={() => handlePayInstallment(inst.id)} style={{ backgroundColor: "var(--agent-finance-solid)" }}>
                           Öde
                         </Button>
                       )}

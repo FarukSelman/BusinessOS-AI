@@ -209,7 +209,7 @@ export default function SurveysPage() {
           </div>
         </div>
         {!showForm && (
-          <Button onClick={() => setShowForm(true)} className="bg-[var(--agent-marketing)] text-white hover:bg-[var(--agent-marketing)]/90">
+          <Button onClick={() => setShowForm(true)} className="bg-[var(--agent-marketing-solid)] text-white hover:bg-[var(--agent-marketing)]/90">
             <Plus className="mr-2 h-4 w-4" /> Yeni Anket
           </Button>
         )}
@@ -232,7 +232,7 @@ export default function SurveysPage() {
                   <Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
                 </div>
                 <div className="flex items-center gap-2 col-span-2">
-                  <input type="checkbox" className="rounded border-gray-300" checked={form.is_auto_send} onChange={e => setForm({ ...form, is_auto_send: e.target.checked })} />
+                  <input type="checkbox" className="rounded border-border" checked={form.is_auto_send} onChange={e => setForm({ ...form, is_auto_send: e.target.checked })} />
                   <Label>Randevulardan sonra otomatik gönder</Label>
                 </div>
               </div>
@@ -282,7 +282,7 @@ export default function SurveysPage() {
               
               <div className="flex gap-2 justify-end pt-4">
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Vazgeç</Button>
-                <Button type="submit" disabled={saving} className="bg-[var(--agent-marketing)] text-white">Kaydet</Button>
+                <Button type="submit" disabled={saving} className="bg-[var(--agent-marketing-solid)] text-white">Kaydet</Button>
               </div>
             </form>
           </CardContent>
@@ -296,7 +296,7 @@ export default function SurveysPage() {
               <div className="flex justify-between items-start">
                 <CardTitle className="text-base font-semibold">{s.title}</CardTitle>
                 <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium", 
-                  s.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
+                  s.status === "ACTIVE" ? "bg-success-soft text-success" : "bg-surface text-ink"
                 )}>
                   {s.status === "ACTIVE" ? "AKTİF" : "PASİF"}
                 </span>

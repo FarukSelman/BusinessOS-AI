@@ -165,7 +165,7 @@ export default function CashRegisterPage() {
             
             {/* Today's Status */}
             <Card className="bg-surface-elevated border-border overflow-hidden">
-              <div className={cn("h-2 w-full", register?.status === 'OPEN' ? "bg-emerald-500" : register?.status === 'CLOSED' ? "bg-zinc-500" : "bg-blue-500")}></div>
+              <div className={cn("h-2 w-full", register?.status === 'OPEN' ? "bg-success-solid" : register?.status === 'CLOSED' ? "bg-neutral-solid" : "bg-info-solid")}></div>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
@@ -181,12 +181,12 @@ export default function CashRegisterPage() {
                     {register ? (
                       <span className={cn(
                         "px-3 py-1 text-sm font-medium rounded-full",
-                        register.status === 'OPEN' ? "bg-emerald-500/15 text-emerald-400" : "bg-zinc-500/15 text-zinc-400"
+                        register.status === 'OPEN' ? "bg-success-soft text-success" : "bg-neutral-soft text-ink-muted"
                       )}>
                         {register.status === 'OPEN' ? 'Açık' : 'Kapalı'}
                       </span>
                     ) : (
-                      <span className="px-3 py-1 text-sm font-medium rounded-full bg-blue-500/15 text-blue-400">Henüz Açılmadı</span>
+                      <span className="px-3 py-1 text-sm font-medium rounded-full bg-info-soft text-info">Henüz Açılmadı</span>
                     )}
                   </div>
                 </div>
@@ -199,11 +199,11 @@ export default function CashRegisterPage() {
                           <Label>Açılış Bakiyesi (₺)</Label>
                           <Input type="number" min={0} step={0.01} value={openBalance} onChange={e => setOpenBalance(parseFloat(e.target.value) || 0)} />
                         </div>
-                        <Button onClick={handleOpen} className="bg-emerald-600 hover:bg-emerald-700">Kasayı Aç</Button>
+                        <Button onClick={handleOpen} className="bg-success-solid hover:brightness-110">Kasayı Aç</Button>
                         <Button variant="outline" onClick={() => setShowOpenForm(false)}>İptal</Button>
                       </div>
                     ) : (
-                      <Button onClick={() => setShowOpenForm(true)} className="w-full bg-emerald-600 hover:bg-emerald-700 h-12">
+                      <Button onClick={() => setShowOpenForm(true)} className="w-full bg-success-solid hover:brightness-110 h-12">
                         Yeni Kasa Aç
                       </Button>
                     )}
@@ -218,14 +218,14 @@ export default function CashRegisterPage() {
                     </div>
                     <div className="bg-surface p-4 rounded-lg">
                       <p className="text-xs text-ink-muted mb-1">{register.status === 'CLOSED' ? 'Kapanış Bakiyesi' : 'Mevcut Bakiye (Beklenen)'}</p>
-                      <p className="text-lg font-bold text-blue-400">{formatCurrency(summary?.expected_closing || register.closing_balance || 0)}</p>
+                      <p className="text-lg font-bold text-info">{formatCurrency(summary?.expected_closing || register.closing_balance || 0)}</p>
                     </div>
                   </div>
                 )}
 
                 {register && register.status === 'OPEN' && (
                   <div className="mt-6 pt-6 border-t border-border">
-                    <Button onClick={() => { setCloseBalance(summary?.expected_closing || 0); setShowCloseForm(true); }} variant="outline" className="w-full border-red-500/50 text-red-400 hover:bg-red-500/10">
+                    <Button onClick={() => { setCloseBalance(summary?.expected_closing || 0); setShowCloseForm(true); }} variant="outline" className="w-full border-danger-border text-danger hover:bg-danger-soft">
                       Kasayı Kapat
                     </Button>
                   </div>
@@ -250,7 +250,7 @@ export default function CashRegisterPage() {
                       <Input type="number" min={0} step={0.01} value={closeBalance} onChange={e => setCloseBalance(parseFloat(e.target.value) || 0)} />
                     </div>
                     {(closeBalance - (summary?.expected_closing || 0)) !== 0 && (
-                      <div className={cn("text-sm p-2 rounded", (closeBalance - (summary?.expected_closing || 0)) > 0 ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400")}>
+                      <div className={cn("text-sm p-2 rounded", (closeBalance - (summary?.expected_closing || 0)) > 0 ? "bg-success-soft text-success" : "bg-danger-soft text-danger")}>
                         Fark: {formatCurrency(closeBalance - (summary?.expected_closing || 0))}
                       </div>
                     )}
@@ -260,7 +260,7 @@ export default function CashRegisterPage() {
                     </div>
                     <div className="flex gap-2 justify-end pt-2">
                       <Button variant="outline" onClick={() => setShowCloseForm(false)}>İptal</Button>
-                      <Button onClick={handleClose} className="bg-red-600 hover:bg-red-700">Kapat</Button>
+                      <Button onClick={handleClose} className="bg-danger-solid hover:brightness-110">Kapat</Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -311,10 +311,10 @@ export default function CashRegisterPage() {
                   <CardTitle className="text-sm font-semibold">Özet Tablo</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4 space-y-2 text-sm">
-                  <div className="flex justify-between text-ink-muted"><span>Satışlar</span><span className="text-emerald-400">+{formatCurrency(summary.total_sales)}</span></div>
-                  <div className="flex justify-between text-ink-muted"><span>Nakit Girişleri</span><span className="text-emerald-400">+{formatCurrency(summary.total_deposits)}</span></div>
-                  <div className="flex justify-between text-ink-muted"><span>Giderler</span><span className="text-red-400">-{formatCurrency(summary.total_expenses)}</span></div>
-                  <div className="flex justify-between text-ink-muted"><span>Nakit Çıkışları</span><span className="text-red-400">-{formatCurrency(summary.total_withdrawals)}</span></div>
+                  <div className="flex justify-between text-ink-muted"><span>Satışlar</span><span className="text-success">+{formatCurrency(summary.total_sales)}</span></div>
+                  <div className="flex justify-between text-ink-muted"><span>Nakit Girişleri</span><span className="text-success">+{formatCurrency(summary.total_deposits)}</span></div>
+                  <div className="flex justify-between text-ink-muted"><span>Giderler</span><span className="text-danger">-{formatCurrency(summary.total_expenses)}</span></div>
+                  <div className="flex justify-between text-ink-muted"><span>Nakit Çıkışları</span><span className="text-danger">-{formatCurrency(summary.total_withdrawals)}</span></div>
                 </CardContent>
               </Card>
             )}
@@ -327,10 +327,10 @@ export default function CashRegisterPage() {
                 <CardContent className="pt-0 px-0">
                   <div className="divide-y divide-border">
                     {pastRegisters.map(r => (
-                      <div key={r.id} className="p-4 text-sm flex justify-between items-center hover:bg-white/[0.02]">
+                      <div key={r.id} className="p-4 text-sm flex justify-between items-center hover:bg-surface">
                         <div>
                           <p className="font-medium">{formatDate(r.register_date)}</p>
-                          <p className="text-xs text-ink-muted">Fark: <span className={cn(r.difference && r.difference > 0 ? "text-emerald-400" : r.difference && r.difference < 0 ? "text-red-400" : "text-ink")}>{formatCurrency(r.difference || 0)}</span></p>
+                          <p className="text-xs text-ink-muted">Fark: <span className={cn(r.difference && r.difference > 0 ? "text-success" : r.difference && r.difference < 0 ? "text-danger" : "text-ink")}>{formatCurrency(r.difference || 0)}</span></p>
                         </div>
                         <div className="text-right">
                           <p className="font-bold">{formatCurrency(r.closing_balance || 0)}</p>
