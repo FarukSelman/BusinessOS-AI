@@ -203,3 +203,28 @@ class AppointmentRepository(
             
         statement = statement.order_by(self.model.appointment_date.desc(), self.model.start_time.asc())
         return list(self.db.scalars(statement).all())
+
+    def list_in_range(
+        self,
+        business_id: UUID,
+        start_date: date,
+        end_date: date,
+        staff_id: UUID | None = None,
+        branch_id: UUID | None = None,
+        statuses: list[AppointmentStatus] | None = None,
+    ) -> list[Appointment]:
+        statement = select(self.model).where(
+            self.model.business_id == business_id,
+            self.model.appointment_date >= start_date,
+            self.model.appointment_date <= end_date,
+            self.model.is_deleted.is_(False),
+        )
+        if staff_id:
+            statement = statement.where(self.model.staff_id == staff_id)
+        if branch_id:
+            statement = statement.where(self.model.branch_id == branch_id)
+        if statuses:
+            statement = statement.where(self.model.status.in_(statuses))
+
+        statement = statement.order_by(self.model.appointment_date.asc(), self.model.start_time.asc())
+        return list(self.db.scalars(statement).all())

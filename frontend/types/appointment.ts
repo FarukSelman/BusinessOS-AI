@@ -8,6 +8,8 @@ export interface Appointment {
   customer_email: string | null;
   service_id: string | null;
   customer_id: string | null;
+  staff_id: string | null;
+  branch_id: string | null;
   appointment_date: string; // YYYY-MM-DD
   start_time: string; // HH:MM:SS
   end_time: string | null;
@@ -23,6 +25,8 @@ export interface AppointmentCreatePayload {
   customer_email?: string | null;
   service_id?: string | null;
   customer_id?: string | null;
+  staff_id?: string | null;
+  branch_id?: string | null;
   appointment_date: string;
   start_time: string;
   end_time?: string | null;
@@ -35,11 +39,31 @@ export interface AppointmentUpdatePayload {
   customer_email?: string | null;
   service_id?: string | null;
   customer_id?: string | null;
+  staff_id?: string | null;
+  branch_id?: string | null;
   appointment_date?: string;
   start_time?: string;
   end_time?: string | null;
   status?: AppointmentStatus;
   notes?: string | null;
+}
+
+/** Lightweight row from GET /appointments/range (calendar view). */
+export interface CalendarAppointment {
+  id: string;
+  customer_name: string;
+  service_id: string | null;
+  staff_id: string | null;
+  branch_id: string | null;
+  appointment_date: string; // YYYY-MM-DD
+  start_time: string; // HH:MM:SS
+  end_time: string | null;
+  status: AppointmentStatus;
+}
+
+export interface CalendarRangeFilters {
+  staffId?: string | null;
+  branchId?: string | null;
 }
 
 export interface AvailableSlotsResponse {

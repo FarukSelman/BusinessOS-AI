@@ -2,7 +2,7 @@ import uuid
 from typing import TYPE_CHECKING
 from datetime import date, time
 
-from sqlalchemy import Enum, String, Text, Date, Time, ForeignKey
+from sqlalchemy import Enum, String, Text, Date, Time, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -31,3 +31,8 @@ class Appointment(BaseModel):
     
     status: Mapped[AppointmentStatus] = mapped_column(Enum(AppointmentStatus), default=AppointmentStatus.PENDING, nullable=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        # Calendar and daily lists always filter by business + date.
+        Index("ix_appointments_business_date", "business_id", "appointment_date"),
+    )

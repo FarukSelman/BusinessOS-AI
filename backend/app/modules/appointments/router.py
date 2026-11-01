@@ -9,6 +9,7 @@ from app.db.unit_of_work import UnitOfWork
 
 from app.modules.appointments.repository import AppointmentRepository
 from app.modules.appointments.schemas import (
+    AppointmentCalendarItem,
     AppointmentCreate,
     AppointmentResponse,
     AppointmentUpdate,
@@ -18,6 +19,7 @@ from app.modules.appointments.service import AppointmentService
 from app.modules.appointments.dependencies import build_appointment_service
 
 from app.modules.user.models import User
+from app.shared.enums.appointment import AppointmentStatus
 
 from app.shared.security.dependencies import get_current_user
 from app.shared.security.business import require_business_member
@@ -119,6 +121,48 @@ def list_appointments(
         business_id,
         page=page,
         size=size,
+    )
+
+
+# --------------------------------------------------
+# RANGE (calendar view)
+# --------------------------------------------------
+
+@router.get(
+    "/range",
+    response_model=list[AppointmentCalendarItem],
+    summary="List appointments in a date range (calendar)",
+)
+def list_appointments_in_range(
+    business_id: UUID,
+
+    start: date = Query(..., description="First day (inclusive)"),
+    end: date = Query(..., description="Last day (inclusive), at most 42 days after start"),
+
+    staff_id: UUID | None = Query(None, description="Filter by staff"),
+    branch_id: UUID | None = Query(None, description="Filter by branch"),
+    status_filter: list[AppointmentStatus] | None = Query(
+        None,
+        alias="status",
+        description="Only these statuses (repeatable)",
+    ),
+
+    service: AppointmentService = Depends(
+        get_service,
+    ),
+
+    current_user: User = Depends(
+        get_current_user,
+    ),
+):
+
+    return service.list_in_range(
+        business_id,
+        start,
+        end,
+        staff_id=staff_id,
+        branch_id=branch_id,
+        statuses=status_filter,
     )
 
 

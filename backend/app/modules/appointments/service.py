@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 
 from app.core.config import settings
 
-from app.core.exceptions import NotFoundException
+from app.core.exceptions import BadRequestException, NotFoundException
 from app.db.unit_of_work import UnitOfWork
 from app.modules.appointments.models import Appointment
 from app.modules.appointments.repository import AppointmentRepository
@@ -15,6 +15,10 @@ from app.modules.appointments.schemas import (
     AppointmentUpdate,
 )
 from app.shared.enums.appointment import AppointmentStatus
+
+
+# A month grid is at most 6 weeks, so one request never needs more.
+MAX_RANGE_DAYS = 42
 
 
 def local_now() -> datetime:
@@ -226,6 +230,37 @@ class AppointmentService:
         return self.repository.list_by_date(
             business_id,
             target_date,
+        )
+
+    # --------------------------------------------------
+    # LIST IN RANGE (calendar)
+    # --------------------------------------------------
+
+    def list_in_range(
+        self,
+        business_id: UUID,
+        start_date: date,
+        end_date: date,
+        staff_id: UUID | None = None,
+        branch_id: UUID | None = None,
+        statuses: list[AppointmentStatus] | None = None,
+    ) -> list[Appointment]:
+
+        if end_date < start_date:
+            raise BadRequestException("Bitiş tarihi başlangıçtan önce olamaz.")
+
+        if (end_date - start_date).days + 1 > MAX_RANGE_DAYS:
+            raise BadRequestException(
+                f"Tarih aralığı en fazla {MAX_RANGE_DAYS} gün olabilir.",
+            )
+
+        return self.repository.list_in_range(
+            business_id,
+            start_date,
+            end_date,
+            staff_id=staff_id,
+            branch_id=branch_id,
+            statuses=statuses,
         )
 
     # --------------------------------------------------

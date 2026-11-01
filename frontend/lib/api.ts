@@ -25,6 +25,8 @@ import type {
   AppointmentCreatePayload,
   AppointmentUpdatePayload,
   AvailableSlotsResponse,
+  CalendarAppointment,
+  CalendarRangeFilters,
   DocumentStatus,
   BusinessDocument,
   DocumentStatusInfo,
@@ -389,6 +391,27 @@ export async function listAppointments(
 ): Promise<Appointment[]> {
   return apiFetch<Appointment[]>(
     `/api/v1/businesses/${businessId}/appointments?page=${page}&size=${size}`
+  );
+}
+
+export async function getAppointment(businessId: string, appointmentId: string): Promise<Appointment> {
+  return apiFetch<Appointment>(`/api/v1/businesses/${businessId}/appointments/${appointmentId}`);
+}
+
+// Takvim: başlangıç/bitiş dahil, en fazla 42 gün.
+export async function listAppointmentsInRange(
+  businessId: string,
+  start: string,
+  end: string,
+  filters: CalendarRangeFilters = {},
+  signal?: AbortSignal
+): Promise<CalendarAppointment[]> {
+  const params = new URLSearchParams({ start, end });
+  if (filters.staffId) params.set("staff_id", filters.staffId);
+  if (filters.branchId) params.set("branch_id", filters.branchId);
+  return apiFetch<CalendarAppointment[]>(
+    `/api/v1/businesses/${businessId}/appointments/range?${params}`,
+    { signal }
   );
 }
 

@@ -51,6 +51,20 @@ class AppointmentResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class AppointmentCalendarItem(BaseModel):
+    """Lightweight row for the calendar view; details come from GET /{id}."""
+    id: uuid.UUID
+    customer_name: str
+    service_id: uuid.UUID | None
+    staff_id: uuid.UUID | None
+    branch_id: uuid.UUID | None
+    appointment_date: date
+    start_time: time
+    end_time: time | None
+    status: AppointmentStatus
+
+    model_config = ConfigDict(from_attributes=True)
+
 class AvailableSlotResponse(BaseModel):
     date: date
     available_slots: list[str]
