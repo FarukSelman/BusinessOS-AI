@@ -32,8 +32,9 @@ def list_pending_actions(
     business_id: UUID,
     service: AgentActionService = Depends(get_service),
     current_user: User = Depends(require_permission(Permission.APPOINTMENT_READ)),
+    membership: Membership = Depends(get_business_membership),
 ):
-    return service.list_pending(business_id)
+    return service.list_pending(business_id, role=membership.role)
 
 
 @router.post("/{action_id}/approve", response_model=AgentActionResponse)

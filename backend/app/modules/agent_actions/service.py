@@ -28,8 +28,8 @@ class AgentActionService:
         self.appointment_service = appointment_service
         self.invoice_service = invoice_service
 
-    def list_pending(self, business_id: UUID) -> list[AgentAction]:
-        rows = (
+    def list_pending(self, business_id: UUID, role: MembershipRole | None = None) -> list[AgentAction]:
+        query = (
             self.db.query(AgentAction, User.first_name, User.last_name)
             .outerjoin(User, User.id == AgentAction.requested_by)
             .filter(
@@ -37,9 +37,12 @@ class AgentActionService:
                 AgentAction.status == "PENDING",
                 AgentAction.is_deleted.is_(False),
             )
-            .order_by(AgentAction.created_at.desc())
-            .all()
         )
+        # Invoice/expense drafts carry amounts and only finance roles may approve
+        # them, so other roles do not see them at all.
+        if role not in FINANCE_APPROVER_ROLES:
+            query = query.filter(AgentAction.action_type.notin_(FINANCE_ACTION_TYPES))
+        rows = query.order_by(AgentAction.created_at.desc()).all()
         actions = []
         for action, first_name, last_name in rows:
             # Transient attribute for the response; not a column.

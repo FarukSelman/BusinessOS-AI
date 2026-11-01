@@ -19,6 +19,10 @@ from app.modules.user.models import User
 from app.shared.security.permissions import require_permission
 from app.shared.auth.permissions import Permission
 from app.shared.security.dependencies import get_current_user
+from app.shared.security.business import get_business_membership
+from app.modules.membership.models import Membership
+from app.ai.agents.tools.common import can_view_finance
+from pydantic import BaseModel
 
 from app.modules.membership.repository import MembershipRepository
 
@@ -195,3 +199,22 @@ def delete_business(
     return Response(
         status_code=status.HTTP_204_NO_CONTENT,
     )
+
+
+class MyBusinessAccess(BaseModel):
+    role: str
+    can_view_finance: bool
+
+
+@router.get(
+    "/{business_id}/me",
+    response_model=MyBusinessAccess,
+    summary="My role in this business",
+)
+def get_my_access(
+    business_id: UUID,
+    membership: Membership = Depends(get_business_membership),
+):
+    """What the panel needs to show or hide finance UI (amounts, invoice actions)."""
+    role = membership.role.value if hasattr(membership.role, "value") else str(membership.role)
+    return MyBusinessAccess(role=role, can_view_finance=can_view_finance(membership.role))

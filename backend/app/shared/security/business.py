@@ -11,6 +11,7 @@ membership. Role checks build on top of it:
                                 (see app/shared/security/permissions.py)
     require_admin            -> OWNER or ADMIN
     require_owner            -> OWNER
+    require_finance          -> roles that may see money (can_view_finance)
 
 FastAPI caches dependencies per request, so stacking these on a router and an
 endpoint performs the membership lookup only once.
@@ -99,3 +100,15 @@ require_owner = _require_roles(
     MembershipRole.OWNER,
     message="Only business owners can perform this action.",
 )
+
+
+FINANCE_ONLY = "Bu işlem yalnızca işletme sahibi ve yöneticilere açıktır."
+
+
+def require_finance(membership: Membership = Depends(get_business_membership)) -> Membership:
+    """Money and invoice writes: same rule as reports, insights and global search."""
+    from app.ai.agents.tools.common import can_view_finance
+
+    if not can_view_finance(membership.role):
+        raise ForbiddenException(FINANCE_ONLY)
+    return membership

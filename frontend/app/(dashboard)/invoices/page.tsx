@@ -46,6 +46,7 @@ import { useConfirm } from "@/components/providers/confirm-dialog-provider";
 import { useCsvExport } from "@/lib/use-csv-export";
 import { useListQuery } from "@/lib/use-list-query";
 import { useDeepLink } from "@/lib/use-deep-link";
+import { useMyAccess } from "@/lib/use-my-access";
 import { Pagination } from "@/components/ui/pagination";
 
 /* ---------- helpers ---------- */
@@ -111,6 +112,8 @@ function InvoicesPageContent() {
   const confirmDialog = useConfirm();
   const csvExport = useCsvExport();
   const businessId = getActiveBusinessId();
+  // Tutarlar ve fatura işlemleri yalnızca sahip/yöneticiye (yüklenirken gizli).
+  const canSeeFinance = useMyAccess()?.can_view_finance === true;
 
   // Sayfa, arama (fatura no / müşteri) ve durum backend'de; durum URL'de.
   const list = useListQuery<Invoice>(
@@ -275,12 +278,12 @@ function InvoicesPageContent() {
     const status = filterStatus === "ALL" ? undefined : filterStatus;
     csvExport.run(
       "Faturalar",
-      ["Fatura No", "Müşteri", "Toplam", "Durum", "Oluşturma Tarihi", "Son Ödeme Tarihi"],
+      ["Fatura No", "Müşteri", ...(canSeeFinance ? ["Toplam"] : []), "Durum", "Oluşturma Tarihi", "Son Ödeme Tarihi"],
       (page, size) => listInvoicesPage(businessId, { page, size, search: list.search, status }).then((p) => p.items),
       (inv) => [
         inv.invoice_number,
         inv.customer_name,
-        inv.total_amount.toString(),
+        ...(canSeeFinance ? [String(inv.total_amount ?? "")] : []),
         statusConfig[inv.status].label,
         formatDate(inv.created_at),
         formatDate(inv.due_date),
@@ -303,29 +306,37 @@ function InvoicesPageContent() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Faturalar</h1>
-          <p className="mt-1 text-sm text-ink-muted">Fatura oluşturun, takip edin ve ödemeleri yönetin.</p>
+          <p className="mt-1 text-sm text-ink-muted">
+            {canSeeFinance
+              ? "Fatura oluşturun, takip edin ve ödemeleri yönetin."
+              : "Faturaları görüntüleyin. Tutarlar ve fatura işlemleri yalnızca işletme sahibi ve yöneticilere açıktır."}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" className="gap-2" onClick={handleExport} disabled={csvExport.exporting}>
             <Download className="h-4 w-4" />
             {csvExport.exporting ? "Hazırlanıyor..." : "Dışa Aktar"}
           </Button>
-          <Button onClick={() => setShowCreate(!showCreate)} className="gap-2">
-            {showCreate ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-            {showCreate ? "Kapat" : "Yeni Fatura"}
-          </Button>
+          {canSeeFinance && (
+            <Button onClick={() => setShowCreate(!showCreate)} className="gap-2">
+              {showCreate ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              {showCreate ? "Kapat" : "Yeni Fatura"}
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-surface-elevated border-border">
-            <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-ink-muted font-medium">Toplam Gelir</p>
-              <p className="text-xl font-bold text-success mt-1">{formatCurrency(stats.total_revenue)}</p>
-            </CardContent>
-          </Card>
+        <div className={cn("grid grid-cols-2 gap-4", stats.total_revenue !== null ? "md:grid-cols-4" : "md:grid-cols-3")}>
+          {stats.total_revenue !== null && (
+            <Card className="bg-surface-elevated border-border">
+              <CardContent className="pt-4 pb-4">
+                <p className="text-xs text-ink-muted font-medium">Toplam Gelir</p>
+                <p className="text-xl font-bold text-success mt-1">{formatCurrency(stats.total_revenue)}</p>
+              </CardContent>
+            </Card>
+          )}
           <Card className="bg-surface-elevated border-border">
             <CardContent className="pt-4 pb-4">
               <p className="text-xs text-ink-muted font-medium">Ödenen</p>
@@ -595,7 +606,9 @@ function InvoicesPageContent() {
                       {inv.due_date && <span className="ml-2">• Vade: {formatDate(inv.due_date)}</span>}
                     </div>
                   </div>
-                  <span className="text-lg font-bold text-ink whitespace-nowrap">{formatCurrency(inv.total_amount)}</span>
+                  <span className="text-lg font-bold text-ink whitespace-nowrap">
+                    {inv.total_amount !== null ? formatCurrency(inv.total_amount) : <span className="text-ink-muted" aria-label="Tutar gizli">—</span>}
+                  </span>
                   {isExpanded ? <ChevronUp className="h-4 w-4 text-ink-muted" /> : <ChevronDown className="h-4 w-4 text-ink-muted" />}
                 </button>
 
@@ -616,30 +629,32 @@ function InvoicesPageContent() {
                           <div key={i} className="grid grid-cols-12 gap-2 py-1">
                             <span className="col-span-6 text-ink">{it.description}</span>
                             <span className="col-span-2 text-right text-ink-muted">{it.quantity}</span>
-                            <span className="col-span-2 text-right text-ink-muted">{formatCurrency(it.unit_price)}</span>
-                            <span className="col-span-2 text-right font-medium text-ink">{formatCurrency(it.total)}</span>
+                            <span className="col-span-2 text-right text-ink-muted">{it.unit_price !== null ? formatCurrency(it.unit_price) : "—"}</span>
+                            <span className="col-span-2 text-right font-medium text-ink">{it.total !== null ? formatCurrency(it.total) : "—"}</span>
                           </div>
                         ))}
                       </div>
                     </div>
 
-                    {/* Totals */}
-                    <div className="flex justify-end">
-                      <div className="w-56 space-y-1 text-sm">
-                        <div className="flex justify-between text-ink-muted">
-                          <span>Ara Toplam</span>
-                          <span>{formatCurrency(inv.subtotal)}</span>
-                        </div>
-                        <div className="flex justify-between text-ink-muted">
-                          <span>KDV ({inv.tax_rate}%)</span>
-                          <span>{formatCurrency(inv.tax_amount)}</span>
-                        </div>
-                        <div className="flex justify-between font-bold text-ink border-t border-border pt-1">
-                          <span>Toplam</span>
-                          <span>{formatCurrency(inv.total_amount)}</span>
+                    {/* Totals (yalnızca tutarları görebilen roller) */}
+                    {inv.total_amount !== null && (
+                      <div className="flex justify-end">
+                        <div className="w-56 space-y-1 text-sm">
+                          <div className="flex justify-between text-ink-muted">
+                            <span>Ara Toplam</span>
+                            <span>{formatCurrency(inv.subtotal ?? 0)}</span>
+                          </div>
+                          <div className="flex justify-between text-ink-muted">
+                            <span>KDV ({inv.tax_rate}%)</span>
+                            <span>{formatCurrency(inv.tax_amount ?? 0)}</span>
+                          </div>
+                          <div className="flex justify-between font-bold text-ink border-t border-border pt-1">
+                            <span>Toplam</span>
+                            <span>{formatCurrency(inv.total_amount)}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Meta */}
                     {(inv.customer_email || inv.notes || inv.payment_method || inv.paid_at) && (
@@ -651,33 +666,35 @@ function InvoicesPageContent() {
                       </div>
                     )}
 
-                    {/* Actions */}
-                    <div className="flex gap-2 pt-2 border-t border-border">
-                      {(inv.status === "DRAFT" || inv.status === "SENT" || inv.status === "OVERDUE") && (
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            setPayingId(inv.id);
-                            setPayMethod("CASH");
-                          }}
-                          className="gap-1"
-                        >
-                          <CreditCard className="h-3.5 w-3.5" />
-                          Ödendi İşaretle
-                        </Button>
-                      )}
-                      {(inv.status === "DRAFT" || inv.status === "SENT") && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleCancel(inv.id)}
-                          className="gap-1 text-danger border-danger/30 hover:bg-danger/10"
-                        >
-                          <Ban className="h-3.5 w-3.5" />
-                          İptal Et
-                        </Button>
-                      )}
-                    </div>
+                    {/* Actions (yalnızca sahip/yönetici) */}
+                    {canSeeFinance && (
+                      <div className="flex gap-2 pt-2 border-t border-border">
+                        {(inv.status === "DRAFT" || inv.status === "SENT" || inv.status === "OVERDUE") && (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setPayingId(inv.id);
+                              setPayMethod("CASH");
+                            }}
+                            className="gap-1"
+                          >
+                            <CreditCard className="h-3.5 w-3.5" />
+                            Ödendi İşaretle
+                          </Button>
+                        )}
+                        {(inv.status === "DRAFT" || inv.status === "SENT") && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCancel(inv.id)}
+                            className="gap-1 text-danger border-danger/30 hover:bg-danger/10"
+                          >
+                            <Ban className="h-3.5 w-3.5" />
+                            İptal Et
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </Card>

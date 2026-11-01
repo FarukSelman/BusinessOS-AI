@@ -37,6 +37,13 @@ class InvoiceUpdatePayload(BaseModel):
     due_date: date | None = None
     notes: str | None = None
 
+class InvoiceItemResponse(BaseModel):
+    description: str
+    quantity: int
+    # None for roles without finance access (employee, viewer)
+    unit_price: float | None
+    total: float | None
+
 class InvoiceResponse(BaseModel):
     id: uuid.UUID
     business_id: uuid.UUID
@@ -45,11 +52,12 @@ class InvoiceResponse(BaseModel):
     customer_email: str | None
     appointment_id: uuid.UUID | None
     invoice_number: str
-    items: list[InvoiceItemSchema]
-    subtotal: float
+    items: list[InvoiceItemResponse]
+    # Money: None for roles without finance access (employee, viewer)
+    subtotal: float | None
     tax_rate: float
-    tax_amount: float
-    total_amount: float
+    tax_amount: float | None
+    total_amount: float | None
     status: InvoiceStatus
     payment_method: PaymentMethod | None
     paid_at: datetime | None
@@ -63,3 +71,24 @@ class InvoiceResponse(BaseModel):
 class InvoiceListResponse(BaseModel):
     items: list[InvoiceResponse]
     total: int
+
+
+class InvoiceStatsResponse(BaseModel):
+    # None for roles without finance access; the counts stay
+    total_revenue: float | None
+    paid_count: int
+    pending_count: int
+    overdue_count: int
+
+
+def invoice_view(invoice, show_amounts: bool) -> InvoiceResponse:
+    """The API shape of an invoice; money fields are dropped for roles that may not see them."""
+    view = InvoiceResponse.model_validate(invoice)
+    if show_amounts:
+        return view
+    return view.model_copy(update={
+        "subtotal": None,
+        "tax_amount": None,
+        "total_amount": None,
+        "items": [item.model_copy(update={"unit_price": None, "total": None}) for item in view.items],
+    })

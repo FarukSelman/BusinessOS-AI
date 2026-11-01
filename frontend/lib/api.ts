@@ -255,6 +255,17 @@ function pageParams(q: ListPageQuery, extra: Record<string, string | string[] | 
   return params;
 }
 
+// ---------- Bu işletmedeki rolüm ----------
+export interface MyBusinessAccess {
+  role: MembershipRole;
+  /** Tutarları görebilir ve fatura yazabilir mi (sahip/yönetici). */
+  can_view_finance: boolean;
+}
+
+export async function getMyAccess(businessId: string): Promise<MyBusinessAccess> {
+  return apiFetch<MyBusinessAccess>(`/api/v1/businesses/${businessId}/me`);
+}
+
 // ---------- Global arama (Ctrl+K) ----------
 export async function globalSearch(businessId: string, q: string, signal?: AbortSignal): Promise<SearchResponse> {
   const params = new URLSearchParams({ q });
