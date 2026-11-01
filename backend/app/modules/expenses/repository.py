@@ -1,3 +1,4 @@
+from app.shared.utils.search import count_rows, text_search
 from uuid import UUID
 from datetime import date
 from sqlalchemy import select, func, and_
@@ -10,7 +11,8 @@ class ExpenseRepository(BaseRepository[Expense]):
     def __init__(self, db: Session):
         super().__init__(db=db, model=Expense)
 
-    def list_by_business(self, business_id: UUID, page: int = 1, size: int = 20, direction: TransactionDirection | None = None, category_id: UUID | None = None, date_from: date | None = None, date_to: date | None = None, status: str | None = None) -> list[Expense]:
+    def list_by_business(self, business_id: UUID, page: int = 1, size: int = 20, direction: TransactionDirection | None = None, category_id: UUID | None = None, date_from: date | None = None, date_to: date | None = None, status: str | None = None, search: str | None = None) -> tuple[list[Expense], int]:
+        """One page of transactions and the total matching the filters."""
         query = select(self.model).where(
             self.model.business_id == business_id,
             self.model.is_deleted.is_(False)
@@ -25,9 +27,14 @@ class ExpenseRepository(BaseRepository[Expense]):
             query = query.where(self.model.transaction_date <= date_to)
         if status:
             query = query.where(self.model.status == status)
-        
-        query = query.order_by(self.model.transaction_date.desc()).offset((page - 1) * size).limit(size)
-        return list(self.db.scalars(query).all())
+        condition = text_search(search, self.model.title, self.model.description)
+        if condition is not None:
+            query = query.where(condition)
+
+        total = count_rows(self.db, query)
+        # id: stable order when many rows share a date (paging must not repeat/skip rows)
+        query = query.order_by(self.model.transaction_date.desc(), self.model.created_at.desc(), self.model.id.asc()).offset((page - 1) * size).limit(size)
+        return list(self.db.scalars(query).all()), total
     
     def get_by_business(self, business_id: UUID, expense_id: UUID) -> Expense | None:
         statement = select(self.model).where(

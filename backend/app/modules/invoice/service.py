@@ -64,9 +64,10 @@ class InvoiceService:
         status_filter: InvoiceStatus | None,
         page: int,
         size: int,
-    ) -> list[Invoice]:
+        search: str | None = None,
+    ) -> tuple[list[Invoice], int]:
         return self.repository.get_by_business(
-            business_id, status_filter=status_filter, page=page, size=size
+            business_id, status_filter=status_filter, page=page, size=size, search=search
         )
 
     def get_invoice(self, business_id: UUID, invoice_id: UUID) -> Invoice:

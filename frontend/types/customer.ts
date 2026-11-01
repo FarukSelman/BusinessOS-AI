@@ -10,6 +10,14 @@ export interface Customer {
   status: CustomerStatus;
   created_at: string;
   updated_at: string;
+  /** Liste uç noktası etiketleri de döner (müşteri başına ayrı istek gerekmez). */
+  tags?: CustomerTagBrief[];
+}
+
+export interface CustomerTagBrief {
+  id: string;
+  name: string;
+  color: string;
 }
 
 export interface CustomerCreatePayload {

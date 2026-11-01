@@ -45,7 +45,8 @@ import type {
   RevenueStats,
   BusinessHours,
   BusinessHoursItem,
-  OpenWindow
+  OpenWindow,
+  Expense
 } from "@/types";
 
 export interface UpdateProfilePayload {
@@ -177,7 +178,8 @@ interface RequestOptions extends RequestInit {
   skipAuth?: boolean;
 }
 
-export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
+/** İsteği atar (gerekirse token yenileyip bir kez tekrar dener); başarısızsa ApiError fırlatır. */
+async function apiRequest(path: string, options: RequestOptions = {}): Promise<Response> {
   const { skipAuth, headers, ...rest } = options;
   const isFormData = rest.body instanceof FormData;
 
@@ -208,11 +210,48 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     const body = await safeJson(res);
     throw new ApiError(res.status, body?.detail ?? `İstek başarısız oldu (${res.status})`);
   }
+  return res;
+}
+
+export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const res = await apiRequest(path, options);
 
   // 204 No Content gibi durumlar için
   if (res.status === 204) return undefined as T;
 
   return res.json();
+}
+
+/** Sayfalı liste: kayıtlar + filtreye uyan toplam (X-Total-Count header'ı). */
+export interface Page<T> {
+  items: T[];
+  total: number;
+}
+
+export const LIST_PAGE_SIZE = 20;
+
+async function apiFetchPage<T>(path: string, options: RequestOptions = {}): Promise<Page<T>> {
+  const res = await apiRequest(path, options);
+  const items: T[] = await res.json();
+  const header = res.headers.get("X-Total-Count");
+  return { items, total: header === null ? items.length : Number(header) };
+}
+
+export interface ListPageQuery {
+  page: number;
+  size?: number;
+  search?: string;
+  signal?: AbortSignal;
+}
+
+function pageParams(q: ListPageQuery, extra: Record<string, string | string[] | undefined> = {}) {
+  const params = new URLSearchParams({ page: String(q.page), size: String(q.size ?? LIST_PAGE_SIZE) });
+  if (q.search?.trim()) params.set("search", q.search.trim());
+  for (const [key, value] of Object.entries(extra)) {
+    if (Array.isArray(value)) value.forEach((v) => params.append(key, v));
+    else if (value) params.set(key, value);
+  }
+  return params;
 }
 
 // ---------- Businesses ----------
@@ -311,6 +350,14 @@ export async function listCustomers(businessId: string, page = 1, size = 20): Pr
   return apiFetch<Customer[]>(
     `/api/v1/businesses/${businessId}/customers?page=${page}&size=${size}`
   );
+}
+
+export async function listCustomersPage(
+  businessId: string,
+  q: ListPageQuery & { status?: string; tagIds?: string[] }
+): Promise<Page<Customer>> {
+  const params = pageParams(q, { status: q.status, tag_ids: q.tagIds });
+  return apiFetchPage<Customer>(`/api/v1/businesses/${businessId}/customers?${params}`, { signal: q.signal });
 }
 
 // Seçim listeleri ve ad eşleştirme için. Tam sayfalama/arama gelene kadar geçici üst sınır.
@@ -645,6 +692,14 @@ export async function deleteChatSession(
 }
 
 // ---------- Invoices ----------
+
+export async function listInvoicesPage(
+  businessId: string,
+  q: ListPageQuery & { status?: InvoiceStatus }
+): Promise<Page<Invoice>> {
+  const params = pageParams(q, { status: q.status });
+  return apiFetchPage<Invoice>(`/api/v1/businesses/${businessId}/invoices?${params}`, { signal: q.signal });
+}
 
 export async function listInvoices(
   businessId: string,
@@ -1217,6 +1272,14 @@ export async function listExpenses(businessId: string, params?: { direction?: st
   const query = Object.keys(cleaned).length ? `?${new URLSearchParams(cleaned as any).toString()}` : "";
   return apiFetch<any[]>(`/api/v1/businesses/${businessId}/expenses${query}`);
 }
+export async function listExpensesPage(
+  businessId: string,
+  q: ListPageQuery & { direction?: string }
+): Promise<Page<Expense>> {
+  const params = pageParams(q, { direction: q.direction });
+  return apiFetchPage<Expense>(`/api/v1/businesses/${businessId}/expenses?${params}`, { signal: q.signal });
+}
+
 export async function createExpense(businessId: string, data: any) {
   return apiFetch<any>(`/api/v1/businesses/${businessId}/expenses`, {
     method: "POST",

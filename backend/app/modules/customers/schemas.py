@@ -67,3 +67,17 @@ class CustomerResponse(BaseModel):
     created_at: datetime
 
     updated_at: datetime
+
+
+class CustomerTagBrief(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+    color: str
+
+
+class CustomerListItem(CustomerResponse):
+    """List row: the customer plus its tags, so the page needs no request per customer."""
+
+    tags: list[CustomerTagBrief] = []

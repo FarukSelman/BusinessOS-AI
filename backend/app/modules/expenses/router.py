@@ -1,6 +1,6 @@
 from uuid import UUID
 from datetime import date
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from fastapi import status as http_status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
@@ -33,6 +33,7 @@ def get_summary(business_id: UUID, start_date: date, end_date: date, service: Ex
 @router.get("", response_model=list[ExpenseResponse])
 def list_expenses(
     business_id: UUID,
+    response: Response,
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     direction: TransactionDirection | None = None,
@@ -40,10 +41,13 @@ def list_expenses(
     date_from: date | None = None,
     date_to: date | None = None,
     expense_status: str | None = Query(None, alias="status"),
+    search: str | None = None,
     service: ExpenseService = Depends(get_service),
     current_user: User = Depends(get_current_user)
 ):
-    return service.list_expenses(business_id, page, size, direction, category_id, date_from, date_to, expense_status)
+    expenses, total = service.list_expenses(business_id, page, size, direction, category_id, date_from, date_to, expense_status, search)
+    response.headers["X-Total-Count"] = str(total)
+    return expenses
 
 # ── Parameterized routes AFTER ──
 

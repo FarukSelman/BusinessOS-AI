@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -53,13 +53,17 @@ def create_invoice(
 )
 def list_invoices(
     business_id: UUID,
+    response: Response,
     status_filter: InvoiceStatus | None = Query(None, alias="status"),
-    page: int = 1,
-    size: int = 20,
+    search: str | None = None,
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1),
     service: InvoiceService = Depends(get_service),
     current_user: User = Depends(get_current_user),
 ):
-    return service.list_invoices(business_id, status_filter, page, size)
+    invoices, total = service.list_invoices(business_id, status_filter, page, size, search)
+    response.headers["X-Total-Count"] = str(total)
+    return invoices
 
 @router.get(
     "/stats",

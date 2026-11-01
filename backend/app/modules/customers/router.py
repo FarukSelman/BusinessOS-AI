@@ -1,3 +1,4 @@
+from datetime import date
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Response, status
@@ -9,7 +10,9 @@ from app.db.unit_of_work import UnitOfWork
 from app.modules.customers.repository import CustomerRepository
 from app.modules.customers.schemas import (
     CustomerCreate,
+    CustomerListItem,
     CustomerResponse,
+    CustomerTagBrief,
     CustomerUpdate,
 )
 from app.modules.customers.service import CustomerService
@@ -88,20 +91,21 @@ from typing import Any
 
 @router.get(
     "",
-    response_model=list[CustomerResponse],
+    response_model=list[CustomerListItem],
     summary="List customers",
 )
 def list_customers(
     business_id: UUID,
+    response: Response,
 
     tag_ids: list[UUID] | None = Query(None),
     status: str | None = None,
     search: str | None = None,
-    date_from: str | None = None,
-    date_to: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
 
-    page: int = 1,
-    size: int = 20,
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1),
 
     service: CustomerService = Depends(
         get_service,
@@ -112,7 +116,7 @@ def list_customers(
     ),
 ):
 
-    return service.list_filtered(
+    rows, total = service.list_filtered(
         business_id=business_id,
         tag_ids=tag_ids,
         status=status,
@@ -122,6 +126,14 @@ def list_customers(
         page=page,
         size=size,
     )
+    response.headers["X-Total-Count"] = str(total)
+    return [
+        CustomerListItem(
+            **CustomerResponse.model_validate(row["customer"]).model_dump(),
+            tags=[CustomerTagBrief.model_validate(t) for t in row["tags"]],
+        )
+        for row in rows
+    ]
 
 @router.get(
     "/{customer_id}/history",

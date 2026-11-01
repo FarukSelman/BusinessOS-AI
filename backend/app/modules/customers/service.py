@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from uuid import UUID
 
 from app.core.exceptions import (
@@ -66,14 +67,14 @@ class CustomerService:
         tag_ids: list[UUID] | None = None,
         status: str | None = None,
         min_visits: int | None = None,
-        date_from: str | None = None,
-        date_to: str | None = None,
+        date_from: date | None = None,
+        date_to: date | None = None,
         search: str | None = None,
         page: int = 1,
         size: int = 20,
-    ) -> list[Customer]:
-
-        return self.repository.list_by_business_filtered(
+    ) -> tuple[list[dict], int]:
+        """One page of customers, each with its tags, and the total count."""
+        customers, total = self.repository.list_by_business_filtered(
             business_id=business_id,
             tag_ids=tag_ids,
             status=status,
@@ -84,6 +85,8 @@ class CustomerService:
             page=page,
             size=size,
         )
+        tags = self.repository.tags_by_customer([c.id for c in customers])
+        return [{"customer": c, "tags": tags[c.id]} for c in customers], total
 
     def get_history(self, business_id: UUID, customer_id: UUID) -> dict:
         self.get(business_id, customer_id)

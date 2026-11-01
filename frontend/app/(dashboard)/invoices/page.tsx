@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
   Plus,
   Receipt,
@@ -16,13 +16,14 @@ import {
   ChevronUp,
   X,
   Download,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  listInvoices,
+  listInvoicesPage,
   createInvoice,
   markInvoicePaid,
   cancelInvoice,
@@ -43,6 +44,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
 import { useCsvExport } from "@/lib/use-csv-export";
+import { useListQuery } from "@/lib/use-list-query";
+import { Pagination } from "@/components/ui/pagination";
 
 /* ---------- helpers ---------- */
 const statusConfig: Record<InvoiceStatus, { label: string; color: string; icon: React.ElementType }> = {
@@ -92,16 +95,34 @@ const emptyForm: CreateForm = {
 };
 
 /* ---------- component ---------- */
+// useSearchParams (sayfa/arama URL'de) bir Suspense sınırı ister.
 export default function InvoicesPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-ink-muted">Yükleniyor...</p>}>
+      <InvoicesPageContent />
+    </Suspense>
+  );
+}
+
+const INVOICE_FILTERS = ["status"] as const;
+
+function InvoicesPageContent() {
   const confirmDialog = useConfirm();
   const csvExport = useCsvExport();
   const businessId = getActiveBusinessId();
 
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  // Sayfa, arama (fatura no / müşteri) ve durum backend'de; durum URL'de.
+  const list = useListQuery<Invoice>(
+    INVOICE_FILTERS,
+    ({ page, search, filters, signal }) =>
+      listInvoicesPage(businessId!, { page, search, status: (filters.status || undefined) as InvoiceStatus | undefined, signal }),
+    !!businessId
+  );
+  const invoices = list.items;
+  const filterStatus = (list.filters.status || "ALL") as InvoiceStatus | "ALL";
+  const setFilterStatus = (st: InvoiceStatus | "ALL") => list.setFilter("status", st === "ALL" ? "" : st);
   const [stats, setStats] = useState<RevenueStats | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filterStatus, setFilterStatus] = useState<InvoiceStatus | "ALL">("ALL");
 
   /* create form */
   const [showCreate, setShowCreate] = useState(false);
@@ -120,33 +141,24 @@ export default function InvoicesPage() {
   const [payMethod, setPayMethod] = useState<PaymentMethod>("CASH");
 
   /* ---------- data fetching ---------- */
+  /** Bir fatura değişince listeyi (aynı sayfa) ve gelir istatistiklerini yenile. */
   function refresh() {
     if (!businessId) return;
-    setLoading(true);
-    Promise.all([
-      listInvoices(businessId, filterStatus === "ALL" ? undefined : filterStatus),
-      getRevenueStats(businessId),
-    ])
-      .then(([inv, st]) => {
-        setInvoices(inv);
-        setStats(st);
-      })
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Faturalar yüklenemedi."))
-      .finally(() => setLoading(false));
+    list.reload();
+    getRevenueStats(businessId)
+      .then(setStats)
+      .catch((err) => setError(err instanceof ApiError ? err.message : "İstatistikler yüklenemedi."));
   }
 
   useEffect(() => {
-    if (!businessId) {
-      setError("Aktif işletme bulunamadı.");
-      setLoading(false);
-      return;
-    }
-    refresh();
+    if (!businessId) return;
+    getRevenueStats(businessId)
+      .then(setStats)
+      .catch((err) => setError(err instanceof ApiError ? err.message : "İstatistikler yüklenemedi."));
     // fetch lookups for form dropdowns
     listCustomersForPicker(businessId).then(setCustomers).catch(() => {});
     listServices(businessId).then(setServices).catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [businessId, filterStatus]);
+  }, [businessId]);
 
   /* ---------- form helpers ---------- */
   function updateItem(index: number, field: keyof ItemRow, value: string | number) {
@@ -261,7 +273,7 @@ export default function InvoicesPage() {
     csvExport.run(
       "Faturalar",
       ["Fatura No", "Müşteri", "Toplam", "Durum", "Oluşturma Tarihi", "Son Ödeme Tarihi"],
-      (page, size) => listInvoices(businessId, status, page, size),
+      (page, size) => listInvoicesPage(businessId, { page, size, search: list.search, status }).then((p) => p.items),
       (inv) => [
         inv.invoice_number,
         inv.customer_name,
@@ -504,7 +516,17 @@ export default function InvoicesPage() {
         </Card>
       )}
 
-      {/* Filter */}
+      {/* Search + Filter */}
+      <div className="relative w-full max-w-md">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+        <Input
+          className="pl-9"
+          placeholder="Fatura no, müşteri adı veya e-posta..."
+          value={list.searchInput}
+          onChange={(e) => list.setSearchInput(e.target.value)}
+          aria-label="Fatura ara"
+        />
+      </div>
       <div className="flex gap-2 flex-wrap">
         {(["ALL", "DRAFT", "SENT", "PAID", "OVERDUE", "CANCELLED"] as const).map((st) => (
           <Button
@@ -519,21 +541,32 @@ export default function InvoicesPage() {
         ))}
       </div>
 
+      {!businessId && <p className="text-sm text-danger">Aktif işletme bulunamadı.</p>}
+      {list.error && <p className="text-sm text-danger">{list.error}</p>}
+
       {/* Invoice List */}
-      {loading ? (
+      {list.initialLoading ? (
         <div className="flex items-center justify-center h-32 text-ink-muted">
           <Clock className="h-5 w-5 animate-spin mr-2" /> Yükleniyor...
         </div>
-      ) : invoices.length === 0 ? (
+      ) : invoices.length === 0 && !list.loading && !list.error ? (
         <Card className="bg-surface-elevated border-border">
           <CardContent className="flex flex-col items-center justify-center py-12 text-ink-muted">
             <Receipt className="h-12 w-12 mb-3 opacity-40" />
-            <p className="text-sm">Henüz fatura bulunmuyor.</p>
-            <p className="text-xs mt-1">Yukarıdaki butona tıklayarak yeni bir fatura oluşturun.</p>
+            {list.search || list.filters.status ? (
+              <p className="text-sm">
+                {list.search ? `"${list.search}" için ` : "Bu filtreyle "}sonuç yok — tüm faturalarda arandı.
+              </p>
+            ) : (
+              <>
+                <p className="text-sm">Henüz fatura bulunmuyor.</p>
+                <p className="text-xs mt-1">Yukarıdaki butona tıklayarak yeni bir fatura oluşturun.</p>
+              </>
+            )}
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-2">
+        <div className={cn("space-y-2 transition-opacity", list.loading && "opacity-60")} aria-busy={list.loading}>
           {invoices.map((inv) => {
             const cfg = statusConfig[inv.status];
             const StatusIcon = cfg.icon;
@@ -647,6 +680,9 @@ export default function InvoicesPage() {
               </Card>
             );
           })}
+          <div className="pt-2">
+            <Pagination page={list.page} pageCount={list.pageCount} total={list.total} loading={list.loading} onPageChange={list.setPage} />
+          </div>
         </div>
       )}
 

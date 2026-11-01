@@ -1,3 +1,4 @@
+from app.shared.utils.search import count_rows, text_search
 from uuid import UUID
 from typing import Any
 
@@ -19,7 +20,9 @@ class InvoiceRepository(BaseRepository[Invoice]):
         status_filter: InvoiceStatus | None = None,
         page: int = 1,
         size: int = 20,
-    ) -> list[Invoice]:
+        search: str | None = None,
+    ) -> tuple[list[Invoice], int]:
+        """One page of invoices and the total matching the filters."""
         query = select(self.model).where(
             self.model.business_id == business_id,
             self.model.is_deleted.is_(False),
@@ -28,9 +31,14 @@ class InvoiceRepository(BaseRepository[Invoice]):
         if status_filter:
             query = query.where(self.model.status == status_filter)
 
+        condition = text_search(search, self.model.invoice_number, self.model.customer_name, self.model.customer_email)
+        if condition is not None:
+            query = query.where(condition)
+
+        total = count_rows(self.db, query)
         query = query.order_by(self.model.created_at.desc(), self.model.id.asc()).offset((page - 1) * size).limit(size)
 
-        return list(self.db.scalars(query).all())
+        return list(self.db.scalars(query).all()), total
 
     def get_by_customer(self, customer_id: UUID) -> list[Invoice]:
         statement = (

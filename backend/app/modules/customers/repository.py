@@ -1,10 +1,19 @@
+from datetime import date, datetime, time, timedelta
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.db.base_repository import BaseRepository
 from app.modules.customers.models import Customer
+from app.shared.utils.search import count_rows, text_search
+
+
+def _local_midnight(day: date) -> datetime:
+    """Start of a calendar day in APP_TIMEZONE, as an aware datetime."""
+    return datetime.combine(day, time.min, tzinfo=ZoneInfo(settings.APP_TIMEZONE))
 
 
 class CustomerRepository(
@@ -134,28 +143,23 @@ class CustomerRepository(
         tag_ids: list[UUID] | None = None,
         status: str | None = None,
         min_visits: int | None = None,
-        date_from: str | None = None,
-        date_to: str | None = None,
+        date_from: date | None = None,
+        date_to: date | None = None,
         search: str | None = None,
         page: int = 1,
         size: int = 20,
-    ) -> list[Customer]:
+    ) -> tuple[list[Customer], int]:
+        """One page of customers and the total matching the filters."""
         from app.modules.customer_tags.models import CustomerTagAssignment
-        from sqlalchemy import or_
 
         statement = select(self.model).where(
             self.model.business_id == business_id,
             self.model.is_deleted.is_(False)
         )
 
-        if search:
-            statement = statement.where(
-                or_(
-                    self.model.name.ilike(f"%{search}%"),
-                    self.model.phone.ilike(f"%{search}%"),
-                    self.model.email.ilike(f"%{search}%")
-                )
-            )
+        condition = text_search(search, self.model.name, self.model.email, phone_columns=(self.model.phone,))
+        if condition is not None:
+            statement = statement.where(condition)
 
         if tag_ids:
             for tag_id in tag_ids:
@@ -171,11 +175,33 @@ class CustomerRepository(
         if status:
             statement = statement.where(self.model.status == status)
 
+        # Whole local days: date_to includes customers created on that day.
         if date_from:
-            statement = statement.where(self.model.created_at >= date_from)
-            
+            statement = statement.where(self.model.created_at >= _local_midnight(date_from))
         if date_to:
-            statement = statement.where(self.model.created_at <= date_to)
+            statement = statement.where(self.model.created_at < _local_midnight(date_to + timedelta(days=1)))
 
+        total = count_rows(self.db, statement)
         statement = statement.order_by(self.model.created_at.desc(), self.model.id.asc()).offset((page - 1) * size).limit(size)
-        return list(self.db.scalars(statement).all())
+        return list(self.db.scalars(statement).all()), total
+
+    def tags_by_customer(self, customer_ids: list[UUID]) -> dict[UUID, list]:
+        """Tags of many customers in one query (no request per customer)."""
+        from app.modules.customer_tags.models import CustomerTag, CustomerTagAssignment
+
+        result: dict[UUID, list] = {cid: [] for cid in customer_ids}
+        if not customer_ids:
+            return result
+        rows = self.db.execute(
+            select(CustomerTagAssignment.customer_id, CustomerTag)
+            .join(CustomerTag, CustomerTag.id == CustomerTagAssignment.tag_id)
+            .where(
+                CustomerTagAssignment.customer_id.in_(customer_ids),
+                CustomerTagAssignment.is_deleted.is_(False),
+                CustomerTag.is_deleted.is_(False),
+            )
+            .order_by(CustomerTag.name)
+        ).all()
+        for customer_id, tag in rows:
+            result[customer_id].append(tag)
+        return result

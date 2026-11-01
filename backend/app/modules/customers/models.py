@@ -1,4 +1,4 @@
-from sqlalchemy import Enum, String, Text, ForeignKey
+from sqlalchemy import Enum, String, Text, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -56,4 +56,9 @@ class Customer(BaseModel):
         ),
         default=CustomerStatus.ACTIVE,
         nullable=False,
+    )
+
+    __table_args__ = (
+        # Paged lists filter by business and sort by this column.
+        Index("ix_customers_business_created", "business_id", "created_at"),
     )

@@ -1,6 +1,6 @@
 import uuid
 from datetime import date
-from sqlalchemy import Enum as SQLEnum, String, Text, Numeric, Date, Boolean, ForeignKey
+from sqlalchemy import Enum as SQLEnum, String, Text, Numeric, Date, Boolean, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.shared.models.base import BaseModel
@@ -34,3 +34,8 @@ class Expense(BaseModel):
     recurrence: Mapped[RecurrenceType] = mapped_column(SQLEnum(RecurrenceType), default=RecurrenceType.NONE)
     is_auto_generated: Mapped[bool] = mapped_column(Boolean, default=False)
     tags: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    __table_args__ = (
+        # Paged lists filter by business and sort by this column.
+        Index("ix_expenses_business_date", "business_id", "transaction_date"),
+    )

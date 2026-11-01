@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, Mail, Phone, Download, Sparkles, Filter, Tag as TagIcon, History, Coins, X, Check, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  listCustomers,
+  listCustomersPage,
   listAppointments,
   createCustomer,
   updateCustomer,
@@ -18,13 +18,13 @@ import {
   deleteCustomerTag,
   assignTagToCustomer,
   removeTagFromCustomer,
-  getCustomerTags,
   getCustomerHistory,
   getCustomerWallet,
   type Customer,
   type CustomerStatus,
   type Appointment,
   type CustomerTag,
+  type CustomerTagBrief,
   ApiError,
 } from "@/lib/api";
 import { getActiveBusinessId } from "@/lib/business";
@@ -33,6 +33,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
 import { useCsvExport } from "@/lib/use-csv-export";
+import { useListQuery } from "@/lib/use-list-query";
+import { Pagination } from "@/components/ui/pagination";
 
 type FormState = {
   name: string;
@@ -43,25 +45,52 @@ type FormState = {
 
 const emptyForm: FormState = { name: "", email: "", phone: "", notes: "" };
 
+// useSearchParams (sayfa/arama URL'de) bir Suspense sınırı ister.
 export default function CustomersPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-ink-muted">Yükleniyor...</p>}>
+      <CustomersPageContent />
+    </Suspense>
+  );
+}
+
+const CUSTOMER_FILTERS = ["status", "tags"] as const;
+
+function CustomersPageContent() {
   const confirmDialog = useConfirm();
   const csvExport = useCsvExport();
   const businessId = getActiveBusinessId();
 
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Sayfa, arama ve filtreler backend'de (tüm müşterilerde) çalışır; durum URL'de.
+  const list = useListQuery<Customer>(
+    CUSTOMER_FILTERS,
+    ({ page, search, filters, signal }) =>
+      listCustomersPage(businessId!, {
+        page,
+        search,
+        status: filters.status,
+        tagIds: filters.tags ? filters.tags.split(",") : undefined,
+        signal,
+      }),
+    !!businessId
+  );
+  const customers = list.items;
+  const statusFilter = list.filters.status || "ALL";
+  const selectedTagFilters = list.filters.tags ? list.filters.tags.split(",") : [];
+  const setSelectedTagFilters = (ids: string[]) => list.setFilter("tags", ids.join(","));
+  const filtersActive = !!(list.search || list.filters.status || list.filters.tags);
+
   // Data
-  const [customers, setCustomers] = useState<Customer[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [tags, setTags] = useState<CustomerTag[]>([]);
-  const [customerTags, setCustomerTags] = useState<Record<string, CustomerTag[]>>({});
+  // Etiket ata/kaldır sonrası listeyi yeniden çekmeden güncel göstermek için.
+  const [tagOverrides, setTagOverrides] = useState<Record<string, CustomerTagBrief[]>>({});
+  const tagsOf = (id: string) => tagOverrides[id] ?? customers.find((c) => c.id === id)?.tags ?? [];
 
   // Search & Filter
-  const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [selectedTagFilters, setSelectedTagFilters] = useState<string[]>([]);
 
   // Forms
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -85,58 +114,15 @@ export default function CustomersPage() {
   const [detailLoading, setDetailLoading] = useState(false);
 
   useEffect(() => {
-    if (!businessId) {
-      setError("Aktif işletme bulunamadı.");
-      setLoading(false);
-      return;
-    }
-    loadData();
+    if (!businessId) return;
+    Promise.all([listAppointments(businessId, 1, 200), listCustomerTags(businessId)])
+      .then(([aData, tData]) => {
+        setAppointments(aData);
+        setTags(tData);
+      })
+      .catch(() => setError("Veriler yüklenemedi."));
   }, [businessId]);
 
-  async function loadData() {
-    try {
-      const [cData, aData, tData] = await Promise.all([
-        listCustomers(businessId!),
-        listAppointments(businessId!, 1, 200),
-        listCustomerTags(businessId!),
-      ]);
-      setCustomers(cData);
-      setAppointments(aData);
-      setTags(tData);
-
-      // Load tags for all customers
-      const ctMap: Record<string, CustomerTag[]> = {};
-      for (const c of cData) {
-        try {
-          const cTags = await getCustomerTags(businessId!, c.id);
-          ctMap[c.id] = cTags;
-        } catch {
-          ctMap[c.id] = [];
-        }
-      }
-      setCustomerTags(ctMap);
-    } catch (err) {
-      setError("Veriler yüklenemedi.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // --- Filtering ---
-  const filteredCustomers = customers.filter((c) => {
-    // text search
-    const q = search.trim().toLowerCase();
-    const matchSearch = !q || c.name.toLowerCase().includes(q) || (c.email?.toLowerCase().includes(q) ?? false) || (c.phone?.toLowerCase().includes(q) ?? false);
-    
-    // status
-    const matchStatus = statusFilter === "ALL" || c.status === statusFilter;
-
-    // tags
-    const cTags = customerTags[c.id] || [];
-    const matchTags = selectedTagFilters.length === 0 || selectedTagFilters.every(tid => cTags.some(t => t.id === tid));
-
-    return matchSearch && matchStatus && matchTags;
-  });
 
   function getInsight(customer: Customer) {
     const customerAppointments = appointments.filter((appointment) => appointment.customer_id === customer.id);
@@ -156,9 +142,8 @@ export default function CustomersPage() {
     if (!businessId) return;
     setCreating(true);
     try {
-      const c = await createCustomer(businessId, { name: createForm.name, email: createForm.email || null, phone: createForm.phone || null, notes: createForm.notes || null });
-      setCustomers([c, ...customers]);
-      setCustomerTags({ ...customerTags, [c.id]: [] });
+      await createCustomer(businessId, { name: createForm.name, email: createForm.email || null, phone: createForm.phone || null, notes: createForm.notes || null });
+      list.reload();
       setCreateForm(emptyForm);
       setShowCreateForm(false);
       toast.success("Müşteri eklendi.");
@@ -173,8 +158,8 @@ export default function CustomersPage() {
     if (!businessId) return;
     setSavingEdit(true);
     try {
-      const updated = await updateCustomer(businessId, id, { name: editForm.name, email: editForm.email || null, phone: editForm.phone || null, notes: editForm.notes || null });
-      setCustomers(customers.map((c) => (c.id === id ? updated : c)));
+      await updateCustomer(businessId, id, { name: editForm.name, email: editForm.email || null, phone: editForm.phone || null, notes: editForm.notes || null });
+      list.reload();
       setEditingId(null);
       toast.success("Güncellendi.");
     } catch (err) {
@@ -188,8 +173,8 @@ export default function CustomersPage() {
     if (!businessId) return;
     const next: CustomerStatus = c.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
     try {
-      const updated = await updateCustomer(businessId, c.id, { status: next });
-      setCustomers(customers.map((x) => (x.id === c.id ? updated : x)));
+      await updateCustomer(businessId, c.id, { status: next });
+      list.reload();
     } catch (err) {
       toast.error("Durum güncellenemedi.");
     }
@@ -201,7 +186,7 @@ export default function CustomersPage() {
     if (!ok) return;
     try {
       await deleteCustomer(businessId, id);
-      setCustomers(customers.filter((c) => c.id !== id));
+      list.reload();
       toast.success("Silindi.");
     } catch (err) {
       toast.error("Silinemedi.");
@@ -240,18 +225,12 @@ export default function CustomersPage() {
     try {
       if (isAssigned) {
         await removeTagFromCustomer(businessId, customerId, tagId);
-        setCustomerTags(prev => ({
-          ...prev,
-          [customerId]: (prev[customerId] || []).filter(t => t.id !== tagId)
-        }));
+        setTagOverrides(prev => ({ ...prev, [customerId]: tagsOf(customerId).filter(t => t.id !== tagId) }));
       } else {
         await assignTagToCustomer(businessId, customerId, tagId);
         const addedTag = tags.find(t => t.id === tagId);
         if (addedTag) {
-          setCustomerTags(prev => ({
-            ...prev,
-            [customerId]: [...(prev[customerId] || []), addedTag]
-          }));
+          setTagOverrides(prev => ({ ...prev, [customerId]: [...tagsOf(customerId), addedTag] }));
         }
       }
     } catch (err) {
@@ -296,7 +275,14 @@ export default function CustomersPage() {
               csvExport.run(
                 "Musteriler",
                 ["Ad", "Telefon"],
-                (page, size) => listCustomers(businessId!, page, size),
+                (page, size) =>
+                  listCustomersPage(businessId!, {
+                    page,
+                    size,
+                    search: list.search,
+                    status: list.filters.status,
+                    tagIds: selectedTagFilters.length ? selectedTagFilters : undefined,
+                  }).then((p) => p.items),
                 (c) => [c.name, c.phone || ""]
               )
             }
@@ -315,7 +301,7 @@ export default function CustomersPage() {
         <div className="flex gap-2 w-full max-w-2xl">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted" />
-            <Input className="pl-9" placeholder="İsim, telefon, e-posta..." value={search} onChange={e => setSearch(e.target.value)} />
+            <Input className="pl-9" placeholder="İsim, telefon, e-posta..." value={list.searchInput} onChange={e => list.setSearchInput(e.target.value)} aria-label="Müşteri ara" />
           </div>
           <Button variant="outline" className={cn("gap-2", showFilters && "bg-surface")} onClick={() => setShowFilters(!showFilters)}>
             <Filter className="h-4 w-4" /> Filtreler
@@ -327,7 +313,7 @@ export default function CustomersPage() {
             <CardContent className="p-4 flex flex-col gap-4">
               <div className="flex gap-4 items-center">
                 <Label className="w-20 shrink-0">Durum:</Label>
-                <select className="text-sm rounded border px-2 py-1" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+                <select className="text-sm rounded border px-2 py-1" value={statusFilter} onChange={e => list.setFilter("status", e.target.value === "ALL" ? "" : e.target.value)}>
                   <option value="ALL">Tümü</option>
                   <option value="ACTIVE">Aktif</option>
                   <option value="INACTIVE">Pasif</option>
@@ -343,7 +329,7 @@ export default function CustomersPage() {
                         key={t.id}
                         className={cn("px-2 py-1 rounded-full text-xs font-medium border flex items-center gap-1 transition-all", isSelected ? "opacity-100 ring-2 ring-offset-1" : "opacity-60")}
                         style={{ backgroundColor: `${t.color}20`, color: t.color, borderColor: `${t.color}40`, ...(isSelected && { ringColor: t.color }) }}
-                        onClick={() => setSelectedTagFilters(prev => isSelected ? prev.filter(x => x !== t.id) : [...prev, t.id])}
+                        onClick={() => setSelectedTagFilters(isSelected ? selectedTagFilters.filter(x => x !== t.id) : [...selectedTagFilters, t.id])}
                       >
                         {isSelected && <Check className="h-3 w-3" />} {t.name}
                       </button>
@@ -357,7 +343,8 @@ export default function CustomersPage() {
         )}
       </div>
 
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {!businessId && <p className="text-sm text-danger">Aktif işletme bulunamadı.</p>}
+      {(error || list.error) && <p className="text-sm text-danger">{error || list.error}</p>}
 
       {showCreateForm && (
         <Card>
@@ -379,11 +366,11 @@ export default function CustomersPage() {
         </Card>
       )}
 
-      {loading ? (
+      {list.initialLoading ? (
         <p className="text-sm text-ink-muted">Yükleniyor...</p>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {filteredCustomers.map(c => (
+        <div className={cn("grid grid-cols-1 gap-4 transition-opacity", list.loading && "opacity-60")} aria-busy={list.loading}>
+          {customers.map(c => (
             <Card key={c.id}>
               <CardContent className="p-4">
                 {editingId === c.id ? (
@@ -408,7 +395,7 @@ export default function CustomersPage() {
                       </div>
                       
                       <div className="mt-1 flex flex-wrap gap-1">
-                        {(customerTags[c.id] || []).map(t => (
+                        {tagsOf(c.id).map(t => (
                           <span key={t.id} className="text-[10px] px-1.5 py-0.5 rounded border" style={{ backgroundColor: `${t.color}15`, color: t.color, borderColor: `${t.color}30` }}>
                             {t.name}
                           </span>
@@ -439,7 +426,16 @@ export default function CustomersPage() {
               </CardContent>
             </Card>
           ))}
-          {filteredCustomers.length === 0 && <p className="text-sm text-ink-muted py-8 text-center border border-dashed rounded-lg">Müşteri bulunamadı.</p>}
+          {customers.length === 0 && !list.loading && !list.error && (
+            <p className="text-sm text-ink-muted py-8 text-center border border-dashed rounded-lg">
+              {filtersActive
+                ? `${list.search ? `"${list.search}" için ` : "Bu filtrelerle "}sonuç yok — tüm müşterilerde arandı.`
+                : "Henüz müşteri yok."}
+            </p>
+          )}
+          {list.total > 0 && (
+            <Pagination page={list.page} pageCount={list.pageCount} total={list.total} loading={list.loading} onPageChange={list.setPage} />
+          )}
         </div>
       )}
 
@@ -512,7 +508,7 @@ export default function CustomersPage() {
                   <p className="text-sm mb-2 font-medium">Bu müşteriye ait etiketler:</p>
                   <div className="flex flex-col gap-2">
                     {tags.map(t => {
-                      const cTags = customerTags[selectedCustomer.id] || [];
+                      const cTags = tagsOf(selectedCustomer.id);
                       const isAssigned = cTags.some(x => x.id === t.id);
                       return (
                         <div key={t.id} className="flex items-center justify-between p-2 border rounded hover:bg-surface">

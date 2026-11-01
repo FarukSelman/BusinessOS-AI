@@ -35,8 +35,8 @@ class ExpenseService:
             self.uow.refresh(obj)
         return obj
 
-    def list_expenses(self, business_id: UUID, page: int = 1, size: int = 20, direction: TransactionDirection | None = None, category_id: UUID | None = None, date_from: date | None = None, date_to: date | None = None, status: str | None = None) -> list[Expense]:
-        return self.repository.list_by_business(business_id, page, size, direction, category_id, date_from, date_to, status)
+    def list_expenses(self, business_id: UUID, page: int = 1, size: int = 20, direction: TransactionDirection | None = None, category_id: UUID | None = None, date_from: date | None = None, date_to: date | None = None, status: str | None = None, search: str | None = None) -> tuple[list[Expense], int]:
+        return self.repository.list_by_business(business_id, page, size, direction, category_id, date_from, date_to, status, search)
 
     def update_expense(self, business_id: UUID, expense_id: UUID, data: ExpenseUpdate) -> Expense:
         obj = self.repository.get_by_business(business_id, expense_id)

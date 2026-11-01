@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Plus, Wallet, Trash2, Pencil, CheckCircle2, Clock, Ban, PieChart, TrendingDown, TrendingUp, Filter } from "lucide-react";
+import { Suspense, useEffect, useState } from "react";
+import { Plus, Wallet, Trash2, Pencil, CheckCircle2, Clock, Ban, PieChart, TrendingDown, TrendingUp, Filter, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  listExpenses,
+  listExpensesPage,
   createExpense,
   deleteExpense,
   getFinancialSummary,
@@ -23,6 +23,8 @@ import { toISODate, todayISO } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
+import { useListQuery } from "@/lib/use-list-query";
+import { Pagination } from "@/components/ui/pagination";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(amount);
@@ -33,19 +35,35 @@ function formatDate(dateStr: string | null) {
   return new Date(dateStr).toLocaleDateString("tr-TR");
 }
 
+// useSearchParams (sayfa/arama URL'de) bir Suspense sınırı ister.
 export default function ExpensesPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-ink-muted">Yükleniyor...</p>}>
+      <ExpensesPageContent />
+    </Suspense>
+  );
+}
+
+const EXPENSE_FILTERS = ["direction"] as const;
+
+function ExpensesPageContent() {
   const confirmDialog = useConfirm();
   const businessId = getActiveBusinessId();
 
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  // Sayfa, arama (başlık/açıklama) ve gelir/gider filtresi backend'de; durum URL'de.
+  const list = useListQuery<Expense>(
+    EXPENSE_FILTERS,
+    ({ page, search, filters, signal }) =>
+      listExpensesPage(businessId!, { page, search, direction: filters.direction || undefined, signal }),
+    !!businessId
+  );
+  const expenses = list.items;
+  const directionFilter = (list.filters.direction || "ALL") as "ALL" | "INCOME" | "EXPENSE";
+  const setDirectionFilter = (d: "ALL" | "INCOME" | "EXPENSE") => list.setFilter("direction", d === "ALL" ? "" : d);
+
   const [summary, setSummary] = useState<FinancialSummary | null>(null);
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
-  
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Filters
-  const [directionFilter, setDirectionFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
 
   // Form
   const [showCreate, setShowCreate] = useState(false);
@@ -61,44 +79,26 @@ export default function ExpensesPage() {
     recurrence: "NONE",
   });
 
-  const refresh = async () => {
-    if (!businessId) return;
-    setLoading(true);
-    setError(null);
-    
-    // Get start/end of current month for summary
+  // Bu ayın özeti (kartlar) listeden bağımsız: filtre/arama/sayfa onu değiştirmez.
+  const loadSummary = (id: string) => {
     const now = new Date();
-    const monthStart = toISODate(startOfMonth(now));
-    const monthEnd = toISODate(endOfMonth(now));
+    getFinancialSummary(id, toISODate(startOfMonth(now)), toISODate(endOfMonth(now)))
+      .then(setSummary)
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Özet yüklenemedi."));
+  };
 
-    try {
-      const [expResult, sumResult, catsResult] = await Promise.allSettled([
-        listExpenses(businessId, { 
-          direction: directionFilter === "ALL" ? undefined : directionFilter 
-        }),
-        getFinancialSummary(businessId, monthStart, monthEnd),
-        listExpenseCategories(businessId)
-      ]);
-      
-      if (expResult.status === "fulfilled") setExpenses(expResult.value);
-      if (sumResult.status === "fulfilled") setSummary(sumResult.value);
-      if (catsResult.status === "fulfilled") setCategories(catsResult.value);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Veriler yüklenemedi.");
-    } finally {
-      setLoading(false);
-    }
+  /** Bir işlem eklenince/değişince listeyi (aynı sayfa) ve özeti yenile. */
+  const refresh = () => {
+    if (!businessId) return;
+    list.reload();
+    loadSummary(businessId);
   };
 
   useEffect(() => {
-    if (!businessId) {
-      setError("Aktif işletme bulunamadı.");
-      setLoading(false);
-      return;
-    }
-    refresh();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [businessId, directionFilter]);
+    if (!businessId) return;
+    loadSummary(businessId);
+    listExpenseCategories(businessId).then(setCategories).catch(() => setCategories([]));
+  }, [businessId]);
 
   const handleCreate = async () => {
     if (!businessId) return;
@@ -157,8 +157,8 @@ export default function ExpensesPage() {
     }
   };
 
-  if (error) {
-    return <div className="flex items-center justify-center h-64 text-danger">{error}</div>;
+  if (!businessId) {
+    return <div className="flex items-center justify-center h-64 text-danger">Aktif işletme bulunamadı.</div>;
   }
 
   return (
@@ -298,7 +298,19 @@ export default function ExpensesPage() {
         </Card>
       )}
 
-      {/* Filter Tabs */}
+      {(error || list.error) && <p className="text-sm text-danger">{error || list.error}</p>}
+
+      {/* Search + Filter Tabs */}
+      <div className="relative w-full max-w-md">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+        <Input
+          className="pl-9"
+          placeholder="Başlık veya açıklama..."
+          value={list.searchInput}
+          onChange={(e) => list.setSearchInput(e.target.value)}
+          aria-label="İşlem ara"
+        />
+      </div>
       <div className="flex gap-2">
         <Button variant={directionFilter === "ALL" ? "default" : "outline"} size="sm" onClick={() => setDirectionFilter("ALL")}>Tümü</Button>
         <Button variant={directionFilter === "INCOME" ? "default" : "outline"} size="sm" onClick={() => setDirectionFilter("INCOME")}>Gelirler</Button>
@@ -306,15 +318,20 @@ export default function ExpensesPage() {
       </div>
 
       {/* List */}
-      {loading ? (
+      {list.initialLoading ? (
         <div className="flex justify-center p-8 text-ink-muted"><Clock className="animate-spin w-5 h-5 mr-2" /> Yükleniyor...</div>
-      ) : expenses.length === 0 ? (
+      ) : expenses.length === 0 && !list.loading && !list.error ? (
         <Card className="bg-surface-elevated border-border text-center py-12 text-ink-muted">
           <Wallet className="w-12 h-12 mx-auto mb-3 opacity-40" />
-          <p>Kayıt bulunamadı.</p>
+          <p>
+            {list.search || list.filters.direction
+              ? `${list.search ? `"${list.search}" için ` : "Bu filtreyle "}sonuç yok — tüm işlemlerde arandı.`
+              : "Kayıt bulunamadı."}
+          </p>
         </Card>
       ) : (
-        <Card className="bg-surface-elevated border-border overflow-x-auto">
+        <>
+        <Card className={cn("bg-surface-elevated border-border overflow-x-auto transition-opacity", list.loading && "opacity-60")} aria-busy={list.loading}>
           <table className="w-full text-sm text-left">
             <thead className="bg-surface text-ink-muted text-xs uppercase">
               <tr>
@@ -360,6 +377,8 @@ export default function ExpensesPage() {
             </tbody>
           </table>
         </Card>
+        <Pagination page={list.page} pageCount={list.pageCount} total={list.total} loading={list.loading} onPageChange={list.setPage} />
+        </>
       )}
     </div>
   );

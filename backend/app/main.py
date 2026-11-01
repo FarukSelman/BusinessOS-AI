@@ -27,6 +27,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Paged lists return their total here; browsers hide it unless exposed.
+    expose_headers=["X-Total-Count"],
 )
 
 

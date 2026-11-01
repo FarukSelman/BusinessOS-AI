@@ -2,7 +2,7 @@ import uuid
 from typing import TYPE_CHECKING
 from datetime import date, datetime
 
-from sqlalchemy import Enum, String, Text, Date, DateTime, Numeric, ForeignKey
+from sqlalchemy import Enum, String, Text, Date, DateTime, Numeric, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -40,3 +40,8 @@ class Invoice(BaseModel):
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        # Paged lists filter by business and sort by this column.
+        Index("ix_invoices_business_created", "business_id", "created_at"),
+    )
