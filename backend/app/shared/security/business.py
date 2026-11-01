@@ -12,6 +12,7 @@ membership. Role checks build on top of it:
     require_admin            -> OWNER or ADMIN
     require_owner            -> OWNER
     require_finance          -> roles that may see money (can_view_finance)
+    require_staff            -> OWNER, ADMIN or EMPLOYEE (everyone but VIEWER)
 
 FastAPI caches dependencies per request, so stacking these on a router and an
 endpoint performs the membership lookup only once.
@@ -111,4 +112,14 @@ def require_finance(membership: Membership = Depends(get_business_membership)) -
 
     if not can_view_finance(membership.role):
         raise ForbiddenException(FINANCE_ONLY)
+    return membership
+
+
+STAFF_ONLY = "İzleyici rolü değişiklik yapamaz."
+
+
+def require_staff(membership: Membership = Depends(get_business_membership)) -> Membership:
+    """Day-to-day writes (selling a product or a package, marking a session): everyone but viewers."""
+    if membership.role == MembershipRole.VIEWER:
+        raise ForbiddenException(STAFF_ONLY)
     return membership

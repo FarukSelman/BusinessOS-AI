@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useMyAccess } from "@/lib/use-my-access";
 import { Plus, Gift, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,13 +21,18 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
 
-function formatCurrency(amount: number | string) {
+function formatCurrency(amount: number | string | null | undefined) {
+  // null: bu rol tutarı göremez (backend gizler)
+  if (amount === null || amount === undefined) return "—";
   return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(Number(amount));
 }
 
 export default function PackagesPage() {
   const confirmDialog = useConfirm();
   const businessId = getActiveBusinessId();
+  // Maliyet, ciro ve tahsilat tutarları yalnızca sahip/yöneticiye (backend null döner).
+  const access = useMyAccess();
+  const canSeeFinance = access?.can_view_finance === true;
 
   const [packages, setPackages] = useState<ServicePackage[]>([]);
   const [services, setServices] = useState<BusinessService[]>([]);
@@ -153,10 +159,12 @@ export default function PackagesPage() {
           <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Paket Hizmetler</h1>
           <p className="mt-1 text-sm text-ink-muted">Hizmet paketlerinizi oluşturun ve müşterilere satın.</p>
         </div>
-        <Button onClick={() => setShowCreate(!showCreate)} className="gap-2" style={{ backgroundColor: "var(--agent-appointments-solid)" }}>
-          <Plus className="h-4 w-4" />
-          {showCreate ? "Kapat" : "Yeni Paket"}
-        </Button>
+        {canSeeFinance && (
+          <Button onClick={() => setShowCreate(!showCreate)} className="gap-2" style={{ backgroundColor: "var(--agent-appointments-solid)" }}>
+            <Plus className="h-4 w-4" />
+            {showCreate ? "Kapat" : "Yeni Paket"}
+          </Button>
+        )}
       </div>
 
       {showCreate && (
@@ -255,9 +263,9 @@ export default function PackagesPage() {
                 <div className="flex justify-between items-start">
                   <CardTitle className="text-lg">{pkg.name}</CardTitle>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDelete(pkg.id)}>
+                    {canSeeFinance && <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDelete(pkg.id)}>
                       <Trash2 className="h-3.5 w-3.5 text-danger" />
-                    </Button>
+                    </Button>}
                   </div>
                 </div>
                 <div className="text-2xl font-bold text-ink mt-2">{formatCurrency(pkg.price)}</div>

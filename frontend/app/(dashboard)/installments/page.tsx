@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useMyAccess } from "@/lib/use-my-access";
 import { CreditCard, AlertCircle, Clock, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,8 +16,10 @@ import { getActiveBusinessId } from "@/lib/business";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(amount);
+function formatCurrency(amount: number | string | null | undefined) {
+  // null: bu rol tutarı göremez (backend gizler)
+  if (amount === null || amount === undefined) return "—";
+  return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(Number(amount));
 }
 
 function formatDate(dateStr: string | null) {
@@ -26,6 +29,9 @@ function formatDate(dateStr: string | null) {
 
 export default function InstallmentsPage() {
   const businessId = getActiveBusinessId();
+  // Maliyet, ciro ve tahsilat tutarları yalnızca sahip/yöneticiye (backend null döner).
+  const access = useMyAccess();
+  const canSeeFinance = access?.can_view_finance === true;
 
   const [installments, setInstallments] = useState<Installment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -148,7 +154,8 @@ export default function InstallmentsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {(inst.status === 'PENDING' || inst.status === 'OVERDUE') && (
+                      {/* Tahsilat yalnızca sahip/yönetici */}
+                      {canSeeFinance && (inst.status === 'PENDING' || inst.status === 'OVERDUE') && (
                         <Button 
                           size="sm" 
                           disabled={paying === inst.id}

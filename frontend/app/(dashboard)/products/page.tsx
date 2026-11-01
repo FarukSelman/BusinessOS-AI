@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Suspense, useEffect, useState } from "react";
+import { useMyAccess } from "@/lib/use-my-access";
 import { Plus, Package, AlertTriangle, XCircle, Wallet, Pencil, Trash2, ChevronDown, ChevronRight, PackagePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,8 +26,10 @@ import { toast } from "sonner";
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
 import { useDeepLink } from "@/lib/use-deep-link";
 
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(amount);
+function formatCurrency(amount: number | string | null | undefined) {
+  // null: bu rol tutarı göremez (backend gizler)
+  if (amount === null || amount === undefined) return "—";
+  return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(Number(amount));
 }
 
 function formatDate(dateStr: string) {
@@ -45,6 +48,9 @@ export default function ProductsPage() {
 function ProductsPageContent() {
   const confirmDialog = useConfirm();
   const businessId = getActiveBusinessId();
+  // Maliyet, ciro ve tahsilat tutarları yalnızca sahip/yöneticiye (backend null döner).
+  const access = useMyAccess();
+  const canSeeFinance = access?.can_view_finance === true;
 
   const [products, setProducts] = useState<Product[]>([]);
   const [summary, setSummary] = useState<StockSummary | null>(null);
@@ -180,10 +186,12 @@ function ProductsPageContent() {
           <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Ürün & Stok Yönetimi</h1>
           <p className="mt-1 text-sm text-ink-muted">Ürünlerinizi ve stok seviyelerinizi takip edin.</p>
         </div>
-        <Button onClick={() => { setShowCreate(!showCreate); setEditProduct(null); setForm(initialForm); }} className="gap-2" style={{ backgroundColor: "var(--agent-sales-solid)" }}>
-          <Plus className="h-4 w-4" />
-          {showCreate ? "Kapat" : "Yeni Ürün"}
-        </Button>
+        {canSeeFinance && (
+          <Button onClick={() => { setShowCreate(!showCreate); setEditProduct(null); setForm(initialForm); }} className="gap-2" style={{ backgroundColor: "var(--agent-sales-solid)" }}>
+            <Plus className="h-4 w-4" />
+            {showCreate ? "Kapat" : "Yeni Ürün"}
+          </Button>
+        )}
       </div>
 
       {summary && (
@@ -206,12 +214,14 @@ function ProductsPageContent() {
               <p className="text-xl font-bold mt-1 text-danger">{summary.out_of_stock_count}</p>
             </CardContent>
           </Card>
-          <Card className="bg-surface-elevated border-border border-l-4 border-l-success">
-            <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-ink-muted font-medium flex items-center gap-1"><Wallet className="w-3 h-3 text-success"/> Stok Değeri</p>
-              <p className="text-xl font-bold mt-1 text-success">{formatCurrency(summary.total_stock_value)}</p>
-            </CardContent>
-          </Card>
+          {summary.total_stock_value !== null && (
+            <Card className="bg-surface-elevated border-border border-l-4 border-l-success">
+              <CardContent className="pt-4 pb-4">
+                <p className="text-xs text-ink-muted font-medium flex items-center gap-1"><Wallet className="w-3 h-3 text-success"/> Stok Değeri</p>
+                <p className="text-xl font-bold mt-1 text-success">{formatCurrency(summary.total_stock_value)}</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
@@ -273,7 +283,7 @@ function ProductsPageContent() {
                 <th className="px-4 py-3 w-8"></th>
                 <th className="px-4 py-3">Ürün Adı</th>
                 <th className="px-4 py-3">SKU / Kategori</th>
-                <th className="px-4 py-3 text-right">Alış / Satış</th>
+                <th className="px-4 py-3 text-right">{canSeeFinance ? "Alış / Satış" : "Satış Fiyatı"}</th>
                 <th className="px-4 py-3 text-center">Stok</th>
                 <th className="px-4 py-3 text-center">Durum</th>
                 <th className="px-4 py-3 text-right">İşlemler</th>
@@ -293,7 +303,7 @@ function ProductsPageContent() {
                       </td>
                       <td className="px-4 py-3 font-medium text-ink">{prod.name}<br/><span className="text-xs text-ink-muted">{prod.brand || '-'}</span></td>
                       <td className="px-4 py-3 text-ink-muted">{prod.sku || '-'}<br/><span className="text-xs">{prod.category || 'Kategorisiz'}</span></td>
-                      <td className="px-4 py-3 text-right text-ink-muted">{formatCurrency(prod.purchase_price)}<br/><span className="text-ink font-medium">{formatCurrency(prod.sale_price)}</span></td>
+                      <td className="px-4 py-3 text-right text-ink-muted">{prod.purchase_price !== null && <>{formatCurrency(prod.purchase_price)}<br/></>}<span className="text-ink font-medium">{formatCurrency(prod.sale_price)}</span></td>
                       <td className="px-4 py-3 text-center">
                         <span className={cn("px-2 py-1 text-xs rounded-full inline-flex font-bold", isOutOfStock ? "bg-danger-soft text-danger" : isLowStock ? "bg-warning-soft text-warning" : "bg-success-soft text-success")}>
                           {prod.current_stock} {prod.unit}
@@ -305,9 +315,14 @@ function ProductsPageContent() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right space-x-1">
-                        <Button variant="ghost" size="icon" onClick={() => { setShowStockForm(showStockForm === prod.id ? null : prod.id); }} title="Stok Ekle"><PackagePlus className="h-4 w-4 text-success" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => { setEditProduct(prod); setForm(prod as any); setShowCreate(true); }}><Pencil className="h-4 w-4 text-ink-muted" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(prod.id)}><Trash2 className="h-4 w-4 text-danger" /></Button>
+                        {/* Ürün kartı ve stok girişi maliyet içerir: yalnızca sahip/yönetici */}
+                        {canSeeFinance && (
+                          <>
+                            <Button variant="ghost" size="icon" onClick={() => { setShowStockForm(showStockForm === prod.id ? null : prod.id); }} title="Stok Ekle"><PackagePlus className="h-4 w-4 text-success" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => { setEditProduct(prod); setForm(prod as any); setShowCreate(true); }}><Pencil className="h-4 w-4 text-ink-muted" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(prod.id)}><Trash2 className="h-4 w-4 text-danger" /></Button>
+                          </>
+                        )}
                       </td>
                     </tr>
                     

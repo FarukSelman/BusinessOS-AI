@@ -31,8 +31,9 @@ export interface CustomerPackage {
   total_sessions: number;
   used_sessions: number;
   remaining_sessions: number;
-  total_price: number;
-  paid_amount: number;
+  /** Müşterinin ödediği/borcu: çalışan/izleyici rolünde null. */
+  total_price: number | null;
+  paid_amount: number | null;
   status: CustomerPackageStatus;
   notes: string | null;
   sessions?: PackageSession[];
@@ -57,7 +58,8 @@ export interface Installment {
   customer_package_id: string;
   customer_id: string;
   installment_number: number;
-  amount: number;
+  /** Taksit tutarı: çalışan/izleyici rolünde null. */
+  amount: number | null;
   due_date: string;
   paid_date: string | null;
   status: InstallmentStatus;

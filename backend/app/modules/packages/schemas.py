@@ -76,7 +76,8 @@ class InstallmentResponse(BaseModel):
     business_id: UUID
     customer_id: UUID
     installment_number: int
-    amount: float
+    # Collection amount: None for roles without finance access
+    amount: Optional[float]
     due_date: date
     paid_date: Optional[date]
     status: InstallmentStatus
@@ -110,8 +111,9 @@ class CustomerPackageResponse(BaseModel):
     total_sessions: int
     used_sessions: int
     remaining_sessions: int
-    total_price: float
-    paid_amount: float
+    # What the customer paid / owes: None for roles without finance access
+    total_price: Optional[float]
+    paid_amount: Optional[float]
     status: CustomerPackageStatus
     notes: Optional[str]
     sessions: List[PackageSessionResponse] = []
@@ -121,3 +123,23 @@ class CustomerPackageResponse(BaseModel):
 class OverdueInstallmentResponse(InstallmentResponse):
     customer_name: Optional[str] = None
     package_name: Optional[str] = None
+
+
+# ---------------------------------------------------------------- role views
+# Package prices are sale prices and stay visible. What a customer paid or
+# still owes is a finance record: None for roles without finance access.
+
+def installment_view(installment, show_amounts: bool) -> InstallmentResponse:
+    view = InstallmentResponse.model_validate(installment)
+    return view if show_amounts else view.model_copy(update={"amount": None})
+
+
+def customer_package_view(customer_package, show_amounts: bool) -> CustomerPackageResponse:
+    view = CustomerPackageResponse.model_validate(customer_package)
+    if show_amounts:
+        return view
+    return view.model_copy(update={
+        "total_price": None,
+        "paid_amount": None,
+        "installments": [i.model_copy(update={"amount": None}) for i in view.installments],
+    })

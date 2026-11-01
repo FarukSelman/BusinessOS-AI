@@ -51,7 +51,8 @@ class ProductResponse(BaseModel):
     category: Optional[str] = None
     brand: Optional[str] = None
     unit: str
-    purchase_price: float
+    # Cost: None for roles without finance access (employee, viewer)
+    purchase_price: Optional[float]
     sale_price: float
     tax_rate: float
     current_stock: int
@@ -75,6 +76,7 @@ class StockMovementResponse(BaseModel):
     product_id: uuid.UUID
     movement_type: StockMovementType
     quantity: int
+    # None for roles without finance access (purchase/adjustment prices are costs)
     unit_price: Optional[float] = None
     total_price: Optional[float] = None
     reference_type: Optional[str] = None
@@ -103,9 +105,10 @@ class ProductSaleResponse(BaseModel):
     invoice_id: Optional[uuid.UUID] = None
     sale_date: datetime
     items: List[dict]
-    subtotal: float
-    tax_amount: float
-    total_amount: float
+    # Turnover: None for roles without finance access (item "total" too; unit_price is the public sale price)
+    subtotal: Optional[float]
+    tax_amount: Optional[float]
+    total_amount: Optional[float]
     payment_method: Optional[PaymentMethod] = None
     notes: Optional[str] = None
     created_at: datetime
@@ -115,4 +118,36 @@ class StockSummary(BaseModel):
     total_products: int
     low_stock_count: int
     out_of_stock_count: int
-    total_stock_value: float
+    # purchase_price x stock: None for roles without finance access
+    total_stock_value: Optional[float]
+
+
+# ---------------------------------------------------------------- role views
+# Same rule as invoices: owner/admin see costs and turnover, other roles get
+# None for those fields. Sale prices stay visible (customers see them).
+
+def product_view(product, show_amounts: bool) -> ProductResponse:
+    view = ProductResponse.model_validate(product)
+    return view if show_amounts else view.model_copy(update={"purchase_price": None})
+
+
+def movement_view(movement, show_amounts: bool) -> StockMovementResponse:
+    view = StockMovementResponse.model_validate(movement)
+    return view if show_amounts else view.model_copy(update={"unit_price": None, "total_price": None})
+
+
+def sale_view(sale, show_amounts: bool) -> ProductSaleResponse:
+    view = ProductSaleResponse.model_validate(sale)
+    if show_amounts:
+        return view
+    return view.model_copy(update={
+        "subtotal": None,
+        "tax_amount": None,
+        "total_amount": None,
+        "items": [{**item, "total": None} for item in view.items],
+    })
+
+
+def stock_summary_view(summary: dict, show_amounts: bool) -> StockSummary:
+    view = StockSummary(**summary)
+    return view if show_amounts else view.model_copy(update={"total_stock_value": None})

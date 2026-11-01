@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useMyAccess } from "@/lib/use-my-access";
 import { Users, CheckCircle2, Clock, Plus, Search, Calendar, CreditCard, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,8 +26,10 @@ import { getActiveBusinessId } from "@/lib/business";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(amount);
+function formatCurrency(amount: number | string | null | undefined) {
+  // null: bu rol tutarı göremez (backend gizler)
+  if (amount === null || amount === undefined) return "—";
+  return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(Number(amount));
 }
 
 function formatDate(dateStr: string | null) {
@@ -36,6 +39,11 @@ function formatDate(dateStr: string | null) {
 
 export default function CustomerPackagesPage() {
   const businessId = getActiveBusinessId();
+  // Maliyet, ciro ve tahsilat tutarları yalnızca sahip/yöneticiye (backend null döner).
+  const access = useMyAccess();
+  const canSeeFinance = access?.can_view_finance === true;
+  // Satış ve seans işaretleme: izleyici hariç herkes (yüklenirken gizli).
+  const canSell = access !== null && access.role !== "VIEWER";
 
   const [cPackages, setCPackages] = useState<CustomerPackage[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -175,10 +183,12 @@ export default function CustomerPackagesPage() {
           <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Müşteri Paketleri</h1>
           <p className="mt-1 text-sm text-ink-muted">Satılan paketlerin seans ve ödeme takibi.</p>
         </div>
-        <Button onClick={() => setShowSell(!showSell)} className="gap-2" style={{ backgroundColor: "var(--agent-appointments-solid)" }}>
-          <Plus className="h-4 w-4" />
-          {showSell ? "İptal" : "Paket Sat"}
-        </Button>
+        {canSell && (
+          <Button onClick={() => setShowSell(!showSell)} className="gap-2" style={{ backgroundColor: "var(--agent-appointments-solid)" }}>
+            <Plus className="h-4 w-4" />
+            {showSell ? "İptal" : "Paket Sat"}
+          </Button>
+        )}
       </div>
 
       {showSell && (
@@ -321,7 +331,7 @@ export default function CustomerPackagesPage() {
                   <div className="flex flex-col gap-1 text-sm border-t border-border pt-3">
                     <div className="flex justify-between">
                       <span className="text-ink-muted">Ödenen Tutar:</span>
-                      <span className="text-ink font-medium">{formatCurrency(cp.paid_amount)} / {formatCurrency(cp.total_price)}</span>
+                      <span className="text-ink font-medium">{cp.total_price !== null ? `${formatCurrency(cp.paid_amount)} / ${formatCurrency(cp.total_price)}` : "—"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-ink-muted">Son Kullanma:</span>
@@ -389,8 +399,8 @@ export default function CustomerPackagesPage() {
                       
                       {session.status === 'PENDING' && selectedCp.status === 'ACTIVE' && (
                         <div className="flex gap-2">
-                          <Button size="sm" variant="outline" className="h-8 text-danger border-danger/30 hover:bg-danger/10" onClick={() => handleCancelSession(session.id)}>İptal</Button>
-                          <Button size="sm" className="h-8 bg-success-solid hover:brightness-110" onClick={() => handleCompleteSession(session.id)}>Tamamla</Button>
+                          {canSell && <Button size="sm" variant="outline" className="h-8 text-danger border-danger/30 hover:bg-danger/10" onClick={() => handleCancelSession(session.id)}>İptal</Button>}
+                          {canSell && <Button size="sm" className="h-8 bg-success-solid hover:brightness-110" onClick={() => handleCompleteSession(session.id)}>Tamamla</Button>}
                         </div>
                       )}
                     </div>
@@ -432,7 +442,8 @@ export default function CustomerPackagesPage() {
                         </div>
                       </div>
                       
-                      {(inst.status === 'PENDING' || inst.status === 'OVERDUE') && (
+                      {/* Tahsilat yalnızca sahip/yönetici */}
+                      {canSeeFinance && (inst.status === 'PENDING' || inst.status === 'OVERDUE') && (
                         <Button size="sm" onClick={() => handlePayInstallment(inst.id)} style={{ backgroundColor: "var(--agent-finance-solid)" }}>
                           Öde
                         </Button>

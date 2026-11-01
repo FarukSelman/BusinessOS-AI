@@ -10,12 +10,24 @@ from typing import List, Optional
 from app.modules.products.schemas import (
     ProductCreate, ProductUpdate, ProductResponse,
     StockAdjustment, StockMovementResponse,
-    ProductSaleCreate, ProductSaleResponse, StockSummary
+    ProductSaleCreate, ProductSaleResponse, StockSummary,
+    product_view, movement_view, sale_view, stock_summary_view,
 )
 from app.modules.products.repository import ProductRepository, StockMovementRepository, ProductSaleRepository
 from app.modules.products.service import ProductService
 from app.shared.enums.product import ProductStatus
-from app.shared.security.business import require_business_member
+from app.ai.agents.tools.common import can_view_finance
+from app.modules.membership.models import Membership
+from app.shared.security.business import (
+    get_business_membership,
+    require_business_member,
+    require_finance,
+    require_staff,
+)
+
+# Reading: every member; purchase prices, stock value, movement prices and sale
+# turnover are None for roles without finance access. Writing: catalogue and
+# stock (costs) for owner/admin, selling for everyone but viewers.
 
 products_router = APIRouter(prefix="/businesses/{business_id}/products", tags=["Products"], dependencies=[Depends(require_business_member)])
 product_sales_router = APIRouter(prefix="/businesses/{business_id}/product-sales", tags=["Product Sales"], dependencies=[Depends(require_business_member)])
@@ -36,9 +48,10 @@ def create_product(
     business_id: uuid.UUID,
     data: ProductCreate,
     service: ProductService = Depends(get_product_service),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    _finance: Membership = Depends(require_finance),
 ):
-    return service.create_product(business_id, data)
+    return product_view(service.create_product(business_id, data), True)
 
 @products_router.get("", response_model=List[ProductResponse])
 def list_products(
@@ -50,36 +63,41 @@ def list_products(
     search: Optional[str] = None,
     low_stock_only: bool = False,
     service: ProductService = Depends(get_product_service),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    membership: Membership = Depends(get_business_membership),
 ):
-    return service.list_products(
-        business_id, page, size, category, status, search, low_stock_only
-    )
+    show = can_view_finance(membership.role)
+    products = service.list_products(business_id, page, size, category, status, search, low_stock_only)
+    return [product_view(p, show) for p in products]
 
 @products_router.get("/stock-summary", response_model=StockSummary)
 def get_stock_summary(
     business_id: uuid.UUID,
     service: ProductService = Depends(get_product_service),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    membership: Membership = Depends(get_business_membership),
 ):
-    return service.get_stock_summary(business_id)
+    return stock_summary_view(service.get_stock_summary(business_id), can_view_finance(membership.role))
 
 @products_router.get("/low-stock", response_model=List[ProductResponse])
 def get_low_stock_products(
     business_id: uuid.UUID,
     service: ProductService = Depends(get_product_service),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    membership: Membership = Depends(get_business_membership),
 ):
-    return service.list_products(business_id, page=1, size=1000, low_stock_only=True)
+    show = can_view_finance(membership.role)
+    return [product_view(p, show) for p in service.list_products(business_id, page=1, size=1000, low_stock_only=True)]
 
 @products_router.get("/{product_id}", response_model=ProductResponse)
 def get_product(
     business_id: uuid.UUID,
     product_id: uuid.UUID,
     service: ProductService = Depends(get_product_service),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    membership: Membership = Depends(get_business_membership),
 ):
-    return service.get_product(business_id, product_id)
+    return product_view(service.get_product(business_id, product_id), can_view_finance(membership.role))
 
 @products_router.patch("/{product_id}", response_model=ProductResponse)
 def update_product(
@@ -87,16 +105,18 @@ def update_product(
     product_id: uuid.UUID,
     data: ProductUpdate,
     service: ProductService = Depends(get_product_service),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    _finance: Membership = Depends(require_finance),
 ):
-    return service.update_product(business_id, product_id, data)
+    return product_view(service.update_product(business_id, product_id, data), True)
 
 @products_router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_product(
     business_id: uuid.UUID,
     product_id: uuid.UUID,
     service: ProductService = Depends(get_product_service),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    _finance: Membership = Depends(require_finance),
 ):
     service.delete_product(business_id, product_id)
 
@@ -106,9 +126,10 @@ def adjust_stock(
     product_id: uuid.UUID,
     data: StockAdjustment,
     service: ProductService = Depends(get_product_service),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    _finance: Membership = Depends(require_finance),
 ):
-    return service.adjust_stock(business_id, product_id, data, current_user.id)
+    return movement_view(service.adjust_stock(business_id, product_id, data, current_user.id), True)
 
 @products_router.get("/{product_id}/movements", response_model=List[StockMovementResponse])
 def list_stock_movements(
@@ -117,11 +138,13 @@ def list_stock_movements(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1),
     service: ProductService = Depends(get_product_service),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    membership: Membership = Depends(get_business_membership),
 ):
     # Verify product belongs to business
     service.get_product(business_id, product_id)
-    return service.list_stock_movements(product_id, page, size)
+    show = can_view_finance(membership.role)
+    return [movement_view(m, show) for m in service.list_stock_movements(product_id, page, size)]
 
 # ================================
 # Product Sales
@@ -132,9 +155,11 @@ def create_sale(
     business_id: uuid.UUID,
     data: ProductSaleCreate,
     service: ProductService = Depends(get_product_service),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    membership: Membership = Depends(require_staff),
 ):
-    return service.create_sale(business_id, data, current_user.id)
+    sale = service.create_sale(business_id, data, current_user.id)
+    return sale_view(sale, can_view_finance(membership.role))
 
 @product_sales_router.get("", response_model=List[ProductSaleResponse])
 def list_sales(
@@ -142,15 +167,18 @@ def list_sales(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1),
     service: ProductService = Depends(get_product_service),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    membership: Membership = Depends(get_business_membership),
 ):
-    return service.list_sales(business_id, page, size)
+    show = can_view_finance(membership.role)
+    return [sale_view(s, show) for s in service.list_sales(business_id, page, size)]
 
 @product_sales_router.get("/{sale_id}", response_model=ProductSaleResponse)
 def get_sale(
     business_id: uuid.UUID,
     sale_id: uuid.UUID,
     service: ProductService = Depends(get_product_service),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    membership: Membership = Depends(get_business_membership),
 ):
-    return service.get_sale(business_id, sale_id)
+    return sale_view(service.get_sale(business_id, sale_id), can_view_finance(membership.role))

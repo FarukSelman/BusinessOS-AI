@@ -12,7 +12,8 @@ export interface Product {
   category: string | null;
   brand: string | null;
   unit: string;
-  purchase_price: number;
+  /** Alış fiyatı (maliyet): çalışan/izleyici rolünde null. */
+  purchase_price: number | null;
   sale_price: number;
   tax_rate: number;
   current_stock: number;
@@ -40,10 +41,11 @@ export interface ProductSale {
   id: string;
   business_id: string;
   customer_id: string | null;
-  items: { product_id: string; product_name: string; quantity: number; unit_price: number; total: number }[];
-  subtotal: number;
-  tax_amount: number;
-  total_amount: number;
+  /** unit_price satış fiyatıdır, her rolde gelir; total ve tutarlar çalışan/izleyicide null. */
+  items: { product_id: string; product_name: string; quantity: number; unit_price: number; total: number | null }[];
+  subtotal: number | null;
+  tax_amount: number | null;
+  total_amount: number | null;
   payment_method: string | null;
   sale_date: string;
   notes: string | null;
@@ -54,5 +56,6 @@ export interface StockSummary {
   total_products: number;
   low_stock_count: number;
   out_of_stock_count: number;
-  total_stock_value: number;
+  /** Alış fiyatı × stok: çalışan/izleyici rolünde null. */
+  total_stock_value: number | null;
 }

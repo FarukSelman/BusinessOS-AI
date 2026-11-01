@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useMyAccess } from "@/lib/use-my-access";
 import { ShoppingCart, Plus, Trash2, Search, Receipt, CheckCircle2, ChevronRight, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,8 +21,10 @@ import { getActiveBusinessId } from "@/lib/business";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(amount);
+function formatCurrency(amount: number | string | null | undefined) {
+  // null: bu rol tutarı göremez (backend gizler)
+  if (amount === null || amount === undefined) return "—";
+  return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(Number(amount));
 }
 
 function formatDate(dateStr: string) {
@@ -37,6 +40,10 @@ interface CartItem {
 
 export default function ProductSalesPage() {
   const businessId = getActiveBusinessId();
+  // Ciro tutarları backend'den null gelir (sahip/yönetici dışı); formatCurrency "—" gösterir.
+  const access = useMyAccess();
+  // Satış ve seans işaretleme: izleyici hariç herkes (yüklenirken gizli).
+  const canSell = access !== null && access.role !== "VIEWER";
 
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -186,125 +193,128 @@ export default function ProductSalesPage() {
         <p className="mt-1 text-sm text-ink-muted">Hızlı satış yapın ve satış geçmişini görüntüleyin.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Product Search & List */}
-        <div className="lg:col-span-2 space-y-4">
-          <Card className="bg-surface-elevated border-border h-[calc(100vh-220px)] flex flex-col">
-            <CardHeader className="pb-3 border-b border-border">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted" />
-                <Input 
-                  placeholder="Ürün adı veya barkod okutun..." 
-                  className="pl-9 bg-surface text-lg py-6"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  autoFocus
-                />
-              </div>
-            </CardHeader>
-            <CardContent className="flex-1 overflow-y-auto p-4">
-              {loading ? <div className="text-center text-ink-muted mt-10">Yükleniyor...</div> : (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {filteredProducts.map(prod => (
-                    <div 
-                      key={prod.id} 
-                      onClick={() => addToCart(prod)}
-                      className={cn(
-                        "p-3 rounded-lg border border-border bg-surface hover:border-accent cursor-pointer transition-colors flex flex-col justify-between h-24",
-                        prod.current_stock <= 0 && "opacity-50 cursor-not-allowed hover:border-border"
-                      )}
-                    >
-                      <div className="font-medium text-sm line-clamp-2 leading-tight">{prod.name}</div>
-                      <div className="flex justify-between items-end mt-2">
-                        <span className="font-bold text-accent-text">{formatCurrency(prod.sale_price)}</span>
-                        <span className={cn("text-xs font-medium", prod.current_stock > 0 ? "text-success" : "text-danger")}>
-                          {prod.current_stock} {prod.unit}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                  {filteredProducts.length === 0 && <div className="col-span-full text-center text-ink-muted py-8">Ürün bulunamadı.</div>}
+      {/* Satış ekranı: izleyici hariç herkes */}
+      {canSell && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column: Product Search & List */}
+          <div className="lg:col-span-2 space-y-4">
+            <Card className="bg-surface-elevated border-border h-[calc(100vh-220px)] flex flex-col">
+              <CardHeader className="pb-3 border-b border-border">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted" />
+                  <Input 
+                    placeholder="Ürün adı veya barkod okutun..." 
+                    className="pl-9 bg-surface text-lg py-6"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    autoFocus
+                  />
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Column: Cart & Checkout */}
-        <div className="space-y-4">
-          <Card className="bg-surface-elevated border-border border-t-4" style={{ borderTopColor: "var(--agent-sales)" }}>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2"><ShoppingCart className="h-5 w-5" /> Sepet</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {cart.length === 0 ? (
-                  <div className="text-center py-8 text-ink-muted bg-surface rounded-md border border-dashed border-border">
-                    Sepetiniz boş.<br/>Sol taraftan ürün ekleyin.
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                    {cart.map(item => (
-                      <div key={item.product.id} className="flex flex-col gap-2 p-2 bg-surface rounded-md border border-border">
-                        <div className="flex justify-between items-start">
-                          <span className="font-medium text-sm">{item.product.name}</span>
-                          <Button variant="ghost" size="icon" className="h-5 w-5 text-danger" onClick={() => removeFromCart(item.product.id)}><Trash2 className="h-3 w-3" /></Button>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-1">
-                            <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => updateCartQuantity(item.product.id, item.quantity - 1)}>-</Button>
-                            <Input type="number" className="h-6 w-12 text-center text-xs px-1" value={item.quantity} onChange={e => updateCartQuantity(item.product.id, parseInt(e.target.value) || 0)} />
-                            <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => updateCartQuantity(item.product.id, item.quantity + 1)}>+</Button>
-                          </div>
-                          <span className="font-bold text-sm">{formatCurrency(item.total)}</span>
+              </CardHeader>
+              <CardContent className="flex-1 overflow-y-auto p-4">
+                {loading ? <div className="text-center text-ink-muted mt-10">Yükleniyor...</div> : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {filteredProducts.map(prod => (
+                      <div 
+                        key={prod.id} 
+                        onClick={() => addToCart(prod)}
+                        className={cn(
+                          "p-3 rounded-lg border border-border bg-surface hover:border-accent cursor-pointer transition-colors flex flex-col justify-between h-24",
+                          prod.current_stock <= 0 && "opacity-50 cursor-not-allowed hover:border-border"
+                        )}
+                      >
+                        <div className="font-medium text-sm line-clamp-2 leading-tight">{prod.name}</div>
+                        <div className="flex justify-between items-end mt-2">
+                          <span className="font-bold text-accent-text">{formatCurrency(prod.sale_price)}</span>
+                          <span className={cn("text-xs font-medium", prod.current_stock > 0 ? "text-success" : "text-danger")}>
+                            {prod.current_stock} {prod.unit}
+                          </span>
                         </div>
                       </div>
                     ))}
+                    {filteredProducts.length === 0 && <div className="col-span-full text-center text-ink-muted py-8">Ürün bulunamadı.</div>}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </div>
 
-                <div className="pt-4 border-t border-border space-y-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Müşteri (Opsiyonel)</Label>
-                    <select className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink focus:outline-none" value={selectedCustomerId} onChange={e => setSelectedCustomerId(e.target.value)}>
-                      <option value="">Genel Müşteri</option>
-                      {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <Label className="text-xs">Ödeme Yöntemi</Label>
-                    <div className="flex gap-2">
-                      <Button variant={paymentMethod === 'CASH' ? 'default' : 'outline'} className={cn("flex-1 h-8 text-xs", paymentMethod === 'CASH' && "bg-success-solid")} onClick={() => setPaymentMethod('CASH')}>Nakit</Button>
-                      <Button variant={paymentMethod === 'CREDIT_CARD' ? 'default' : 'outline'} className={cn("flex-1 h-8 text-xs", paymentMethod === 'CREDIT_CARD' && "bg-info-solid")} onClick={() => setPaymentMethod('CREDIT_CARD')}>Kredi K.</Button>
+          {/* Right Column: Cart & Checkout */}
+          <div className="space-y-4">
+            <Card className="bg-surface-elevated border-border border-t-4" style={{ borderTopColor: "var(--agent-sales)" }}>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2"><ShoppingCart className="h-5 w-5" /> Sepet</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {cart.length === 0 ? (
+                    <div className="text-center py-8 text-ink-muted bg-surface rounded-md border border-dashed border-border">
+                      Sepetiniz boş.<br/>Sol taraftan ürün ekleyin.
                     </div>
-                  </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                      {cart.map(item => (
+                        <div key={item.product.id} className="flex flex-col gap-2 p-2 bg-surface rounded-md border border-border">
+                          <div className="flex justify-between items-start">
+                            <span className="font-medium text-sm">{item.product.name}</span>
+                            <Button variant="ghost" size="icon" className="h-5 w-5 text-danger" onClick={() => removeFromCart(item.product.id)}><Trash2 className="h-3 w-3" /></Button>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-1">
+                              <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => updateCartQuantity(item.product.id, item.quantity - 1)}>-</Button>
+                              <Input type="number" className="h-6 w-12 text-center text-xs px-1" value={item.quantity} onChange={e => updateCartQuantity(item.product.id, parseInt(e.target.value) || 0)} />
+                              <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => updateCartQuantity(item.product.id, item.quantity + 1)}>+</Button>
+                            </div>
+                            <span className="font-bold text-sm">{formatCurrency(item.total)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
-                  <div className="space-y-1">
-                    <Label className="text-xs">Notlar</Label>
-                    <Input className="h-8 text-xs" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Satış notu..." />
-                  </div>
+                  <div className="pt-4 border-t border-border space-y-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Müşteri (Opsiyonel)</Label>
+                      <select className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink focus:outline-none" value={selectedCustomerId} onChange={e => setSelectedCustomerId(e.target.value)}>
+                        <option value="">Genel Müşteri</option>
+                        {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                  
+                    <div className="space-y-1">
+                      <Label className="text-xs">Ödeme Yöntemi</Label>
+                      <div className="flex gap-2">
+                        <Button variant={paymentMethod === 'CASH' ? 'default' : 'outline'} className={cn("flex-1 h-8 text-xs", paymentMethod === 'CASH' && "bg-success-solid")} onClick={() => setPaymentMethod('CASH')}>Nakit</Button>
+                        <Button variant={paymentMethod === 'CREDIT_CARD' ? 'default' : 'outline'} className={cn("flex-1 h-8 text-xs", paymentMethod === 'CREDIT_CARD' && "bg-info-solid")} onClick={() => setPaymentMethod('CREDIT_CARD')}>Kredi K.</Button>
+                      </div>
+                    </div>
 
-                  <div className="bg-surface p-3 rounded-lg border border-border mt-2">
-                    <div className="flex justify-between text-sm text-ink-muted mb-1"><span>Ara Toplam</span><span>{formatCurrency(cartSubtotal)}</span></div>
-                    <div className="flex justify-between font-bold text-lg mt-2 pt-2 border-t border-border"><span>Genel Toplam</span><span className="text-accent-text">{formatCurrency(cartSubtotal)}</span></div>
-                  </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Notlar</Label>
+                      <Input className="h-8 text-xs" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Satış notu..." />
+                    </div>
 
-                  <Button 
-                    className="w-full h-12 text-md gap-2" 
-                    style={{ backgroundColor: "var(--agent-sales-solid)" }}
-                    disabled={cart.length === 0 || completing}
-                    onClick={handleCompleteSale}
-                  >
-                    <CheckCircle2 className="h-5 w-5" />
-                    {completing ? "Tamamlanıyor..." : "Satışı Tamamla"}
-                  </Button>
+                    <div className="bg-surface p-3 rounded-lg border border-border mt-2">
+                      <div className="flex justify-between text-sm text-ink-muted mb-1"><span>Ara Toplam</span><span>{formatCurrency(cartSubtotal)}</span></div>
+                      <div className="flex justify-between font-bold text-lg mt-2 pt-2 border-t border-border"><span>Genel Toplam</span><span className="text-accent-text">{formatCurrency(cartSubtotal)}</span></div>
+                    </div>
+
+                    <Button 
+                      className="w-full h-12 text-md gap-2" 
+                      style={{ backgroundColor: "var(--agent-sales-solid)" }}
+                      disabled={cart.length === 0 || completing}
+                      onClick={handleCompleteSale}
+                    >
+                      <CheckCircle2 className="h-5 w-5" />
+                      {completing ? "Tamamlanıyor..." : "Satışı Tamamla"}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Recent Sales Table */}
       <Card className="bg-surface-elevated border-border">
