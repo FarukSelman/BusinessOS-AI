@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { Plus, Clock, User as UserIcon, Phone, Check, X, Pencil, List, Calendar as CalendarIcon, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,7 @@ import {
 } from "@/lib/api";
 import { getActiveBusinessId } from "@/lib/business";
 import { todayISO, toHm } from "@/lib/date";
+import { useDeepLink } from "@/lib/use-deep-link";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
 import { useCsvExport } from "@/lib/use-csv-export";
@@ -46,7 +47,16 @@ import {
 } from "@/components/appointments/appointment-dialogs";
 import { AppointmentCalendar } from "@/components/appointments/calendar/appointment-calendar";
 
+// useSearchParams (global aramadan gelen ?date=&open=) bir Suspense sınırı ister.
 export default function AppointmentsPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-ink-muted">Yükleniyor...</p>}>
+      <AppointmentsPageContent />
+    </Suspense>
+  );
+}
+
+function AppointmentsPageContent() {
   const confirmDialog = useConfirm();
   const csvExport = useCsvExport();
   const [statusFilter, setStatusFilter] = useState<AppointmentStatus | "ALL">("ALL");
@@ -73,6 +83,11 @@ export default function AppointmentsPage() {
   // Takvim: bir randevu değişince artırılır, takvim yeniden çekilir.
   const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
   const [detailId, setDetailId] = useState<string | null>(null);
+  // Global aramadan gelen randevu: o güne git, detayını aç.
+  useDeepLink(["date", "open"], ({ date, open }) => {
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) setSelectedDate(date);
+    if (open) setDetailId(open);
+  });
   const [formDialog, setFormDialog] = useState<FormDialogState | null>(null);
 
   // Dropdown listeleri - bir kez, tarih değişse de yeniden çekilmesine gerek yok

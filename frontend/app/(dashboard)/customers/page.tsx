@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   listCustomersPage,
+  getCustomer,
   listAppointments,
   createCustomer,
   updateCustomer,
@@ -34,6 +35,7 @@ import { toast } from "sonner";
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
 import { useCsvExport } from "@/lib/use-csv-export";
 import { useListQuery } from "@/lib/use-list-query";
+import { useDeepLink } from "@/lib/use-deep-link";
 import { Pagination } from "@/components/ui/pagination";
 
 type FormState = {
@@ -88,6 +90,14 @@ function CustomersPageContent() {
   // Etiket ata/kaldır sonrası listeyi yeniden çekmeden güncel göstermek için.
   const [tagOverrides, setTagOverrides] = useState<Record<string, CustomerTagBrief[]>>({});
   const tagsOf = (id: string) => tagOverrides[id] ?? customers.find((c) => c.id === id)?.tags ?? [];
+
+  // Global aramadan gelen ?open=<id>: müşteri bu sayfada olmasa da detayını aç.
+  useDeepLink(["open"], ({ open }) => {
+    if (!businessId || !open) return;
+    getCustomer(businessId, open)
+      .then((c) => openCustomerDetail(c))
+      .catch(() => toast.error("Müşteri bulunamadı."));
+  });
 
   // Search & Filter
   const [showFilters, setShowFilters] = useState(false);

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogOut, Building2, Bell, CheckCircle2, User, Menu } from "lucide-react";
+import { LogOut, Building2, Bell, CheckCircle2, User, Menu, ArrowLeftRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   logout, 
@@ -17,6 +17,7 @@ import {
 import { getActiveBusinessId } from "@/lib/business";
 import { PendingActionsMenu } from "@/components/layout/pending-actions-menu";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { SearchButton } from "@/components/search/search-palette";
 
 export function Navbar({ onMenuClick }: { onMenuClick?: () => void } = {}) {
   const router = useRouter();
@@ -91,13 +92,16 @@ export function Navbar({ onMenuClick }: { onMenuClick?: () => void } = {}) {
           </Button>
         )}
         <Building2 className="hidden h-4 w-4 shrink-0 sm:block" />
-        <span className="truncate font-medium text-ink">{businessName ?? "..."}</span>
-        <Link href="/select-business" className="shrink-0 text-ink-muted underline hover:text-ink">
-          değiştir
+        <span className="min-w-[3rem] truncate font-medium text-ink">{businessName ?? "..."}</span>
+        {/* Dar ekranda yalnızca ikon: işletme adına yer kalsın */}
+        <Link href="/select-business" className="shrink-0 text-ink-muted underline hover:text-ink" aria-label="İşletmeyi değiştir">
+          <ArrowLeftRight className="h-4 w-4 sm:hidden" />
+          <span className="hidden sm:inline">değiştir</span>
         </Link>
       </div>
 
       <div className="flex shrink-0 items-center gap-1 sm:gap-4">
+        <SearchButton />
         <ThemeToggle />
         <PendingActionsMenu />
 

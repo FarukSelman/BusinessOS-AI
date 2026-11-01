@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface NavItem {
+export interface NavItem {
   href: string;
   label: string;
   icon: any;
@@ -49,7 +49,8 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const navGroups: NavGroup[] = [
+// Global arama paleti de "Sayfalar" grubu için bu listeyi kullanır.
+export const navGroups: NavGroup[] = [
   {
     label: "Genel",
     icon: LayoutDashboard,

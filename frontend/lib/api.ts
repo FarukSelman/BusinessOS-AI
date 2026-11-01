@@ -46,7 +46,8 @@ import type {
   BusinessHours,
   BusinessHoursItem,
   OpenWindow,
-  Expense
+  Expense,
+  SearchResponse
 } from "@/types";
 
 export interface UpdateProfilePayload {
@@ -254,6 +255,12 @@ function pageParams(q: ListPageQuery, extra: Record<string, string | string[] | 
   return params;
 }
 
+// ---------- Global arama (Ctrl+K) ----------
+export async function globalSearch(businessId: string, q: string, signal?: AbortSignal): Promise<SearchResponse> {
+  const params = new URLSearchParams({ q });
+  return apiFetch<SearchResponse>(`/api/v1/businesses/${businessId}/search?${params}`, { signal });
+}
+
 // ---------- Businesses ----------
 // Sistemdeki her kaynak bir business_id'ye bağlı (multi-tenant),
 // bu yüzden kullanıcı önce bir işletme seçmeli/oluşturmalı.
@@ -358,6 +365,10 @@ export async function listCustomersPage(
 ): Promise<Page<Customer>> {
   const params = pageParams(q, { status: q.status, tag_ids: q.tagIds });
   return apiFetchPage<Customer>(`/api/v1/businesses/${businessId}/customers?${params}`, { signal: q.signal });
+}
+
+export async function getCustomer(businessId: string, customerId: string): Promise<Customer> {
+  return apiFetch<Customer>(`/api/v1/businesses/${businessId}/customers/${customerId}`);
 }
 
 // Seçim listeleri ve ad eşleştirme için. Tam sayfalama/arama gelene kadar geçici üst sınır.

@@ -45,6 +45,7 @@ import { toast } from "sonner";
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
 import { useCsvExport } from "@/lib/use-csv-export";
 import { useListQuery } from "@/lib/use-list-query";
+import { useDeepLink } from "@/lib/use-deep-link";
 import { Pagination } from "@/components/ui/pagination";
 
 /* ---------- helpers ---------- */
@@ -135,6 +136,8 @@ function InvoicesPageContent() {
 
   /* expanded row */
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  // Global aramadan gelen ?open=<id>: liste ?q=<fatura no> ile süzülür, satır açık gelir.
+  useDeepLink(["open"], ({ open }) => setExpandedId(open));
 
   /* pay modal */
   const [payingId, setPayingId] = useState<string | null>(null);

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { Plus, Package, AlertTriangle, XCircle, Wallet, Pencil, Trash2, ChevronDown, ChevronRight, PackagePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ import { getActiveBusinessId } from "@/lib/business";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
+import { useDeepLink } from "@/lib/use-deep-link";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(amount);
@@ -32,7 +33,16 @@ function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleString("tr-TR");
 }
 
+// useSearchParams (global aramadan gelen ?q=) bir Suspense sınırı ister.
 export default function ProductsPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-ink-muted">Yükleniyor...</p>}>
+      <ProductsPageContent />
+    </Suspense>
+  );
+}
+
+function ProductsPageContent() {
   const confirmDialog = useConfirm();
   const businessId = getActiveBusinessId();
 
@@ -43,6 +53,8 @@ export default function ProductsPage() {
 
   // Filters
   const [search, setSearch] = useState("");
+  // Global aramadan gelen ?q=<SKU|ad>: ürün arama kutusunu doldur.
+  useDeepLink(["q"], ({ q }) => setSearch(q));
   const [statusFilter, setStatusFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   
