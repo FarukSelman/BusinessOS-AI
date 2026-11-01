@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, UserCog, Briefcase, Clock, Calendar } from "lucide-react";
+import { Suspense, useEffect, useState } from "react";
+import { Plus, Pencil, Trash2, UserCog, Briefcase, Clock, Calendar, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { getActiveBusinessId } from "@/lib/business";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
+import { useDeepLink } from "@/lib/use-deep-link";
 import {
   listStaff,
   createStaff,
@@ -32,7 +33,18 @@ const PREDEFINED_COLORS = [
 
 const DAYS_OF_WEEK = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"];
 
+const SEARCH_DEBOUNCE_MS = 300;
+
+// useSearchParams (global aramadan gelen ?q=) bir Suspense sınırı ister.
 export default function StaffPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-ink-muted">Yükleniyor...</p>}>
+      <StaffPageContent />
+    </Suspense>
+  );
+}
+
+function StaffPageContent() {
   const confirmDialog = useConfirm();
   const businessId = getActiveBusinessId();
 
@@ -42,6 +54,14 @@ export default function StaffPage() {
   
   const [loading, setLoading] = useState(true);
   const [branchFilter, setBranchFilter] = useState<string>("ALL");
+  // Ad, unvan, e-posta, telefon (backend Türkçe duyarsız arar); yazarken 300 ms bekler.
+  const [search, setSearch] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  // Global aramadan gelen ?q=<ad>: arama kutusunu doldur.
+  useDeepLink(["q"], ({ q }) => {
+    setSearch(q);
+    setSearchTerm(q);
+  });
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -71,16 +91,27 @@ export default function StaffPage() {
   useEffect(() => {
     if (!businessId) return;
     Promise.all([
-      loadStaff(),
       listBranches(businessId).then(setBranches),
       listServices(businessId).then(setAllServices)
     ]);
-  }, [businessId, branchFilter]);
+  }, [businessId]);
+
+  useEffect(() => {
+    if (search.trim() === searchTerm) return;
+    const id = window.setTimeout(() => setSearchTerm(search.trim()), SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(id);
+  }, [search, searchTerm]);
+
+  useEffect(() => {
+    if (!businessId) return;
+    loadStaff();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [businessId, branchFilter, searchTerm]);
 
   async function loadStaff() {
     setLoading(true);
     try {
-      const data = await listStaff(businessId!, branchFilter === "ALL" ? undefined : branchFilter);
+      const data = await listStaff(businessId!, branchFilter === "ALL" ? undefined : branchFilter, searchTerm);
       setStaff(data);
     } catch (err: any) {
       toast.error("Çalışanlar yüklenemedi: " + err.message);
@@ -223,6 +254,16 @@ export default function StaffPage() {
         </div>
         {!showForm && (
           <div className="flex flex-wrap gap-4">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Ad, unvan, telefon..."
+                aria-label="Çalışan ara"
+                className="h-10 w-56 pl-9"
+              />
+            </div>
             <select
               className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               value={branchFilter}
@@ -411,7 +452,7 @@ export default function StaffPage() {
             <div className="sm:col-span-3 text-center text-ink-muted py-8">Yükleniyor...</div>
           ) : staff.length === 0 ? (
             <div className="sm:col-span-3 text-center text-ink-muted py-8">
-              Henüz hiç çalışan eklenmemiş.
+              {searchTerm ? `"${searchTerm}" ile eşleşen çalışan yok.` : "Henüz hiç çalışan eklenmemiş."}
             </div>
           ) : (
             staff.map((person) => (

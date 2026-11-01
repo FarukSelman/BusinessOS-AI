@@ -64,12 +64,14 @@ class ServiceService:
         business_id: UUID,
         page: int = 1,
         size: int = 50,
+        search: str | None = None,
     ) -> list[Service]:
 
         return self.repository.list_by_business(
             business_id,
             page=page,
             size=size,
+            search=search,
         )
 
     # --------------------------------------------------

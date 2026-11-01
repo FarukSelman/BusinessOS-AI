@@ -1,5 +1,5 @@
 """
-Global search (Ctrl+K) across customers, appointments, invoices and products.
+Global search (Ctrl+K) across customers, appointments, invoices, products and staff.
 
 One request returns a few hits per type plus each type's total, using the
 shared Turkish-insensitive text search, so the palette needs a single call per
@@ -17,6 +17,7 @@ from app.modules.appointments.models import Appointment
 from app.modules.customers.models import Customer
 from app.modules.invoice.models import Invoice
 from app.modules.products.models import Product
+from app.modules.staff.models import StaffProfile
 from app.modules.search.schemas import (
     AppointmentHit,
     CustomerHit,
@@ -24,6 +25,7 @@ from app.modules.search.schemas import (
     ProductHit,
     SearchGroup,
     SearchResponse,
+    StaffHit,
 )
 from app.shared.utils.search import count_rows, text_search
 
@@ -107,6 +109,21 @@ class SearchService:
             items=[ProductHit(id=p.id, name=p.name, sku=p.sku, current_stock=p.current_stock) for p in rows],
         )
 
+        # Staff: name, title, e-mail, phone (digits). Services have no page to open, so they stay out.
+        total, rows = self._group(
+            scoped(StaffProfile).where(
+                text_search(query, StaffProfile.full_name, StaffProfile.title, StaffProfile.email,
+                            phone_columns=(StaffProfile.phone,))
+            ),
+            (StaffProfile.full_name, StaffProfile.id),
+            limit,
+        )
+        staff = SearchGroup[StaffHit](
+            total=total,
+            items=[StaffHit(id=s.id, full_name=s.full_name, title=s.title, phone=s.phone) for s in rows],
+        )
+
         return SearchResponse(
-            query=query, customers=customers, appointments=appointments, invoices=invoices, products=products
+            query=query, customers=customers, appointments=appointments, invoices=invoices, products=products,
+            staff=staff,
         )

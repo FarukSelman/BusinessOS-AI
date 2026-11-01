@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.db.base_repository import BaseRepository
 from app.modules.services.models import Service
 from app.shared.enums.service import ServiceStatus
+from app.shared.utils.search import text_search
 
 
 class ServiceRepository(
@@ -26,14 +27,18 @@ class ServiceRepository(
         business_id: UUID,
         page: int = 1,
         size: int = 50,
+        search: str | None = None,
     ) -> list[Service]:
 
+        statement = select(self.model).where(
+            self.model.business_id == business_id,
+            self.model.is_deleted.is_(False),
+        )
+        condition = text_search(search, self.model.name, self.model.category)
+        if condition is not None:
+            statement = statement.where(condition)
         statement = (
-            select(self.model)
-            .where(
-                self.model.business_id == business_id,
-                self.model.is_deleted.is_(False),
-            )
+            statement
             .order_by(
                 self.model.name.asc(),
             )
@@ -110,11 +115,14 @@ class ServiceRepository(
         query: str,
     ) -> list[Service]:
 
+        condition = text_search(query, self.model.name)
+        if condition is None:
+            return []
         statement = (
             select(self.model)
             .where(
                 self.model.business_id == business_id,
-                self.model.name.ilike(f"%{query}%"),
+                condition,
                 self.model.is_deleted.is_(False),
             )
         )

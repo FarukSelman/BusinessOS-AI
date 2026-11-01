@@ -25,8 +25,8 @@ class StaffServiceDomain:
         staff_data["services"] = self.service_repo.list_services_for_staff(staff.id)
         return staff_data
 
-    def list_staff(self, business_id: UUID, branch_id: UUID | None = None, page: int = 1, size: int = 20) -> list[dict]:
-        staff_list = self.profile_repo.list_by_business(business_id=business_id, branch_id=branch_id, page=page, size=size)
+    def list_staff(self, business_id: UUID, branch_id: UUID | None = None, page: int = 1, size: int = 20, search: str | None = None) -> list[dict]:
+        staff_list = self.profile_repo.list_by_business(business_id=business_id, branch_id=branch_id, page=page, size=size, search=search)
         return [self._enrich_staff(s) for s in staff_list]
         
     def get_staff(self, business_id: UUID, staff_id: UUID) -> dict:

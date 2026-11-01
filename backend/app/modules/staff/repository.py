@@ -5,18 +5,22 @@ from app.db.base_repository import BaseRepository
 from app.modules.staff.models import StaffProfile, StaffService, StaffSchedule
 from app.modules.services.models import Service
 from app.shared.enums.staff import StaffStatus
+from app.shared.utils.search import text_search
 
 class StaffProfileRepository(BaseRepository[StaffProfile]):
     def __init__(self, db: Session):
         super().__init__(db=db, model=StaffProfile)
         
-    def list_by_business(self, business_id: UUID, branch_id: UUID | None = None, page: int = 1, size: int = 20) -> list[StaffProfile]:
+    def list_by_business(self, business_id: UUID, branch_id: UUID | None = None, page: int = 1, size: int = 20, search: str | None = None) -> list[StaffProfile]:
         query = select(self.model).where(
             self.model.business_id == business_id,
             self.model.is_deleted.is_(False)
         )
         if branch_id:
             query = query.where(self.model.branch_id == branch_id)
+        condition = text_search(search, self.model.full_name, self.model.title, self.model.email, phone_columns=(self.model.phone,))
+        if condition is not None:
+            query = query.where(condition)
             
         query = query.order_by(self.model.created_at.desc()).offset((page - 1) * size).limit(size)
         return list(self.db.scalars(query).all())

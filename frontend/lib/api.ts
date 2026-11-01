@@ -418,8 +418,12 @@ export async function deleteCustomer(businessId: string, customerId: string): Pr
 
 // ---------- Services (Satış ve öneri ajanının önerdiği ürün/hizmet kataloğu) ----------
 
+// Hizmet ve çalışan listeleri seçim kutularında tamamı kullanılır; backend varsayılanı
+// (hizmet 50, çalışan 20) fazlasını kesiyordu.
+const CATALOG_LIST_LIMIT = 500;
+
 export async function listServices(businessId: string): Promise<BusinessService[]> {
-  return apiFetch<BusinessService[]>(`/api/v1/businesses/${businessId}/services`);
+  return apiFetch<BusinessService[]>(`/api/v1/businesses/${businessId}/services?size=${CATALOG_LIST_LIMIT}`);
 }
 
 export async function createService(
@@ -1217,9 +1221,11 @@ export async function setMainBranch(businessId: string, branchId: string) {
 }
 
 // ==================== Staff ====================
-export async function listStaff(businessId: string, branchId?: string) {
-  const query = branchId ? `?branch_id=${branchId}` : "";
-  return apiFetch<any[]>(`/api/v1/businesses/${businessId}/staff${query}`);
+export async function listStaff(businessId: string, branchId?: string, search?: string) {
+  const params = new URLSearchParams({ size: String(CATALOG_LIST_LIMIT) });
+  if (branchId) params.set("branch_id", branchId);
+  if (search?.trim()) params.set("search", search.trim());
+  return apiFetch<any[]>(`/api/v1/businesses/${businessId}/staff?${params}`);
 }
 export async function createStaff(businessId: string, data: any) {
   return apiFetch<any>(`/api/v1/businesses/${businessId}/staff`, {

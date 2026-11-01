@@ -38,6 +38,13 @@ class ProductHit(BaseModel):
     current_stock: int
 
 
+class StaffHit(BaseModel):
+    id: UUID
+    full_name: str
+    title: str | None
+    phone: str | None
+
+
 class SearchGroup[T](BaseModel):
     """At most `limit` hits plus how many records match in total."""
 
@@ -51,3 +58,4 @@ class SearchResponse(BaseModel):
     appointments: SearchGroup[AppointmentHit]
     invoices: SearchGroup[InvoiceHit]
     products: SearchGroup[ProductHit]
+    staff: SearchGroup[StaffHit]

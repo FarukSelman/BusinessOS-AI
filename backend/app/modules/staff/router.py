@@ -59,10 +59,12 @@ def list_staff(
     branch_id: UUID | None = None,
     page: int = 1,
     size: int = 20,
+    # Turkish-insensitive match on name, title, e-mail and phone (digits)
+    search: str | None = None,
     service: StaffServiceDomain = Depends(get_service),
     current_user: User = Depends(get_current_user)
 ):
-    return service.list_staff(business_id=business_id, branch_id=branch_id, page=page, size=size)
+    return service.list_staff(business_id=business_id, branch_id=branch_id, page=page, size=size, search=search)
 
 @router.get("/{staff_id}", response_model=StaffResponse)
 def get_staff(

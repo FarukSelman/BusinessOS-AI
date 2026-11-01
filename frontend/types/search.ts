@@ -26,4 +26,5 @@ export interface SearchResponse {
     total_amount: number | null;
   }>;
   products: SearchGroup<{ id: string; name: string; sku: string | null; current_stock: number }>;
+  staff: SearchGroup<{ id: string; full_name: string; title: string | null; phone: string | null }>;
 }

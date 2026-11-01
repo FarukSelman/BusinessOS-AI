@@ -93,6 +93,8 @@ def list_services(
 
     page: int = 1,
     size: int = 50,
+    # Turkish-insensitive match on name and category
+    search: str | None = None,
 
     service: ServiceService = Depends(
         get_service,
@@ -107,6 +109,7 @@ def list_services(
         business_id,
         page=page,
         size=size,
+        search=search,
     )
 
 

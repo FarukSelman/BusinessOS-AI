@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
-import { CalendarClock, FileText, Loader2, Package, Search, User as UserIcon, CornerDownLeft } from "lucide-react";
+import { CalendarClock, FileText, Loader2, Package, Search, User as UserIcon, UserCog, CornerDownLeft } from "lucide-react";
 import { ApiError, globalSearch, type SearchResponse } from "@/lib/api";
 import { getActiveBusinessId } from "@/lib/business";
 import { fromISODate, toHm } from "@/lib/date";
@@ -115,7 +115,7 @@ function buildGroups(query: string, data: SearchResponse | null, canSeeFinance: 
   const enc = encodeURIComponent;
 
   if (data) {
-    const { customers, appointments, invoices, products } = data;
+    const { customers, appointments, invoices, products, staff } = data;
     if (customers.items.length) {
       groups.push({
         key: "customers",
@@ -180,6 +180,20 @@ function buildGroups(query: string, data: SearchResponse | null, canSeeFinance: 
           subtitle: [p.sku, `Stok: ${p.current_stock}`].filter(Boolean).join(" · "),
         })),
         more: { count: products.total - products.items.length, href: `/products?q=${enc(query.trim())}` },
+      });
+    }
+    if (staff.items.length) {
+      groups.push({
+        key: "staff",
+        label: "Çalışanlar",
+        items: staff.items.map((s) => ({
+          key: `s-${s.id}`,
+          href: `/staff?q=${enc(s.full_name)}`,
+          icon: <UserCog className="h-4 w-4" />,
+          title: s.full_name,
+          subtitle: [s.title, s.phone].filter(Boolean).join(" · ") || undefined,
+        })),
+        more: { count: staff.total - staff.items.length, href: `/staff?q=${enc(query.trim())}` },
       });
     }
   }
@@ -268,7 +282,7 @@ function SearchPalette({ onClose }: { onClose: () => void }) {
   }
 
   const resultCount = current?.data
-    ? current.data.customers.total + current.data.appointments.total + current.data.invoices.total + current.data.products.total
+    ? current.data.customers.total + current.data.appointments.total + current.data.invoices.total + current.data.products.total + current.data.staff.total
     : 0;
 
   return (

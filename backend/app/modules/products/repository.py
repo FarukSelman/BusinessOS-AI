@@ -1,10 +1,11 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select, or_, func
+from sqlalchemy import select, func
 from app.db.base_repository import BaseRepository
 from app.modules.products.models import Product, StockMovement, ProductSale
 import uuid
 from typing import List, Optional
 from app.shared.enums.product import ProductStatus, StockMovementType
+from app.shared.utils.search import text_search
 
 class ProductRepository(BaseRepository[Product]):
     def __init__(self, db: Session):
@@ -31,15 +32,9 @@ class ProductRepository(BaseRepository[Product]):
             query = query.where(self.model.status == status)
         if low_stock_only:
             query = query.where(self.model.current_stock <= self.model.min_stock_level)
-        if search:
-            search_term = f"%{search}%"
-            query = query.where(
-                or_(
-                    self.model.name.ilike(search_term),
-                    self.model.sku.ilike(search_term),
-                    self.model.barcode.ilike(search_term)
-                )
-            )
+        condition = text_search(search, self.model.name, self.model.sku, self.model.barcode)
+        if condition is not None:
+            query = query.where(condition)
 
         query = query.order_by(self.model.created_at.desc()).offset((page - 1) * size).limit(size)
         return list(self.db.scalars(query).all())
@@ -69,16 +64,13 @@ class ProductRepository(BaseRepository[Product]):
         return list(self.db.scalars(query).all())
 
     def search_products(self, business_id: uuid.UUID, search: str) -> List[Product]:
-        search_term = f"%{search}%"
         query = select(self.model).where(
             self.model.business_id == business_id,
             self.model.is_deleted.is_(False),
-            or_(
-                self.model.name.ilike(search_term),
-                self.model.sku.ilike(search_term),
-                self.model.barcode.ilike(search_term)
-            )
         )
+        condition = text_search(search, self.model.name, self.model.sku, self.model.barcode)
+        if condition is not None:
+            query = query.where(condition)
         return list(self.db.scalars(query).all())
 
 class StockMovementRepository(BaseRepository[StockMovement]):
