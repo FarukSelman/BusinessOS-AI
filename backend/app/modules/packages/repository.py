@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.db.base_repository import BaseRepository
 from app.modules.packages.models import ServicePackage, CustomerPackage, PackageSession, Installment
 from app.shared.enums.package import PackageStatus, CustomerPackageStatus, SessionStatus, InstallmentStatus
+from app.shared.utils.search import count_rows, text_search
 
 
 class ServicePackageRepository(BaseRepository[ServicePackage]):
@@ -39,6 +40,24 @@ class CustomerPackageRepository(BaseRepository[CustomerPackage]):
         super().__init__(db=db, model=CustomerPackage)
 
     def list_by_business(self, business_id: UUID, page: int = 1, size: int = 20, status: Optional[CustomerPackageStatus] = None, customer_id: Optional[UUID] = None) -> list[CustomerPackage]:
+        return self.list_page(business_id, page, size, status, customer_id)[0]
+
+    def list_page(
+        self,
+        business_id: UUID,
+        page: int = 1,
+        size: int = 20,
+        status: Optional[CustomerPackageStatus] = None,
+        customer_id: Optional[UUID] = None,
+        search: Optional[str] = None,
+    ) -> tuple[list[CustomerPackage], int]:
+        """One page of customer packages and the total matching the filters.
+
+        search: Turkish-insensitive on customer name and package name, customer
+        phone by digits.
+        """
+        from app.modules.customers.models import Customer
+
         query = select(self.model).where(
             self.model.business_id == business_id,
             self.model.is_deleted.is_(False)
@@ -47,9 +66,17 @@ class CustomerPackageRepository(BaseRepository[CustomerPackage]):
             query = query.where(self.model.status == status)
         if customer_id:
             query = query.where(self.model.customer_id == customer_id)
-            
-        query = query.order_by(self.model.created_at.desc()).offset((page - 1) * size).limit(size)
-        return list(self.db.scalars(query).all())
+        condition = text_search(search, Customer.name, ServicePackage.name, phone_columns=(Customer.phone,))
+        if condition is not None:
+            query = (
+                query.join(Customer, Customer.id == self.model.customer_id)
+                .join(ServicePackage, ServicePackage.id == self.model.package_id)
+                .where(condition)
+            )
+
+        total = count_rows(self.db, query)
+        query = query.order_by(self.model.created_at.desc(), self.model.id.asc()).offset((page - 1) * size).limit(size)
+        return list(self.db.scalars(query).all()), total
 
     def list_by_customer(self, business_id: UUID, customer_id: UUID) -> list[CustomerPackage]:
         return list(self.db.scalars(

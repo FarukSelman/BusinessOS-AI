@@ -209,6 +209,11 @@ class PackageService:
         self._attach_names(cps)
         return cps
 
+    def list_customer_packages_page(self, business_id: UUID, page: int = 1, size: int = 20, status: Optional[CustomerPackageStatus] = None, customer_id: Optional[UUID] = None, search: Optional[str] = None) -> tuple[list[CustomerPackage], int]:
+        cps, total = self.customer_package_repo.list_page(business_id, page, size, status, customer_id, search)
+        self._attach_names(cps)
+        return cps, total
+
     def get_customer_package_detail(self, business_id: UUID, cp_id: UUID) -> CustomerPackage:
         cp = self.customer_package_repo.get_by_business(business_id, cp_id)
         if not cp:

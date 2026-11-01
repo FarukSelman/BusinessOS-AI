@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useMyAccess } from "@/lib/use-my-access";
 import { CustomerCombobox } from "@/components/customers/customer-combobox";
 import { Users, CheckCircle2, Clock, Plus, Search, Calendar, CreditCard, Ban } from "lucide-react";
@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
-  listCustomerPackages,
+  listCustomerPackagesPage,
   sellPackage,
   listPackages,
   getCustomerPackageDetail,
@@ -23,6 +23,8 @@ import {
 } from "@/lib/api";
 import { getActiveBusinessId } from "@/lib/business";
 import { cn } from "@/lib/utils";
+import { useListQuery } from "@/lib/use-list-query";
+import { Pagination } from "@/components/ui/pagination";
 import { toast } from "sonner";
 
 function formatCurrency(amount: number | string | null | undefined) {
@@ -36,7 +38,18 @@ function formatDate(dateStr: string | null) {
   return new Date(dateStr).toLocaleDateString("tr-TR");
 }
 
+const CP_FILTERS = ["status"] as const;
+
+// useListQuery sayfa/arama/filtreyi URL'de tutar (useSearchParams): Suspense sınırı ister.
 export default function CustomerPackagesPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-ink-muted">Yükleniyor...</p>}>
+      <CustomerPackagesPageContent />
+    </Suspense>
+  );
+}
+
+function CustomerPackagesPageContent() {
   const businessId = getActiveBusinessId();
   // Maliyet, ciro ve tahsilat tutarları yalnızca sahip/yöneticiye (backend null döner).
   const access = useMyAccess();
@@ -44,12 +57,16 @@ export default function CustomerPackagesPage() {
   // Satış ve seans işaretleme: izleyici hariç herkes (yüklenirken gizli).
   const canSell = access !== null && access.role !== "VIEWER";
 
-  const [cPackages, setCPackages] = useState<CustomerPackage[]>([]);
+  // Sayfa, arama (müşteri adı, paket adı, telefon) ve durum backend'de, tüm kayıtlarda çalışır.
+  const list = useListQuery<CustomerPackage>(
+    CP_FILTERS,
+    ({ page, search, filters, signal }) =>
+      listCustomerPackagesPage(businessId!, { page, search, status: filters.status || undefined, signal }),
+    !!businessId
+  );
+  const cPackages = list.items;
+  const statusFilter = list.filters.status || "";
   const [packages, setPackages] = useState<ServicePackage[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  const [statusFilter, setStatusFilter] = useState("");
-  const [search, setSearch] = useState("");
 
   const [showSell, setShowSell] = useState(false);
   const [selling, setSelling] = useState(false);
@@ -68,26 +85,16 @@ export default function CustomerPackagesPage() {
 
   const selectedPkg = packages.find(p => p.id === sellForm.package_id);
 
-  const refresh = async () => {
-    if (!businessId) return;
-    setLoading(true);
-    try {
-      const [cps, pkgs] = await Promise.all([
-        listCustomerPackages(businessId, { status: statusFilter || undefined }),
-        listPackages(businessId)
-      ]);
-      setCPackages(cps);
-      setPackages(pkgs);
-    } catch (err) {
-      toast.error("Veriler yüklenemedi.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Satılabilir paketler (satış formu için) bir kez.
   useEffect(() => {
-    refresh();
-  }, [businessId, statusFilter]);
+    if (!businessId) return;
+    listPackages(businessId)
+      .then(setPackages)
+      .catch(() => toast.error("Paketler yüklenemedi."));
+  }, [businessId]);
+
+  // Satış, seans ve taksit işlemlerinden sonra aynı sayfayı yeniden çek.
+  const refresh = () => list.reload();
 
   const handleSell = async () => {
     if (!businessId) return;
@@ -167,10 +174,6 @@ export default function CustomerPackagesPage() {
       toast.error("İşlem başarısız.");
     }
   };
-
-  const filteredCPackages = cPackages.filter(cp => 
-    !search || cp.customer_name?.toLowerCase().includes(search.toLowerCase()) || cp.package_name?.toLowerCase().includes(search.toLowerCase())
-  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -262,15 +265,16 @@ export default function CustomerPackagesPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted" />
           <Input 
             className="pl-9 w-full" 
-            placeholder="Müşteri veya Paket Ara..." 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Müşteri adı, telefon veya paket ara..."
+            aria-label="Müşteri paketi ara"
+            value={list.searchInput}
+            onChange={(e) => list.setSearchInput(e.target.value)}
           />
         </div>
         <select 
           className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink focus:outline-none focus:ring-1 focus:ring-accent w-full md:w-auto"
           value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
+          onChange={e => list.setFilter("status", e.target.value)}
         >
           <option value="">Tüm Durumlar</option>
           <option value="ACTIVE">Aktif</option>
@@ -280,61 +284,70 @@ export default function CustomerPackagesPage() {
         </select>
       </div>
 
-      {loading ? (
+      {list.error && <p className="text-sm text-danger">{list.error}</p>}
+
+      {list.initialLoading ? (
         <div className="text-center py-8 text-ink-muted">Yükleniyor...</div>
-      ) : filteredCPackages.length === 0 ? (
+      ) : cPackages.length === 0 && !list.loading && !list.error ? (
         <Card className="bg-surface-elevated border-border text-center py-12 text-ink-muted">
           <Users className="w-12 h-12 mx-auto mb-3 opacity-40" />
-          <p>Kayıt bulunamadı.</p>
+          <p>
+            {list.search || statusFilter
+              ? `${list.search ? `"${list.search}" için ` : "Bu filtreyle "}sonuç yok — tüm paketlerde arandı.`
+              : "Henüz satılmış paket yok."}
+          </p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredCPackages.map(cp => {
-            const progress = cp.total_sessions > 0 ? (cp.used_sessions / cp.total_sessions) * 100 : 0;
-            return (
-              <Card key={cp.id} className="bg-surface-elevated border-border hover:border-accent transition-colors cursor-pointer" onClick={() => openDetail(cp.id)}>
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-base text-ink">{cp.customer_name}</CardTitle>
-                      <p className="text-sm font-medium text-accent-text mt-0.5">{cp.package_name}</p>
+        <div className={cn("space-y-4 transition-opacity", list.loading && "opacity-60")} aria-busy={list.loading}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {cPackages.map(cp => {
+              const progress = cp.total_sessions > 0 ? (cp.used_sessions / cp.total_sessions) * 100 : 0;
+              return (
+                <Card key={cp.id} className="bg-surface-elevated border-border hover:border-accent transition-colors cursor-pointer" onClick={() => openDetail(cp.id)}>
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-base text-ink">{cp.customer_name}</CardTitle>
+                        <p className="text-sm font-medium text-accent-text mt-0.5">{cp.package_name}</p>
+                      </div>
+                      <span className={cn(
+                        "px-2 py-0.5 text-[10px] rounded-full uppercase font-bold tracking-wider",
+                        cp.status === 'ACTIVE' ? "bg-success-soft text-success" :
+                        cp.status === 'COMPLETED' ? "bg-info-soft text-info" :
+                        cp.status === 'CANCELLED' ? "bg-danger-soft text-danger" :
+                        "bg-neutral-soft text-ink-muted"
+                      )}>
+                        {cp.status === 'ACTIVE' ? 'Aktif' : cp.status === 'COMPLETED' ? 'Bitti' : cp.status === 'EXPIRED' ? 'Süresi Doldu' : 'İptal'}
+                      </span>
                     </div>
-                    <span className={cn(
-                      "px-2 py-0.5 text-[10px] rounded-full uppercase font-bold tracking-wider",
-                      cp.status === 'ACTIVE' ? "bg-success-soft text-success" :
-                      cp.status === 'COMPLETED' ? "bg-info-soft text-info" :
-                      cp.status === 'CANCELLED' ? "bg-danger-soft text-danger" :
-                      "bg-neutral-soft text-ink-muted"
-                    )}>
-                      {cp.status === 'ACTIVE' ? 'Aktif' : cp.status === 'COMPLETED' ? 'Bitti' : cp.status === 'EXPIRED' ? 'Süresi Doldu' : 'İptal'}
-                    </span>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs text-ink-muted">
-                      <span>Kullanılan Seans</span>
-                      <span className="font-medium text-ink">{cp.used_sessions} / {cp.total_sessions}</span>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs text-ink-muted">
+                        <span>Kullanılan Seans</span>
+                        <span className="font-medium text-ink">{cp.used_sessions} / {cp.total_sessions}</span>
+                      </div>
+                      <div className="h-2 w-full bg-border rounded-full overflow-hidden">
+                        <div className="h-full bg-accent transition-all" style={{ width: `${progress}%` }} />
+                      </div>
                     </div>
-                    <div className="h-2 w-full bg-border rounded-full overflow-hidden">
-                      <div className="h-full bg-accent transition-all" style={{ width: `${progress}%` }} />
-                    </div>
-                  </div>
 
-                  <div className="flex flex-col gap-1 text-sm border-t border-border pt-3">
-                    <div className="flex justify-between">
-                      <span className="text-ink-muted">Ödenen Tutar:</span>
-                      <span className="text-ink font-medium">{cp.total_price !== null ? `${formatCurrency(cp.paid_amount)} / ${formatCurrency(cp.total_price)}` : "—"}</span>
+                    <div className="flex flex-col gap-1 text-sm border-t border-border pt-3">
+                      <div className="flex justify-between">
+                        <span className="text-ink-muted">Ödenen Tutar:</span>
+                        <span className="text-ink font-medium">{cp.total_price !== null ? `${formatCurrency(cp.paid_amount)} / ${formatCurrency(cp.total_price)}` : "—"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-ink-muted">Son Kullanma:</span>
+                        <span className="text-ink font-medium">{formatDate(cp.expires_at)}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-ink-muted">Son Kullanma:</span>
-                      <span className="text-ink font-medium">{formatDate(cp.expires_at)}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+          <Pagination page={list.page} pageCount={list.pageCount} total={list.total} loading={list.loading} onPageChange={list.setPage} />
         </div>
       )}
 

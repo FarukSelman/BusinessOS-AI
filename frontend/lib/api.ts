@@ -1379,11 +1379,12 @@ export async function deletePackage(businessId: string, packageId: string) {
 export async function sellPackage(businessId: string, data: any) {
   return apiFetch<any>(`/api/v1/businesses/${businessId}/customer-packages`, { method: 'POST', body: JSON.stringify(data) });
 }
-export async function listCustomerPackages(businessId: string, params?: { customer_id?: string; status?: string }) {
-  const query = new URLSearchParams(
-    Object.fromEntries(Object.entries(params || {}).filter(([, v]) => v !== undefined && v !== null))
-  ).toString();
-  return apiFetch<any[]>(`/api/v1/businesses/${businessId}/customer-packages${query ? '?' + query : ''}`);
+export async function listCustomerPackagesPage(
+  businessId: string,
+  q: ListPageQuery & { status?: string; customerId?: string }
+): Promise<Page<import("@/types/packages").CustomerPackage>> {
+  const params = pageParams(q, { status: q.status, customer_id: q.customerId });
+  return apiFetchPage<import("@/types/packages").CustomerPackage>(`/api/v1/businesses/${businessId}/customer-packages?${params}`, { signal: q.signal });
 }
 export async function getCustomerPackageDetail(businessId: string, cpId: string) {
   return apiFetch<any>(`/api/v1/businesses/${businessId}/customer-packages/${cpId}`);

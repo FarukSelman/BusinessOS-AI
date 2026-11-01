@@ -1,6 +1,6 @@
 from typing import Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -126,14 +126,19 @@ def sell_package(
 @customer_packages_router.get("", response_model=list[CustomerPackageResponse])
 def list_customer_packages(
     business_id: UUID,
+    response: Response,
     customer_id: Optional[UUID] = Query(None),
     status: Optional[CustomerPackageStatus] = Query(None),
-    pagination: PaginationParams = Depends(),
+    # Customer name, package name, customer phone (digits)
+    search: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1),
     service: PackageService = Depends(get_package_service),
     current_user: User = Depends(get_current_user),
     membership: Membership = Depends(get_business_membership),
 ):
-    cps = service.list_customer_packages(business_id, pagination.page, pagination.size, status, customer_id)
+    cps, total = service.list_customer_packages_page(business_id, page, size, status, customer_id, search)
+    response.headers["X-Total-Count"] = str(total)
     show = can_view_finance(membership.role)
     return [customer_package_view(cp, show) for cp in cps]
 
