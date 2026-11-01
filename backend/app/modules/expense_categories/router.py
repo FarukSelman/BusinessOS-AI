@@ -8,9 +8,11 @@ from app.shared.security.dependencies import get_current_user
 from app.modules.expense_categories.schemas import ExpenseCategoryCreate, ExpenseCategoryUpdate, ExpenseCategoryResponse
 from app.modules.expense_categories.repository import ExpenseCategoryRepository
 from app.modules.expense_categories.service import ExpenseCategoryService
-from app.shared.security.business import require_business_member
+from app.shared.security.business import require_business_member, require_finance
 
-router = APIRouter(prefix="/businesses/{business_id}/expense-categories", tags=["Expense Categories"], dependencies=[Depends(require_business_member)])
+# Every field here is money (or only meaningful with it), so the whole module is
+# for finance roles (owner, admin); employees and viewers get 403 on reads too.
+router = APIRouter(prefix="/businesses/{business_id}/expense-categories", tags=["Expense Categories"], dependencies=[Depends(require_business_member), Depends(require_finance)])
 
 def get_service(db: Session = Depends(get_db)) -> ExpenseCategoryService:
     repository = ExpenseCategoryRepository(db)

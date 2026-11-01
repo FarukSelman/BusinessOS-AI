@@ -147,10 +147,22 @@ def test_member_of_a_cannot_read_business_b(client, world, path):
     assert r.status_code == 403, r.text
 
 
+# Finance-only modules (see test_finance_roles.py): the employee is refused there
+# by role, so the "membership does not over-block" check uses B's owner.
+FINANCE_ONLY_ENDPOINTS = {"/expense-categories", "/expenses", "/cash-register"}
+
+
 @pytest.mark.parametrize("path", READ_ENDPOINTS)
 def test_member_of_b_can_read_business_b(client, world, path):
-    r = client.get(f"{API}/businesses/{world.b.id}{path}", headers=auth(world.employee_b))
+    member = world.owner_b if path in FINANCE_ONLY_ENDPOINTS else world.employee_b
+    r = client.get(f"{API}/businesses/{world.b.id}{path}", headers=auth(member))
     assert r.status_code not in (401, 403), r.text
+
+
+@pytest.mark.parametrize("path", sorted(FINANCE_ONLY_ENDPOINTS))
+def test_employee_of_b_is_refused_finance_only_endpoints(client, world, path):
+    r = client.get(f"{API}/businesses/{world.b.id}{path}", headers=auth(world.employee_b))
+    assert r.status_code == 403
 
 
 def test_member_of_a_cannot_write_into_business_b(client, world):

@@ -10,7 +10,8 @@ import { ApiError, globalSearch, type SearchResponse } from "@/lib/api";
 import { getActiveBusinessId } from "@/lib/business";
 import { fromISODate, toHm } from "@/lib/date";
 import { formatCurrency, cn } from "@/lib/utils";
-import { navGroups } from "@/components/layout/sidebar";
+import { isNavItemVisible, navGroups } from "@/components/layout/sidebar";
+import { useMyAccess } from "@/lib/use-my-access";
 import { statusStyles } from "@/components/appointments/constants";
 
 const MIN_QUERY = 2;
@@ -103,10 +104,11 @@ interface ResultGroup {
   more?: { count: number; href?: string };
 }
 
-function buildGroups(query: string, data: SearchResponse | null): ResultGroup[] {
+function buildGroups(query: string, data: SearchResponse | null, canSeeFinance: boolean): ResultGroup[] {
   const groups: ResultGroup[] = [];
   const q = fold(query.trim());
-  const pages = (q ? PAGES.filter((p) => fold(p.label).includes(q) || fold(p.group).includes(q)) : PAGES).slice(
+  const allowed = PAGES.filter((p) => isNavItemVisible(p, canSeeFinance));
+  const pages = (q ? allowed.filter((p) => fold(p.label).includes(q) || fold(p.group).includes(q)) : allowed).slice(
     0,
     q ? MAX_PAGES : 8
   );
@@ -211,6 +213,7 @@ function SearchPalette({ onClose }: { onClose: () => void }) {
     null
   );
   const [active, setActive] = useState(0);
+  const canSeeFinance = useMyAccess()?.can_view_finance === true;
 
   const trimmed = query.trim();
   const searchable = trimmed.length >= MIN_QUERY && !!businessId;
@@ -235,7 +238,7 @@ function SearchPalette({ onClose }: { onClose: () => void }) {
 
   const current = searchable && result?.query === trimmed ? result : null;
   const loading = searchable && !current;
-  const groups = useMemo(() => buildGroups(query, current?.data ?? null), [query, current]);
+  const groups = useMemo(() => buildGroups(query, current?.data ?? null, canSeeFinance), [query, current, canSeeFinance]);
   const flat = useMemo(() => groups.flatMap((g) => g.items), [groups]);
   const activeIndex = flat.length ? Math.min(active, flat.length - 1) : -1;
   const activeItem = activeIndex >= 0 ? flat[activeIndex] : null;

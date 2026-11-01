@@ -33,12 +33,15 @@ import {
   CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useMyAccess } from "@/lib/use-my-access";
 
 export interface NavItem {
   href: string;
   label: string;
   icon: any;
   color: string;
+  /** Yalnızca finans rollerine (sahip, yönetici) görünür; sayfa da FinanceOnly ile sarılı. */
+  financeOnly?: boolean;
 }
 
 interface NavGroup {
@@ -95,9 +98,9 @@ export const navGroups: NavGroup[] = [
     defaultOpen: false,
     items: [
       { href: "/invoices", label: "Faturalar", icon: Receipt, color: "var(--agent-finance)" },
-      { href: "/expenses", label: "Gelir-Gider", icon: Wallet, color: "var(--agent-finance)" },
-      { href: "/cash-register", label: "Kasa Takibi", icon: Banknote, color: "var(--agent-finance)" },
-      { href: "/finance", label: "Finansal Analiz", icon: LineChart, color: "var(--agent-finance)" },
+      { href: "/expenses", label: "Gelir-Gider", icon: Wallet, color: "var(--agent-finance)", financeOnly: true },
+      { href: "/cash-register", label: "Kasa Takibi", icon: Banknote, color: "var(--agent-finance)", financeOnly: true },
+      { href: "/finance", label: "Finansal Analiz", icon: LineChart, color: "var(--agent-finance)", financeOnly: true },
     ],
   },
   {
@@ -135,8 +138,15 @@ export const navGroups: NavGroup[] = [
 ];
 
 /** onNavigate: mobil çekmecede bir sayfaya geçince menüyü kapatmak için. */
+/** Menü ve global aramadaki "Sayfalar" grubu için: finans sayfaları yalnızca finans rollerine. */
+export function isNavItemVisible(item: NavItem, canSeeFinance: boolean) {
+  return !item.financeOnly || canSeeFinance;
+}
+
 export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   const pathname = usePathname();
+  // Rol yüklenene kadar finans öğeleri gizli (bir an görünüp kaybolmasınlar).
+  const canSeeFinance = useMyAccess()?.can_view_finance === true;
 
   // Auto-open the group that contains the active route
   const getInitialOpen = () => {
@@ -164,6 +174,8 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
 
       <nav className="flex-1 overflow-y-auto p-3 space-y-1">
         {navGroups.map((group) => {
+          const items = group.items.filter((item) => isNavItemVisible(item, canSeeFinance));
+          if (items.length === 0) return null;
           const isOpen = openGroups[group.label] ?? false;
           const GroupIcon = group.icon;
           const hasActiveChild = group.items.some((item) => pathname === item.href);
@@ -202,7 +214,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
                 )}
               >
                 <div className="ml-3 border-l border-border pl-2 mt-1 space-y-0.5">
-                  {group.items.map(({ href, label, icon: Icon, color }) => {
+                  {items.map(({ href, label, icon: Icon, color }) => {
                     const active = pathname === href;
                     return (
                       <Link

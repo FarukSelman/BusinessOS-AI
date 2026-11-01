@@ -11,9 +11,11 @@ from app.shared.enums.expense import TransactionDirection
 from app.modules.expenses.schemas import ExpenseCreate, ExpenseUpdate, ExpenseResponse, FinancialSummary
 from app.modules.expenses.repository import ExpenseRepository
 from app.modules.expenses.service import ExpenseService
-from app.shared.security.business import require_business_member
+from app.shared.security.business import require_business_member, require_finance
 
-router = APIRouter(prefix="/businesses/{business_id}/expenses", tags=["Expenses"], dependencies=[Depends(require_business_member)])
+# Every field here is money (or only meaningful with it), so the whole module is
+# for finance roles (owner, admin); employees and viewers get 403 on reads too.
+router = APIRouter(prefix="/businesses/{business_id}/expenses", tags=["Expenses"], dependencies=[Depends(require_business_member), Depends(require_finance)])
 
 def get_service(db: Session = Depends(get_db)) -> ExpenseService:
     repository = ExpenseRepository(db)

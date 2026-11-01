@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
 import { useListQuery } from "@/lib/use-list-query";
 import { Pagination } from "@/components/ui/pagination";
+import { FinanceOnly } from "@/components/layout/finance-only";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(amount);
@@ -36,11 +37,14 @@ function formatDate(dateStr: string | null) {
 }
 
 // useSearchParams (sayfa/arama URL'de) bir Suspense sınırı ister.
+// Yalnızca sahip/yönetici (backend: require_finance).
 export default function ExpensesPage() {
   return (
-    <Suspense fallback={<p className="text-sm text-ink-muted">Yükleniyor...</p>}>
-      <ExpensesPageContent />
-    </Suspense>
+    <FinanceOnly>
+      <Suspense fallback={<p className="text-sm text-ink-muted">Yükleniyor...</p>}>
+        <ExpensesPageContent />
+      </Suspense>
+    </FinanceOnly>
   );
 }
 

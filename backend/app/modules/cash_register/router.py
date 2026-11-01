@@ -9,9 +9,11 @@ from app.shared.security.dependencies import get_current_user
 from app.modules.cash_register.schemas import CashRegisterOpen, CashRegisterClose, CashRegisterResponse, CashTransactionCreate, CashTransactionResponse, RegisterSummary
 from app.modules.cash_register.repository import CashRegisterRepository, CashTransactionRepository
 from app.modules.cash_register.service import CashRegisterService
-from app.shared.security.business import require_business_member
+from app.shared.security.business import require_business_member, require_finance
 
-router = APIRouter(prefix="/businesses/{business_id}/cash-register", tags=["Cash Register"], dependencies=[Depends(require_business_member)])
+# Every field here is money (or only meaningful with it), so the whole module is
+# for finance roles (owner, admin); employees and viewers get 403 on reads too.
+router = APIRouter(prefix="/businesses/{business_id}/cash-register", tags=["Cash Register"], dependencies=[Depends(require_business_member), Depends(require_finance)])
 
 def get_service(db: Session = Depends(get_db)) -> CashRegisterService:
     register_repo = CashRegisterRepository(db)

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FinanceOnly } from "@/components/layout/finance-only";
 import { Plus, Banknote, Clock, CheckCircle2, TrendingUp, TrendingDown, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +34,16 @@ function formatDate(dateStr: string | null, includeTime = false) {
   return includeTime ? d.toLocaleString("tr-TR") : d.toLocaleDateString("tr-TR");
 }
 
+// Yalnızca sahip/yönetici (backend: require_finance).
 export default function CashRegisterPage() {
+  return (
+    <FinanceOnly>
+      <CashRegisterPageContent />
+    </FinanceOnly>
+  );
+}
+
+function CashRegisterPageContent() {
   const confirmDialog = useConfirm();
   const businessId = getActiveBusinessId();
 
