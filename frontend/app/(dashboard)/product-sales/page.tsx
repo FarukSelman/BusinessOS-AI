@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   listProducts,
-  listCustomers,
+  listCustomersForPicker,
   createProductSale,
   listProductSales,
   ApiError,
@@ -60,7 +60,7 @@ export default function ProductSalesPage() {
     try {
       const [prodRes, custRes, salesRes] = await Promise.all([
         listProducts(businessId, { status: "ACTIVE", size: 100 }),
-        listCustomers(businessId, 1, 100),
+        listCustomersForPicker(businessId),
         listProductSales(businessId, { page: 1 })
       ]);
       setProducts(prodRes);
@@ -313,7 +313,7 @@ export default function ProductSalesPage() {
         </CardHeader>
         <CardContent>
           {loading && sales.length === 0 ? <div className="text-center py-4 text-ink-muted">Yükleniyor...</div> : sales.length === 0 ? <div className="text-center py-4 text-ink-muted">Henüz satış yapılmadı.</div> : (
-            <div className="overflow-hidden">
+            <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
                 <thead className="bg-surface text-ink-muted text-xs uppercase">
                   <tr>

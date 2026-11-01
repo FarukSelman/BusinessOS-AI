@@ -63,6 +63,7 @@ class ExpenseService:
             total_income=totals["total_income"],
             total_expense=totals["total_expense"],
             net_profit=totals["net"],
+            transaction_count=totals["count"],
             period_start=start_date,
             period_end=end_date
         )

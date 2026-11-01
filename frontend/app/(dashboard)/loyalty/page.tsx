@@ -14,7 +14,7 @@ import {
   spendPoints,
   adjustPoints,
   listLoyaltyTransactions,
-  listCustomers,
+  listCustomersForPicker,
   type LoyaltyRule,
   type LoyaltyWallet,
   type LoyaltyTransaction,
@@ -50,7 +50,7 @@ export default function LoyaltyPage() {
     Promise.all([
       getLoyaltyRules(businessId).catch(() => null),
       listLoyaltyWallets(businessId).catch(() => []),
-      listCustomers(businessId).catch(() => []),
+      listCustomersForPicker(businessId).catch(() => []),
       listLoyaltyTransactions(businessId).catch(() => []),
     ]).then(([r, w, c, t]) => {
       if (r) {
@@ -123,7 +123,7 @@ export default function LoyaltyPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--agent-sales)_15%,transparent)]">
             <Coins className="h-5 w-5 text-[var(--agent-sales)]" />
@@ -137,7 +137,7 @@ export default function LoyaltyPage() {
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
             <CardTitle className="text-lg">Kurallar</CardTitle>
             {!isEditingRules && (
               <Button variant="outline" size="sm" onClick={() => setIsEditingRules(true)}>
@@ -219,7 +219,7 @@ export default function LoyaltyPage() {
             <CardTitle className="text-lg">Manuel İşlemler</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button variant="outline" className="flex-1 text-green-600 hover:text-green-700" onClick={() => setShowTxForm("EARN")}>
                 <Plus className="mr-2 h-4 w-4" /> Puan Ekle
               </Button>

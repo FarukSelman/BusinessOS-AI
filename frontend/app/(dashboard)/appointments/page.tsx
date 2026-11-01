@@ -14,7 +14,7 @@ import {
   cancelAppointment,
   completeAppointment,
   getAvailableSlots,
-  listCustomers,
+  listCustomersForPicker,
   listServices,
   listStaff,
   listBranches,
@@ -30,7 +30,7 @@ import { getActiveBusinessId } from "@/lib/business";
 import { todayISO, toHm } from "@/lib/date";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
-import { exportToCSV } from "@/lib/export";
+import { useCsvExport } from "@/lib/use-csv-export";
 import { statusStyles, statusTint } from "@/components/appointments/constants";
 import {
   AppointmentForm,
@@ -48,6 +48,7 @@ import { AppointmentCalendar } from "@/components/appointments/calendar/appointm
 
 export default function AppointmentsPage() {
   const confirmDialog = useConfirm();
+  const csvExport = useCsvExport();
   const [statusFilter, setStatusFilter] = useState<AppointmentStatus | "ALL">("ALL");
   const businessId = getActiveBusinessId();
 
@@ -77,7 +78,7 @@ export default function AppointmentsPage() {
   // Dropdown listeleri - bir kez, tarih değişse de yeniden çekilmesine gerek yok
   useEffect(() => {
     if (!businessId) return;
-    listCustomers(businessId).then(setCustomers).catch(() => setCustomers([]));
+    listCustomersForPicker(businessId).then(setCustomers).catch(() => setCustomers([]));
     listServices(businessId).then(setServices).catch(() => setServices([]));
     listStaff(businessId)
       .then((s) => setStaff(s as StaffProfile[]))
@@ -89,18 +90,20 @@ export default function AppointmentsPage() {
 
   function handleExport() {
     if (!businessId) return;
-    listAppointments(businessId, 1, 1000).then((res) => {
-      const headers = ["Müşteri", "Hizmet", "Tarih", "Saat", "Durum", "Notlar"];
-      const rows = res.map((a) => [
+    const serviceName = new Map(services.map((s) => [s.id, s.name]));
+    csvExport.run(
+      "Randevular",
+      ["Müşteri", "Hizmet", "Tarih", "Saat", "Durum", "Notlar"],
+      (page, size) => listAppointments(businessId, page, size),
+      (a) => [
         a.customer_name,
-        services.find((s) => s.id === a.service_id)?.name || "",
+        (a.service_id && serviceName.get(a.service_id)) || "",
         a.appointment_date,
         a.start_time,
         statusStyles[a.status].label,
         a.notes || "",
-      ]);
-      exportToCSV("Randevular", headers, rows);
-    });
+      ]
+    );
   }
 
   const loadData = useCallback(() => {
@@ -249,9 +252,9 @@ export default function AppointmentsPage() {
               <CalendarIcon className="h-3.5 w-3.5" /> Takvim
             </button>
           </div>
-          <Button variant="outline" className="gap-2" onClick={handleExport}>
+          <Button variant="outline" className="gap-2" onClick={handleExport} disabled={csvExport.exporting}>
             <Download className="h-4 w-4" />
-            Dışa Aktar
+            {csvExport.exporting ? "Hazırlanıyor..." : "Dışa Aktar"}
           </Button>
           {viewMode === "LIST" && (
             <>

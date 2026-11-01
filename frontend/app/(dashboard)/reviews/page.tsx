@@ -130,13 +130,13 @@ export default function ReviewsPage() {
         </div>
       )}
 
-      <div className="flex gap-2 border-b pb-2">
+      <div className="flex gap-2 overflow-x-auto border-b pb-2">
         {["ALL", "PENDING", "PUBLISHED", "REJECTED"].map(s => {
           const labels: any = { ALL: "Tümü", PENDING: "Bekleyen", PUBLISHED: "Yayınlanan", REJECTED: "Reddedilen" };
           return (
             <button
               key={s}
-              className={cn("px-4 py-2 text-sm font-medium rounded-md transition-colors", statusFilter === s ? "bg-[var(--agent-sales)] text-white" : "hover:bg-surface text-ink-muted")}
+              className={cn("shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium rounded-md transition-colors", statusFilter === s ? "bg-[var(--agent-sales)] text-white" : "hover:bg-surface text-ink-muted")}
               onClick={() => setStatusFilter(s)}
             >
               {labels[s]}

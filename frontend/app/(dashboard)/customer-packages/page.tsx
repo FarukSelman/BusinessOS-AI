@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import {
   listCustomerPackages,
   sellPackage,
-  listCustomers,
+  listCustomersForPicker,
   listPackages,
   getCustomerPackageDetail,
   completeSession,
@@ -68,7 +68,7 @@ export default function CustomerPackagesPage() {
     try {
       const [cps, custs, pkgs] = await Promise.all([
         listCustomerPackages(businessId, { status: statusFilter || undefined }),
-        listCustomers(businessId, 1, 1000),
+        listCustomersForPicker(businessId),
         listPackages(businessId)
       ]);
       setCPackages(cps);

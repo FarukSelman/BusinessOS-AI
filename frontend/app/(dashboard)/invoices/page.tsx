@@ -27,7 +27,7 @@ import {
   markInvoicePaid,
   cancelInvoice,
   getRevenueStats,
-  listCustomers,
+  listCustomersForPicker,
   listServices,
   type Invoice,
   type InvoiceItem,
@@ -42,7 +42,7 @@ import { getActiveBusinessId } from "@/lib/business";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
-import { exportToCSV } from "@/lib/export";
+import { useCsvExport } from "@/lib/use-csv-export";
 
 /* ---------- helpers ---------- */
 const statusConfig: Record<InvoiceStatus, { label: string; color: string; icon: React.ElementType }> = {
@@ -94,6 +94,7 @@ const emptyForm: CreateForm = {
 /* ---------- component ---------- */
 export default function InvoicesPage() {
   const confirmDialog = useConfirm();
+  const csvExport = useCsvExport();
   const businessId = getActiveBusinessId();
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -142,7 +143,7 @@ export default function InvoicesPage() {
     }
     refresh();
     // fetch lookups for form dropdowns
-    listCustomers(businessId).then(setCustomers).catch(() => {});
+    listCustomersForPicker(businessId).then(setCustomers).catch(() => {});
     listServices(businessId).then(setServices).catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [businessId, filterStatus]);
@@ -255,16 +256,21 @@ export default function InvoicesPage() {
   }
 
   function handleExport() {
-    const headers = ["Fatura No", "Müşteri", "Toplam", "Durum", "Oluşturma Tarihi", "Son Ödeme Tarihi"];
-    const rows = invoices.map((inv) => [
-      inv.invoice_number,
-      inv.customer_name,
-      inv.total_amount.toString(),
-      statusConfig[inv.status].label,
-      formatDate(inv.created_at),
-      formatDate(inv.due_date),
-    ]);
-    exportToCSV("Faturalar", headers, rows);
+    if (!businessId) return;
+    const status = filterStatus === "ALL" ? undefined : filterStatus;
+    csvExport.run(
+      "Faturalar",
+      ["Fatura No", "Müşteri", "Toplam", "Durum", "Oluşturma Tarihi", "Son Ödeme Tarihi"],
+      (page, size) => listInvoices(businessId, status, page, size),
+      (inv) => [
+        inv.invoice_number,
+        inv.customer_name,
+        inv.total_amount.toString(),
+        statusConfig[inv.status].label,
+        formatDate(inv.created_at),
+        formatDate(inv.due_date),
+      ]
+    );
   }
 
   /* ---------- render ---------- */
@@ -279,15 +285,15 @@ export default function InvoicesPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Faturalar</h1>
           <p className="mt-1 text-sm text-ink-muted">Fatura oluşturun, takip edin ve ödemeleri yönetin.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-2" onClick={handleExport}>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" className="gap-2" onClick={handleExport} disabled={csvExport.exporting}>
             <Download className="h-4 w-4" />
-            Dışa Aktar
+            {csvExport.exporting ? "Hazırlanıyor..." : "Dışa Aktar"}
           </Button>
           <Button onClick={() => setShowCreate(!showCreate)} className="gap-2">
             {showCreate ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}

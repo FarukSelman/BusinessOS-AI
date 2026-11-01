@@ -209,7 +209,7 @@ export default function StaffPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-12">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight text-ink flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_15%,transparent)]">
@@ -222,7 +222,7 @@ export default function StaffPage() {
           </p>
         </div>
         {!showForm && (
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
             <select
               className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               value={branchFilter}

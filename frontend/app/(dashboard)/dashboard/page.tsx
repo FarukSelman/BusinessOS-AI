@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
-  listCustomers,
+  listCustomersForPicker,
   listAppointments,
   listAppointmentsByDate,
   listServices,
@@ -37,16 +37,13 @@ import { DashboardStats } from "@/types/reports";
 import type { Appointment } from "@/types/appointment";
 import { formatCurrency } from "@/lib/utils";
 import { getActiveBusinessId } from "@/lib/business";
+import { todayISO } from "@/lib/date";
 import {
   WeeklyAppointmentsChart,
   RevenueOverviewChart,
   StatusDistributionChart,
   ServicePopularityChart
 } from "@/components/dashboard/charts";
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 const agentLinks = [
   {
@@ -115,7 +112,7 @@ export default function DashboardHomePage() {
       return;
     }
     Promise.allSettled([
-      listCustomers(businessId),
+      listCustomersForPicker(businessId),
       listAppointments(businessId, 1, 100),
       listAppointmentsByDate(businessId, todayISO()),
       listServices(businessId),

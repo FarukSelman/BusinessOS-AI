@@ -313,6 +313,13 @@ export async function listCustomers(businessId: string, page = 1, size = 20): Pr
   );
 }
 
+// Seçim listeleri ve ad eşleştirme için. Tam sayfalama/arama gelene kadar geçici üst sınır.
+export const CUSTOMER_PICKER_LIMIT = 1000;
+
+export async function listCustomersForPicker(businessId: string): Promise<Customer[]> {
+  return listCustomers(businessId, 1, CUSTOMER_PICKER_LIMIT);
+}
+
 export async function createCustomer(
   businessId: string,
   payload: CustomerCreatePayload
@@ -641,9 +648,15 @@ export async function deleteChatSession(
 
 export async function listInvoices(
   businessId: string,
-  statusFilter?: InvoiceStatus
+  statusFilter?: InvoiceStatus,
+  page?: number,
+  size?: number
 ): Promise<Invoice[]> {
-  const query = statusFilter ? `?status=${statusFilter}` : '';
+  const params = new URLSearchParams();
+  if (statusFilter) params.set("status", statusFilter);
+  if (page) params.set("page", String(page));
+  if (size) params.set("size", String(size));
+  const query = params.size ? `?${params}` : "";
   return apiFetch<Invoice[]>(
     `/api/v1/businesses/${businessId}/invoices${query}`
   );

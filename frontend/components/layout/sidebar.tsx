@@ -133,7 +133,8 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-export function Sidebar() {
+/** onNavigate: mobil çekmecede bir sayfaya geçince menüyü kapatmak için. */
+export function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   const pathname = usePathname();
 
   // Auto-open the group that contains the active route
@@ -206,6 +207,7 @@ export function Sidebar() {
                       <Link
                         key={href}
                         href={href}
+                        onClick={onNavigate}
                         style={
                           active
                             ? {

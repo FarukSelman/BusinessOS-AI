@@ -172,7 +172,7 @@ export default function DocumentsPage() {
       </div>
 
       {!showInfoForm ? (
-        <Button variant="outline" className="w-fit" onClick={() => setShowInfoForm(true)}>
+        <Button variant="outline" className="h-auto w-fit max-w-full whitespace-normal py-2 text-left" onClick={() => setShowInfoForm(true)}>
           Kurumsal bilgi ekle (kuruluş yılı, vizyon, adres vb.)
         </Button>
       ) : (

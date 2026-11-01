@@ -28,10 +28,11 @@ import {
   ApiError,
 } from "@/lib/api";
 import { getActiveBusinessId } from "@/lib/business";
+import { fromISODate } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
-import { exportToCSV } from "@/lib/export";
+import { useCsvExport } from "@/lib/use-csv-export";
 
 type FormState = {
   name: string;
@@ -44,6 +45,7 @@ const emptyForm: FormState = { name: "", email: "", phone: "", notes: "" };
 
 export default function CustomersPage() {
   const confirmDialog = useConfirm();
+  const csvExport = useCsvExport();
   const businessId = getActiveBusinessId();
 
   const [loading, setLoading] = useState(true);
@@ -143,9 +145,9 @@ export default function CustomersPage() {
       .filter((appointment) => appointment.status !== "CANCELLED")
       .sort((a, b) => `${b.appointment_date}${b.start_time}`.localeCompare(`${a.appointment_date}${a.start_time}`))[0];
     if (!latest) return "Henüz randevu geçmişi yok. İlk ziyaret için hoş geldin kampanyası önerilebilir.";
-    const daysSince = Math.floor((Date.now() - new Date(`${latest.appointment_date}T00:00:00`).getTime()) / 86400000);
+    const daysSince = Math.floor((Date.now() - fromISODate(latest.appointment_date).getTime()) / 86400000);
     if (daysSince > 60) return `${daysSince} gündür ziyaret etmedi. Yeniden kazanım kampanyası için uygun.`;
-    return `${completed} tamamlanan randevu var. Son ziyaret: ${new Date(latest.appointment_date).toLocaleDateString("tr-TR")}.`;
+    return `${completed} tamamlanan randevu var. Son ziyaret: ${fromISODate(latest.appointment_date).toLocaleDateString("tr-TR")}.`;
   }
 
   // --- Actions ---
@@ -277,17 +279,29 @@ export default function CustomersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">Müşteriler</h1>
           <p className="text-sm text-ink-muted">İşletmenin müşteri kayıtlarını ve etiketlerini yönet.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" className="gap-2" onClick={() => setShowTagEditor(true)}>
             <TagIcon className="h-4 w-4" /> Etiketler
           </Button>
-          <Button variant="outline" className="gap-2" onClick={() => exportToCSV("Musteriler", ["Ad", "Telefon"], customers.map(c => [c.name, c.phone || ""]))}>
-            <Download className="h-4 w-4" /> Dışa Aktar
+          <Button
+            variant="outline"
+            className="gap-2"
+            disabled={csvExport.exporting || !businessId}
+            onClick={() =>
+              csvExport.run(
+                "Musteriler",
+                ["Ad", "Telefon"],
+                (page, size) => listCustomers(businessId!, page, size),
+                (c) => [c.name, c.phone || ""]
+              )
+            }
+          >
+            <Download className="h-4 w-4" /> {csvExport.exporting ? "Hazırlanıyor..." : "Dışa Aktar"}
           </Button>
           {!showCreateForm && (
             <Button className="gap-2" onClick={() => setShowCreateForm(true)}>
@@ -476,7 +490,7 @@ export default function CustomersPage() {
                   {detailData?.history?.appointments?.length > 0 ? detailData.history.appointments.map((a: any) => (
                     <div key={a.id} className="border p-3 rounded text-sm flex justify-between items-center">
                       <div>
-                        <span className="font-medium block">{new Date(a.appointment_date).toLocaleDateString("tr-TR")} {a.start_time}</span>
+                        <span className="font-medium block">{fromISODate(a.appointment_date).toLocaleDateString("tr-TR")} {a.start_time}</span>
                         <span className="text-ink-muted text-xs">Durum: {a.status}</span>
                       </div>
                       <History className="h-4 w-4 text-ink-muted" />

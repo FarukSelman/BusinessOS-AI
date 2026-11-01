@@ -56,6 +56,7 @@ class FinancialSummary(BaseModel):
     total_income: float
     total_expense: float
     net_profit: float
+    transaction_count: int = 0
     period_start: date
     period_end: date
 

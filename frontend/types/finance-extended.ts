@@ -42,6 +42,7 @@ export interface FinancialSummary {
   total_income: number;
   total_expense: number;
   net_profit: number;
+  transaction_count: number;
   period_start: string;
   period_end: string;
 }

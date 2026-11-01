@@ -156,12 +156,12 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <div className="flex border-b border-white/10">
+      <div className="flex overflow-x-auto border-b border-white/10">
         {visibleTabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            className={`shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               activeTab === tab.id 
                 ? "border-[var(--agent-finance)] text-ink" 
                 : "border-transparent text-ink-muted hover:text-ink hover:border-white/20"

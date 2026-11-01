@@ -17,7 +17,9 @@ import {
   ExpenseCategory,
   FinancialSummary,
 } from "@/lib/api";
+import { endOfMonth, startOfMonth } from "date-fns";
 import { getActiveBusinessId } from "@/lib/business";
+import { toISODate, todayISO } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/providers/confirm-dialog-provider";
@@ -53,7 +55,7 @@ export default function ExpensesPage() {
     title: "",
     description: "",
     amount: 0,
-    transaction_date: new Date().toISOString().split("T")[0],
+    transaction_date: todayISO(),
     category_id: "",
     payment_method: "CASH",
     recurrence: "NONE",
@@ -66,15 +68,15 @@ export default function ExpensesPage() {
     
     // Get start/end of current month for summary
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    const monthStart = toISODate(startOfMonth(now));
+    const monthEnd = toISODate(endOfMonth(now));
 
     try {
       const [expResult, sumResult, catsResult] = await Promise.allSettled([
         listExpenses(businessId, { 
           direction: directionFilter === "ALL" ? undefined : directionFilter 
         }),
-        getFinancialSummary(businessId, startOfMonth, endOfMonth),
+        getFinancialSummary(businessId, monthStart, monthEnd),
         listExpenseCategories(businessId)
       ]);
       
@@ -125,7 +127,7 @@ export default function ExpensesPage() {
         title: "",
         description: "",
         amount: 0,
-        transaction_date: new Date().toISOString().split("T")[0],
+        transaction_date: todayISO(),
         category_id: "",
         payment_method: "CASH",
         recurrence: "NONE",
@@ -172,35 +174,36 @@ export default function ExpensesPage() {
         </Button>
       </div>
 
-      {/* Summary Cards - calculated from loaded data */}
+      {/* Özet kartları: bu ayın tüm işlemleri (backend özeti), listedeki ilk sayfa değil */}
       {(() => {
-        const totalIncome = expenses.filter(e => e.direction === "INCOME").reduce((s, e) => s + e.amount, 0);
-        const totalExpense = expenses.filter(e => e.direction === "EXPENSE").reduce((s, e) => s + e.amount, 0);
-        const netProfit = totalIncome - totalExpense;
+        const totalIncome = summary?.total_income ?? 0;
+        const totalExpense = summary?.total_expense ?? 0;
+        const netProfit = summary?.net_profit ?? 0;
+        const show = (text: string) => (summary ? text : "—");
         return (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="bg-surface-elevated border-border border-l-4 border-l-emerald-500">
               <CardContent className="pt-4 pb-4">
-                <p className="text-xs text-ink-muted font-medium flex items-center gap-1"><TrendingUp className="w-3 h-3 text-emerald-500"/> Toplam Gelir</p>
-                <p className="text-xl font-bold text-emerald-400 mt-1">{formatCurrency(totalIncome)}</p>
+                <p className="text-xs text-ink-muted font-medium flex items-center gap-1"><TrendingUp className="w-3 h-3 text-emerald-500"/> Bu Ay Gelir</p>
+                <p className="text-xl font-bold text-emerald-400 mt-1">{show(formatCurrency(totalIncome))}</p>
               </CardContent>
             </Card>
             <Card className="bg-surface-elevated border-border border-l-4 border-l-red-500">
               <CardContent className="pt-4 pb-4">
-                <p className="text-xs text-ink-muted font-medium flex items-center gap-1"><TrendingDown className="w-3 h-3 text-red-500"/> Toplam Gider</p>
-                <p className="text-xl font-bold text-red-400 mt-1">{formatCurrency(totalExpense)}</p>
+                <p className="text-xs text-ink-muted font-medium flex items-center gap-1"><TrendingDown className="w-3 h-3 text-red-500"/> Bu Ay Gider</p>
+                <p className="text-xl font-bold text-red-400 mt-1">{show(formatCurrency(totalExpense))}</p>
               </CardContent>
             </Card>
             <Card className="bg-surface-elevated border-border border-l-4 border-l-blue-500">
               <CardContent className="pt-4 pb-4">
-                <p className="text-xs text-ink-muted font-medium">Net Kar</p>
-                <p className={cn("text-xl font-bold mt-1", netProfit >= 0 ? "text-blue-400" : "text-red-400")}>{formatCurrency(netProfit)}</p>
+                <p className="text-xs text-ink-muted font-medium">Bu Ay Net Kâr</p>
+                <p className={cn("text-xl font-bold mt-1", netProfit >= 0 ? "text-blue-400" : "text-red-400")}>{show(formatCurrency(netProfit))}</p>
               </CardContent>
             </Card>
             <Card className="bg-surface-elevated border-border border-l-4 border-l-violet-500">
               <CardContent className="pt-4 pb-4">
-                <p className="text-xs text-ink-muted font-medium">Toplam İşlem</p>
-                <p className="text-xl font-bold text-violet-400 mt-1">{expenses.length}</p>
+                <p className="text-xs text-ink-muted font-medium">Bu Ay İşlem</p>
+                <p className="text-xl font-bold text-violet-400 mt-1">{show(String(summary?.transaction_count ?? 0))}</p>
               </CardContent>
             </Card>
           </div>
@@ -311,7 +314,7 @@ export default function ExpensesPage() {
           <p>Kayıt bulunamadı.</p>
         </Card>
       ) : (
-        <Card className="bg-surface-elevated border-border overflow-hidden">
+        <Card className="bg-surface-elevated border-border overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-surface text-ink-muted text-xs uppercase">
               <tr>

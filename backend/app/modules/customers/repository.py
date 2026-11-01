@@ -36,6 +36,7 @@ class CustomerRepository(
             )
             .order_by(
                 self.model.created_at.desc(),
+                self.model.id.asc(),  # sayfalama kararlı olsun
             )
             .offset(
                 (page - 1) * size
@@ -176,5 +177,5 @@ class CustomerRepository(
         if date_to:
             statement = statement.where(self.model.created_at <= date_to)
 
-        statement = statement.order_by(self.model.created_at.desc()).offset((page - 1) * size).limit(size)
+        statement = statement.order_by(self.model.created_at.desc(), self.model.id.asc()).offset((page - 1) * size).limit(size)
         return list(self.db.scalars(statement).all())

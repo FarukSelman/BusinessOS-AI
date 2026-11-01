@@ -239,7 +239,7 @@ export default function ProductsPage() {
         </Card>
       )}
 
-      <div className="flex gap-4">
+      <div className="flex flex-wrap gap-4">
         <Input placeholder="Ürün Ara (Ad, SKU)..." className="max-w-xs" value={search} onChange={e => setSearch(e.target.value)} />
         <select className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
           <option value="">Tüm Kategoriler</option>
@@ -253,7 +253,7 @@ export default function ProductsPage() {
         </select>
       </div>
 
-      <Card className="bg-surface-elevated border-border overflow-hidden">
+      <Card className="bg-surface-elevated border-border overflow-x-auto">
         {loading ? <div className="p-8 text-center text-ink-muted">Yükleniyor...</div> : products.length === 0 ? <div className="p-8 text-center text-ink-muted">Kayıt bulunamadı.</div> : (
           <table className="w-full text-sm text-left">
             <thead className="bg-surface text-ink-muted text-xs uppercase">

@@ -38,6 +38,8 @@ class AppointmentRepository(
             .order_by(
                 self.model.appointment_date.desc(),
                 self.model.start_time.asc(),
+                # Sayfalar arası kayıt kaybolmasın/tekrarlanmasın (CSV dışa aktarım tüm sayfaları gezer).
+                self.model.id.asc(),
             )
             .offset(
                 (page - 1) * size,

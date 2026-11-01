@@ -28,7 +28,7 @@ class InvoiceRepository(BaseRepository[Invoice]):
         if status_filter:
             query = query.where(self.model.status == status_filter)
 
-        query = query.order_by(self.model.created_at.desc()).offset((page - 1) * size).limit(size)
+        query = query.order_by(self.model.created_at.desc(), self.model.id.asc()).offset((page - 1) * size).limit(size)
 
         return list(self.db.scalars(query).all())
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogOut, Building2, Bell, CheckCircle2, User } from "lucide-react";
+import { LogOut, Building2, Bell, CheckCircle2, User, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   logout, 
@@ -17,7 +17,7 @@ import {
 import { getActiveBusinessId } from "@/lib/business";
 import { PendingActionsMenu } from "@/components/layout/pending-actions-menu";
 
-export function Navbar() {
+export function Navbar({ onMenuClick }: { onMenuClick?: () => void } = {}) {
   const router = useRouter();
   const [businessName, setBusinessName] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -82,16 +82,21 @@ export function Navbar() {
   }
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-border bg-surface-elevated px-6">
-      <div className="flex items-center gap-2 text-sm text-ink-muted">
-        <Building2 className="h-4 w-4" />
-        <span className="font-medium text-ink">{businessName ?? "..."}</span>
-        <Link href="/select-business" className="text-ink-muted underline hover:text-ink">
+    <header className="flex h-16 items-center justify-between gap-2 border-b border-border bg-surface-elevated px-3 sm:px-6">
+      <div className="flex min-w-0 items-center gap-2 text-sm text-ink-muted">
+        {onMenuClick && (
+          <Button variant="ghost" size="icon" className="shrink-0 lg:hidden" onClick={onMenuClick} aria-label="Menüyü aç">
+            <Menu className="h-5 w-5" />
+          </Button>
+        )}
+        <Building2 className="hidden h-4 w-4 shrink-0 sm:block" />
+        <span className="truncate font-medium text-ink">{businessName ?? "..."}</span>
+        <Link href="/select-business" className="shrink-0 text-ink-muted underline hover:text-ink">
           değiştir
         </Link>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex shrink-0 items-center gap-1 sm:gap-4">
         <PendingActionsMenu />
 
         <div className="relative">
@@ -110,7 +115,7 @@ export function Navbar() {
           </Button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 rounded-lg border border-border bg-surface-elevated/95 backdrop-blur-md shadow-lg z-50 overflow-hidden">
+            <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-1.5rem))] rounded-lg border border-border bg-surface-elevated/95 backdrop-blur-md shadow-lg z-50 overflow-hidden">
               <div className="flex items-center justify-between border-b border-border p-3">
                 <h3 className="font-semibold text-ink">Bildirimler</h3>
                 {unreadCount > 0 && (
@@ -150,9 +155,9 @@ export function Navbar() {
           </Button>
         </Link>
 
-        <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2">
+        <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2" aria-label="Çıkış yap">
           <LogOut className="h-4 w-4" />
-          Çıkış yap
+          <span className="hidden sm:inline">Çıkış yap</span>
         </Button>
       </div>
     </header>

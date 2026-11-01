@@ -62,7 +62,7 @@ class ExpenseRepository(BaseRepository[Expense]):
 
     def get_totals_by_period(self, business_id: UUID, start_date: date, end_date: date) -> dict:
         statement = select(
-            self.model.direction, func.sum(self.model.amount)
+            self.model.direction, func.sum(self.model.amount), func.count(self.model.id)
         ).where(
             self.model.business_id == business_id,
             self.model.transaction_date >= start_date,
@@ -75,4 +75,5 @@ class ExpenseRepository(BaseRepository[Expense]):
         # whenever a period had expenses but no income (or the other way round).
         income = float(sum(r[1] for r in results if r[0] == TransactionDirection.INCOME) or 0)
         expense = float(sum(r[1] for r in results if r[0] == TransactionDirection.EXPENSE) or 0)
-        return {"total_income": float(income), "total_expense": float(expense), "net": float(income - expense)}
+        count = sum(r[2] for r in results)
+        return {"total_income": float(income), "total_expense": float(expense), "net": float(income - expense), "count": count}
