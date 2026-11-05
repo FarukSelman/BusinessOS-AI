@@ -27,13 +27,14 @@
 ## ✨ 2. Özellikler
 
 ### 🧠 Yapay Zekâ Ajanları (Multi-Agent Sistemi)
-Sistem, bir orkestratör ve ona bağlı 5 uzman ajandan (toplam 6 ajan yapısı) oluşur:
+Sistem, bir orkestratör ve ona bağlı 6 uzman ajandan (toplam 7 ajan yapısı) oluşur:
 1. **Yönlendirici (Orchestrator) Ajan:** Kullanıcı taleplerini analiz ederek (Intent Classification) soruyu en doğru uzman ajana yönlendirir.
 2. **Müşteri Destek Ajanı:** İşletmenin bilgi tabanını (RAG) kullanarak SSS, çalışma saatleri, iadeler ve genel müşteri sorularını yanıtlar.
 3. **Randevu Ajanı:** Takvim müsaitliğini kontrol eder, yeni randevu oluşturur, iptal eder ve randevuları listeler.
 4. **Satış ve Öneri Ajanı:** Mevcut ürün ve hizmetleri tarar, müşterinin ihtiyacına en uygun paketi ve fiyatlandırmayı önerir.
-5. **Finansal Analiz Ajanı:** İşletmenin verilerini okuyarak istatistikler, kârlılık raporları ve performans analizi sunar.
+5. **Analiz Ajanı:** Randevu ve müşteri istatistikleri, popüler hizmetler, personel performansı, anket sonuçları ve yorum puanlarını raporlar.
 6. **Pazarlama Ajanı:** Hedef kitleye özel kampanya fikirleri, promosyon stratejileri ve sosyal medya içerikleri üretir.
+7. **Finans Ajanı:** Gelir, gider, net kâr, kasa durumu, geciken taksitler ve faturalarla ilgili soruları yanıtlar.
 
 ### 🏢 Temel Modüller
 - **Kimlik ve Çoklu Kiracı Yönetimi (Auth & Multi-tenant):** Her işletme kendi izole veri alanında çalışır. Ekip üyeleri yönetimi ve davet sistemi.
@@ -60,6 +61,7 @@ graph TD
         Orchestrator --> |Intent Classification| Specialist3[Satış Ajanı]
         Orchestrator --> |Intent Classification| Specialist4[Analiz Ajanı]
         Orchestrator --> |Intent Classification| Specialist5[Pazarlama Ajanı]
+        Orchestrator --> |Intent Classification| Specialist6[Finans Ajanı]
     end
     
     subgraph Veri Katmanı
@@ -227,7 +229,7 @@ pytest -v --cov=app
 - [x] Temel veritabanı şemaları ve Multi-tenant yapısı
 - [x] FastAPI ve Next.js kurulumları
 - [x] RAG Sistemi ve pgvector entegrasyonu
-- [x] Orchestrator ve Uzman Ajanların (5 adet) entegrasyonu
+- [x] Orchestrator ve Uzman Ajanların (6 adet) entegrasyonu
 - [x] Müşteri, Randevu ve Fatura modülleri
 - [ ] WhatsApp ve E-posta bildirim entegrasyonları
 - [ ] Gelişmiş Finansal Grafik Raporları
