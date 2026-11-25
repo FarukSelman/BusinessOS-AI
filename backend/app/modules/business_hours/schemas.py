@@ -18,9 +18,9 @@ class BusinessHoursItem(BaseModel):
             self.close_time = None
             return self
         if self.open_time is None or self.close_time is None:
-            raise ValueError("open_time and close_time are required when the day is not closed.")
+            raise ValueError("Kapalı olmayan günler için açılış ve kapanış saati gerekli.")
         if self.open_time >= self.close_time:
-            raise ValueError("open_time must be earlier than close_time.")
+            raise ValueError("Açılış saati kapanış saatinden önce olmalı.")
         return self
 
 
@@ -32,7 +32,7 @@ class BusinessHoursSet(BaseModel):
     def unique_days(cls, items: list[BusinessHoursItem]) -> list[BusinessHoursItem]:
         days = [item.day_of_week for item in items]
         if len(days) != len(set(days)):
-            raise ValueError("Each day_of_week may appear only once.")
+            raise ValueError("Her gün yalnızca bir kez girilebilir.")
         return items
 
 

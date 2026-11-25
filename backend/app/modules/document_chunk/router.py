@@ -90,7 +90,7 @@ def _verify_document_ownership(
     document = DocumentRepository(db).get(document_id)
 
     if not document or document.business_id != business_id:
-        raise NotFoundException("Document not found.")
+        raise NotFoundException("Belge bulunamadı.")
 
 
 # ==========================================================

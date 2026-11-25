@@ -32,7 +32,7 @@ class StaffServiceDomain:
     def get_staff(self, business_id: UUID, staff_id: UUID) -> dict:
         staff = self.profile_repo.get_by_business(business_id=business_id, staff_id=staff_id)
         if not staff:
-            raise NotFoundException("Staff profile not found")
+            raise NotFoundException("Çalışan bulunamadı.")
         return self._enrich_staff(staff)
         
     def create_staff(self, business_id: UUID, data: StaffCreate) -> dict:
@@ -48,7 +48,7 @@ class StaffServiceDomain:
     def update_staff(self, business_id: UUID, staff_id: UUID, data: StaffUpdate) -> dict:
         staff = self.profile_repo.get_by_business(business_id=business_id, staff_id=staff_id)
         if not staff:
-            raise NotFoundException("Staff profile not found")
+            raise NotFoundException("Çalışan bulunamadı.")
             
         update_data = data.model_dump(exclude_unset=True)
         
@@ -62,7 +62,7 @@ class StaffServiceDomain:
     def delete_staff(self, business_id: UUID, staff_id: UUID) -> None:
         staff = self.profile_repo.get_by_business(business_id=business_id, staff_id=staff_id)
         if not staff:
-            raise NotFoundException("Staff profile not found")
+            raise NotFoundException("Çalışan bulunamadı.")
             
         with self.uow:
             self.profile_repo.soft_delete(staff)
@@ -71,7 +71,7 @@ class StaffServiceDomain:
     def assign_services(self, business_id: UUID, staff_id: UUID, service_ids: list[UUID]) -> dict:
         staff = self.profile_repo.get_by_business(business_id=business_id, staff_id=staff_id)
         if not staff:
-            raise NotFoundException("Staff profile not found")
+            raise NotFoundException("Çalışan bulunamadı.")
             
         with self.uow:
             self.service_repo.remove_all_for_staff(staff_id)
@@ -87,7 +87,7 @@ class StaffServiceDomain:
     def set_schedule(self, business_id: UUID, staff_id: UUID, data: StaffScheduleSet) -> list[StaffSchedule]:
         staff = self.profile_repo.get_by_business(business_id=business_id, staff_id=staff_id)
         if not staff:
-            raise NotFoundException("Staff profile not found")
+            raise NotFoundException("Çalışan bulunamadı.")
             
         with self.uow:
             self.schedule_repo.remove_all_for_staff(staff_id)

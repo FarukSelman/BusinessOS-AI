@@ -58,7 +58,7 @@ class BusinessService:
             data.email,
         ):
             raise ConflictException(
-                "Business email already exists.",
+                "Bu e-posta adresiyle kayıtlı bir işletme zaten var.",
             )
 
         business = Business(
@@ -145,7 +145,7 @@ class BusinessService:
         if business is None:
 
             raise NotFoundException(
-                "Business not found.",
+                "İşletme bulunamadı.",
             )
 
         return business
@@ -177,7 +177,7 @@ class BusinessService:
             if existing and existing.id != business.id:
 
                 raise ConflictException(
-                    "Business slug already exists.",
+                    "Bu bağlantı adı başka bir işletmede kullanılıyor.",
                 )
 
         for key, value in update_data.items():

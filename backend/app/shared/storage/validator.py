@@ -26,7 +26,7 @@ class FileValidator:
         if file.filename is None:
 
             raise BadRequestException(
-                "Filename is missing."
+                "Dosya adı eksik."
             )
 
         extension = Path(file.filename).suffix.lower()
@@ -34,13 +34,13 @@ class FileValidator:
         if extension not in cls.ALLOWED_EXTENSIONS:
 
             raise BadRequestException(
-                "Only PDF files are allowed."
+                "Yalnızca PDF dosyaları yüklenebilir."
             )
 
         if file.content_type not in cls.ALLOWED_CONTENT_TYPES:
 
             raise BadRequestException(
-                "Invalid file type."
+                "Geçersiz dosya türü."
             )
 
         file.file.seek(0, 2)
@@ -50,11 +50,11 @@ class FileValidator:
         if size == 0:
 
             raise BadRequestException(
-                "File is empty."
+                "Dosya boş."
             )
 
         if size > cls.MAX_FILE_SIZE:
 
             raise BadRequestException(
-                "File size exceeds 25 MB."
+                "Dosya boyutu 25 MB'ı aşıyor."
             )

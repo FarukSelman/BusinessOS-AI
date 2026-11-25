@@ -16,9 +16,14 @@ from app.shared.security.jwt import verify_access_token
 
 
 
+# auto_error=False: a missing token is answered below with our own (Turkish)
+# message instead of FastAPI's "Not authenticated".
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/api/v1/auth/login",
+    auto_error=False,
 )
+
+NOT_AUTHENTICATED = "Bu işlem için giriş yapmalısınız."
 
 
 
@@ -27,8 +32,11 @@ oauth2_scheme = OAuth2PasswordBearer(
 # ---------------------------------------------------------
 
 def get_current_token(
-    token: str = Depends(oauth2_scheme),
+    token: str | None = Depends(oauth2_scheme),
 ) -> str:
+
+    if not token:
+        raise UnauthorizedException(NOT_AUTHENTICATED)
 
     return token
 
@@ -39,7 +47,7 @@ def get_current_token(
 # ---------------------------------------------------------
 
 def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    token: str = Depends(get_current_token),
     db: Session = Depends(get_db),
 ) -> User:
 
@@ -54,7 +62,7 @@ def get_current_user(
     if user_id is None:
 
         raise UnauthorizedException(
-            "Invalid access token.",
+            "Oturumunuzun süresi doldu, lütfen tekrar giriş yapın.",
         )
 
 
@@ -67,7 +75,7 @@ def get_current_user(
     except ValueError:
 
         raise UnauthorizedException(
-            "Invalid user identifier.",
+            "Geçersiz oturum bilgisi.",
         )
 
 
@@ -83,14 +91,14 @@ def get_current_user(
     if user is None:
 
         raise UnauthorizedException(
-            "User not found.",
+            "Kullanıcı bulunamadı.",
         )
 
 
     if user.status != UserStatus.ACTIVE:
 
         raise UnauthorizedException(
-            "User account is not active.",
+            "Hesabınız aktif değil.",
         )
 
 

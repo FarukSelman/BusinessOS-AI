@@ -37,7 +37,7 @@ def require_permission(
         if permission not in ROLE_PERMISSIONS.get(membership.role, set()):
 
             raise ForbiddenException(
-                "You do not have permission.",
+                "Bu işlem için yetkiniz yok.",
             )
 
         return current_user

@@ -58,7 +58,7 @@ class NotificationService:
             or notification.business_id != business_id
             or (notification.user_id is not None and notification.user_id != user_id)
         ):
-            raise NotFoundException("Notification not found.")
+            raise NotFoundException("Bildirim bulunamadı.")
         
         with self.uow:
             self.repository.mark_as_read(notification_id)

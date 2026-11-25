@@ -24,7 +24,7 @@ class ScheduleBlockService:
         if branch_id is None or self.branch_repo is None:
             return
         if self.branch_repo.get_by_business(business_id, branch_id) is None:
-            raise NotFoundException("Branch not found")
+            raise NotFoundException("Şube bulunamadı.")
 
     def create(self, business_id: uuid.UUID, data: ScheduleBlockCreate) -> ScheduleBlock:
         self._ensure_branch(business_id, data.branch_id)
@@ -53,7 +53,7 @@ class ScheduleBlockService:
     def get(self, business_id: uuid.UUID, block_id: uuid.UUID) -> ScheduleBlock:
         obj = self.repository.get_by_business(business_id, block_id)
         if not obj:
-            raise NotFoundException("Schedule block not found")
+            raise NotFoundException("Takvim kapatması bulunamadı.")
         return obj
 
     def update(self, business_id: uuid.UUID, block_id: uuid.UUID, data: ScheduleBlockUpdate) -> ScheduleBlock:

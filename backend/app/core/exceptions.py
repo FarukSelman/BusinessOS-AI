@@ -8,7 +8,7 @@ class BadRequestException(HTTPException):
 
     def __init__(
         self,
-        detail: str = "Bad request.",
+        detail: str = "Geçersiz istek.",
     ):
         super().__init__(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -23,7 +23,7 @@ class UnauthorizedException(HTTPException):
 
     def __init__(
         self,
-        detail: str = "Unauthorized.",
+        detail: str = "Bu işlem için giriş yapmalısınız.",
     ):
         super().__init__(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -41,7 +41,7 @@ class ForbiddenException(HTTPException):
 
     def __init__(
         self,
-        detail: str = "Forbidden.",
+        detail: str = "Bu işlem için yetkiniz yok.",
     ):
         super().__init__(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -56,7 +56,7 @@ class NotFoundException(HTTPException):
 
     def __init__(
         self,
-        detail: str = "Resource not found.",
+        detail: str = "Kayıt bulunamadı.",
     ):
         super().__init__(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -71,7 +71,7 @@ class ConflictException(HTTPException):
 
     def __init__(
         self,
-        detail: str = "Conflict.",
+        detail: str = "Bu işlem mevcut kayıtlarla çakışıyor.",
     ):
         super().__init__(
             status_code=status.HTTP_409_CONFLICT,

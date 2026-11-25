@@ -227,7 +227,7 @@ class MembershipRepository(BaseRepository[Membership]):
         if membership is None:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is not a member of this business.",
+                detail="Bu işletmenin üyesi değilsiniz.",
             )
 
         return membership

@@ -52,7 +52,7 @@ class DocumentService:
 
         if file.filename is None:
             raise ConflictException(
-                "Invalid filename."
+                "Geçersiz dosya adı."
             )
 
 
@@ -61,7 +61,7 @@ class DocumentService:
             file.filename,
         ):
             raise ConflictException(
-                "A document with the same filename already exists."
+                "Aynı adla bir belge zaten var."
             )
 
 
@@ -136,7 +136,7 @@ class DocumentService:
         if document is None:
 
             raise NotFoundException(
-                "Document not found."
+                "Belge bulunamadı."
             )
 
 

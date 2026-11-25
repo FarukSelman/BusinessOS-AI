@@ -57,7 +57,7 @@ class InvitationService:
         ):
 
             raise ConflictException(
-                "A pending invitation already exists for this email.",
+                "Bu e-posta için bekleyen bir davet zaten var.",
             )
 
 
@@ -153,7 +153,7 @@ class InvitationService:
         if invitation is None:
 
             raise NotFoundException(
-                "Invitation not found.",
+                "Davet bulunamadı.",
             )
 
 
@@ -180,7 +180,7 @@ class InvitationService:
         if not self.repository.is_pending(invitation):
 
             raise BadRequestException(
-                "Invitation already used.",
+                "Bu davet zaten kullanılmış.",
             )
 
 
@@ -197,7 +197,7 @@ class InvitationService:
         if expires_at < datetime.now(UTC):
 
             raise BadRequestException(
-                "Invitation expired.",
+                "Davetin süresi dolmuş.",
             )
 
 
@@ -207,7 +207,7 @@ class InvitationService:
         ):
 
             raise ConflictException(
-                "User is already a member.",
+                "Bu kullanıcı zaten işletmenin üyesi.",
             )
 
 

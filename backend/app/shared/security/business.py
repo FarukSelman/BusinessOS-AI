@@ -53,7 +53,7 @@ def get_business_membership(
 
     if membership is None:
         raise ForbiddenException(
-            "You are not a member of this business.",
+            "Bu işletmenin üyesi değilsiniz.",
         )
 
     return membership

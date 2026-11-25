@@ -26,7 +26,7 @@ class CustomerTagService:
     def update_tag(self, business_id: UUID, tag_id: UUID, data: TagUpdate) -> CustomerTag:
         tag = self.tag_repository.get_by_business(business_id, tag_id)
         if not tag:
-            raise NotFoundException("Tag not found")
+            raise NotFoundException("Etiket bulunamadı.")
             
         with self.uow:
             for key, value in data.model_dump(exclude_unset=True).items():
@@ -38,7 +38,7 @@ class CustomerTagService:
     def delete_tag(self, business_id: UUID, tag_id: UUID):
         tag = self.tag_repository.get_by_business(business_id, tag_id)
         if not tag:
-            raise NotFoundException("Tag not found")
+            raise NotFoundException("Etiket bulunamadı.")
             
         with self.uow:
             self.tag_repository.soft_delete(tag_id)
@@ -46,7 +46,7 @@ class CustomerTagService:
     def assign_tag(self, business_id: UUID, customer_id: UUID, tag_id: UUID) -> None:
         tag = self.tag_repository.get_by_business(business_id, tag_id)
         if not tag:
-            raise NotFoundException("Tag not found")
+            raise NotFoundException("Etiket bulunamadı.")
             
         with self.uow:
             self.assignment_repository.assign_tag(customer_id, tag_id)
@@ -55,7 +55,7 @@ class CustomerTagService:
         with self.uow:
             removed = self.assignment_repository.remove_tag(customer_id, tag_id)
             if not removed:
-                raise NotFoundException("Tag assignment not found")
+                raise NotFoundException("Etiket ataması bulunamadı.")
                 
     def get_customer_tags(self, business_id: UUID, customer_id: UUID) -> List[CustomerTag]:
         return self.assignment_repository.get_tags_for_customer(customer_id)

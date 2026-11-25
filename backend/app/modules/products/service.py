@@ -24,7 +24,7 @@ class ProductService:
         if data.sku:
             existing = self.product_repo.get_by_sku(business_id, data.sku)
             if existing:
-                raise ConflictException("Product with this SKU already exists")
+                raise ConflictException("Bu stok koduyla (SKU) bir ürün zaten var.")
         
         product = Product(
             business_id=business_id,
@@ -59,7 +59,7 @@ class ProductService:
     def get_product(self, business_id: uuid.UUID, product_id: uuid.UUID) -> Product:
         product = self.product_repo.get_by_business(business_id, product_id)
         if not product:
-            raise NotFoundException("Product not found")
+            raise NotFoundException("Ürün bulunamadı.")
         return product
 
     def update_product(self, business_id: uuid.UUID, product_id: uuid.UUID, data: ProductUpdate) -> Product:
@@ -67,7 +67,7 @@ class ProductService:
         if data.sku and data.sku != product.sku:
             existing = self.product_repo.get_by_sku(business_id, data.sku)
             if existing:
-                raise ConflictException("Product with this SKU already exists")
+                raise ConflictException("Bu stok koduyla (SKU) bir ürün zaten var.")
                 
         update_data = data.model_dump(exclude_unset=True)
         with self.uow:
@@ -100,7 +100,7 @@ class ProductService:
         with self.uow:
             product.current_stock += data.quantity
             if product.current_stock < 0:
-                raise BadRequestException("Stock cannot be negative")
+                raise BadRequestException("Stok eksiye düşemez.")
             if product.current_stock == 0:
                 product.status = ProductStatus.OUT_OF_STOCK
             elif product.status == ProductStatus.OUT_OF_STOCK:
@@ -124,7 +124,7 @@ class ProductService:
             for item in data.items:
                 product = self.get_product(business_id, item.product_id)
                 if product.current_stock < item.quantity:
-                    raise BadRequestException(f"Insufficient stock for product {product.name}")
+                    raise BadRequestException(f"Yetersiz stok: {product.name}.")
                     
                 item_subtotal = float(product.sale_price) * item.quantity
                 item_tax = item_subtotal * float(product.tax_rate) / 100
@@ -189,7 +189,7 @@ class ProductService:
     def get_sale(self, business_id: uuid.UUID, sale_id: uuid.UUID) -> ProductSale:
         sale = self.product_sale_repo.get_by_business(business_id, sale_id)
         if not sale:
-            raise NotFoundException("Sale not found")
+            raise NotFoundException("Satış bulunamadı.")
         return sale
 
     def get_stock_summary(self, business_id: uuid.UUID) -> Dict[str, Any]:

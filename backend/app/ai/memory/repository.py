@@ -87,7 +87,7 @@ class ConversationRepository:
             )
 
             if not session:
-                raise NotFoundException("Conversation session not found.")
+                raise NotFoundException("Sohbet bulunamadı.")
 
             return session
 

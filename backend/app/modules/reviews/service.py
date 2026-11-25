@@ -24,7 +24,7 @@ class CustomerReviewService:
     def change_status(self, business_id: UUID, review_id: UUID, status: ReviewStatus) -> CustomerReview:
         review = self.review_repository.get_by_business(business_id, review_id)
         if not review:
-            raise NotFoundException("Review not found")
+            raise NotFoundException("Yorum bulunamadı.")
             
         with self.uow:
             review.status = status
@@ -35,7 +35,7 @@ class CustomerReviewService:
     def add_reply(self, business_id: UUID, review_id: UUID, data: ReviewReplyRequest) -> CustomerReview:
         review = self.review_repository.get_by_business(business_id, review_id)
         if not review:
-            raise NotFoundException("Review not found")
+            raise NotFoundException("Yorum bulunamadı.")
             
         with self.uow:
             review.reply = data.reply
@@ -47,7 +47,7 @@ class CustomerReviewService:
     def submit_review(self, business_slug: str, data: ReviewSubmitRequest) -> CustomerReview:
         business = self.business_repository.get_by_slug(business_slug)
         if not business:
-            raise NotFoundException("Business not found")
+            raise NotFoundException("İşletme bulunamadı.")
             
         review = CustomerReview(
             business_id=business.id,
@@ -67,6 +67,6 @@ class CustomerReviewService:
     def get_public_reviews(self, business_slug: str, page: int = 1, size: int = 20) -> List[CustomerReview]:
         business = self.business_repository.get_by_slug(business_slug)
         if not business:
-            raise NotFoundException("Business not found")
+            raise NotFoundException("İşletme bulunamadı.")
             
         return self.review_repository.list_by_business(business.id, ReviewStatus.PUBLISHED, page, size)

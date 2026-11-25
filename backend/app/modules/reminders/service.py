@@ -43,7 +43,7 @@ class ReminderService:
     def get_config(self, business_id: uuid.UUID, config_id: uuid.UUID) -> ReminderConfig:
         obj = self.config_repository.get_by_business(business_id, config_id)
         if not obj:
-            raise NotFoundException("Reminder config not found")
+            raise NotFoundException("Hatırlatma ayarı bulunamadı.")
         return obj
 
     def update_config(self, business_id: uuid.UUID, config_id: uuid.UUID, data: ReminderConfigUpdate) -> ReminderConfig:

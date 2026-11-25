@@ -30,7 +30,7 @@ class BusinessHoursService:
         if branch_id is None or self.branch_repo is None:
             return
         if self.branch_repo.get_by_business(business_id, branch_id) is None:
-            raise NotFoundException("Branch not found")
+            raise NotFoundException("Şube bulunamadı.")
 
     def get_hours(self, business_id: uuid.UUID, branch_id: Optional[uuid.UUID] = None) -> List[BusinessHours]:
         self._ensure_branch(business_id, branch_id)

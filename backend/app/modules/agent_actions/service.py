@@ -57,7 +57,7 @@ class AgentActionService:
             AgentAction.is_deleted.is_(False),
         ).first()
         if action is None:
-            raise NotFoundException("Agent action not found.")
+            raise NotFoundException("Onay bekleyen işlem bulunamadı.")
         return action
 
     def approve(self, business_id: UUID, action_id: UUID, user_id: UUID, role: MembershipRole | None = None) -> AgentAction:
@@ -79,7 +79,7 @@ class AgentActionService:
         if action.action_type == "CREATE_CAMPAIGN":
             return self._approve_campaign_creation(action, user_id)
         if action.action_type != "CREATE_APPOINTMENT":
-            raise ConflictException("Unsupported agent action type.")
+            raise ConflictException("Desteklenmeyen işlem türü.")
 
         appointment_data = AppointmentCreate.model_validate(action.payload)
         customer = self.db.query(Customer).filter(
@@ -89,7 +89,7 @@ class AgentActionService:
             Customer.is_deleted.is_(False),
         ).first()
         if customer is None:
-            raise ConflictException("The customer is no longer available for an appointment.")
+            raise ConflictException("Müşteri artık mevcut değil; randevu oluşturulamadı.")
 
         # Use current CRM data instead of any stale action payload.
         appointment_data.customer_name = customer.name
@@ -101,7 +101,7 @@ class AgentActionService:
         )
         requested_slot = appointment_data.start_time.strftime("%H:%M")
         if requested_slot not in available:
-            raise ConflictException("The requested appointment slot is no longer available.")
+            raise ConflictException("İstenen randevu saati artık müsait değil.")
 
         appointment = self.appointment_service.create(business_id, appointment_data)
         action.status = "EXECUTED"
@@ -120,7 +120,7 @@ class AgentActionService:
             Appointment.is_deleted.is_(False),
         ).first()
         if appointment is None:
-            raise ConflictException("The appointment is no longer available.")
+            raise ConflictException("Randevu artık mevcut değil.")
         self.appointment_service.cancel(action.business_id, appointment.id)
         action.status = "EXECUTED"
         action.approved_by = user_id
@@ -139,7 +139,7 @@ class AgentActionService:
             Customer.is_deleted.is_(False),
         ).first()
         if customer is None:
-            raise ConflictException("The customer is no longer available for an invoice.")
+            raise ConflictException("Müşteri artık mevcut değil; fatura oluşturulamadı.")
         payload.customer_name = customer.name
         payload.customer_email = customer.email
         invoice = self.invoice_service.create_invoice(action.business_id, payload)
@@ -188,7 +188,7 @@ class AgentActionService:
                 ExpenseCategory.is_deleted.is_(False),
             ).first()
             if category is None:
-                raise ConflictException("The expense category is no longer available.")
+                raise ConflictException("Gider kategorisi artık mevcut değil.")
         data = ExpenseCreate(
             direction=payload.get("direction", "EXPENSE"),
             title=payload["title"],
@@ -212,11 +212,11 @@ class AgentActionService:
         repo = CustomerReviewRepository(self.db)
         review = repo.get_by_business(action.business_id, UUID(action.payload["review_id"]))
         if review is None:
-            raise ConflictException("The review is no longer available.")
+            raise ConflictException("Yorum artık mevcut değil.")
         if review.status != ReviewStatus.PUBLISHED:
-            raise ConflictException("Only published reviews can be replied to.")
+            raise ConflictException("Yalnızca yayınlanmış yorumlara yanıt verilebilir.")
         if review.reply:
-            raise ConflictException("The review has already been replied to.")
+            raise ConflictException("Bu yoruma zaten yanıt verilmiş.")
         service = CustomerReviewService(repo, BusinessRepository(self.db), UnitOfWork(self.db))
         service.add_reply(action.business_id, review.id, ReviewReplyRequest(reply=action.payload["reply"]))
         return self._mark_executed(action, user_id, {"review_id": str(review.id)})

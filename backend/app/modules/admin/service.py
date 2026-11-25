@@ -34,7 +34,7 @@ class AdminService:
     def get_business(self, business_id: UUID) -> Business:
         business = self.business_repository.get(business_id)
         if not business:
-            raise NotFoundException("Business not found.")
+            raise NotFoundException("İşletme bulunamadı.")
         return business
 
     def update_business_status(self, business_id: UUID, status: BusinessStatus) -> Business:

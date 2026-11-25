@@ -94,7 +94,7 @@ def _decode_token(
     except JWTError:
 
         raise UnauthorizedException(
-            "Invalid token."
+            "Oturumunuzun süresi doldu, lütfen tekrar giriş yapın."
         )
 
 
@@ -114,7 +114,7 @@ def verify_access_token(
     if payload.get("type") != "access":
 
         raise UnauthorizedException(
-            "Invalid access token."
+            "Oturumunuzun süresi doldu, lütfen tekrar giriş yapın."
         )
 
     return payload
@@ -136,7 +136,7 @@ def verify_refresh_token(
     if payload.get("type") != "refresh":
 
         raise UnauthorizedException(
-            "Invalid refresh token."
+            "Oturum yenilenemedi, lütfen tekrar giriş yapın."
         )
 
     return payload 

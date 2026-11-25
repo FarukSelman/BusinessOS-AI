@@ -88,14 +88,14 @@ def test_login_wrong_password(client, registered):
     response = login(client, registered["email"], "WrongPassword1")
     assert response.status_code == 400
     assert "access_token" not in response.json()
-    assert response.json()["message"] == "Invalid email or password."
+    assert response.json()["message"] == "E-posta veya şifre hatalı."
 
 
 def test_login_nonexistent_user(client):
     """Unknown e-mail: same 400 as a wrong password, so accounts cannot be probed."""
     response = login(client, f"nobody-{uuid.uuid4().hex[:8]}@example.com", PASSWORD)
     assert response.status_code == 400
-    assert response.json()["message"] == "Invalid email or password."
+    assert response.json()["message"] == "E-posta veya şifre hatalı."
 
 
 def test_get_me_authenticated(client, registered):

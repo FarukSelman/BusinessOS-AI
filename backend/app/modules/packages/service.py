@@ -11,6 +11,14 @@ from app.modules.packages.schemas import PackageCreate, PackageUpdate, PackageSa
 from app.shared.enums.package import PackageStatus, CustomerPackageStatus, SessionStatus, InstallmentStatus
 from app.shared.enums.invoice import PaymentMethod
 
+# How a customer package's status reads in a user-facing message.
+CUSTOMER_PACKAGE_STATUS_TR = {
+    CustomerPackageStatus.ACTIVE: "aktif",
+    CustomerPackageStatus.COMPLETED: "tamamlanmış",
+    CustomerPackageStatus.EXPIRED: "süresi dolmuş",
+    CustomerPackageStatus.CANCELLED: "iptal edilmiş",
+}
+
 
 class PackageService:
     def __init__(self, 
@@ -28,7 +36,7 @@ class PackageService:
     def create_package(self, business_id: UUID, data: PackageCreate) -> ServicePackage:
         total_sessions = sum([s.session_count for s in data.services])
         if total_sessions <= 0:
-            raise BadRequestException("Package must have at least one session")
+            raise BadRequestException("Paket en az bir seans içermeli.")
             
         obj = ServicePackage(
             business_id=business_id,
@@ -57,7 +65,7 @@ class PackageService:
     def get_package(self, business_id: UUID, package_id: UUID) -> ServicePackage:
         pkg = self.package_repo.get_by_business(business_id, package_id)
         if not pkg:
-            raise NotFoundException("Package not found")
+            raise NotFoundException("Paket bulunamadı.")
         return pkg
 
     def update_package(self, business_id: UUID, package_id: UUID, data: PackageUpdate) -> ServicePackage:
@@ -84,13 +92,13 @@ class PackageService:
     def sell_package(self, business_id: UUID, data: PackageSaleCreate) -> CustomerPackage:
         pkg = self.get_package(business_id, data.package_id)
         if pkg.status != PackageStatus.ACTIVE:
-            raise BadRequestException("Cannot sell an inactive package")
+            raise BadRequestException("Aktif olmayan paket satılamaz.")
             
         if data.installment_count > 1 and not pkg.is_installment_allowed:
-            raise BadRequestException("Installments are not allowed for this package")
+            raise BadRequestException("Bu paket taksitle satılamaz.")
             
         if data.installment_count > pkg.max_installments:
-            raise BadRequestException(f"Maximum installments allowed is {pkg.max_installments}")
+            raise BadRequestException(f"En fazla {pkg.max_installments} taksit yapılabilir.")
 
         with self.uow:
             now = datetime.now(UTC)
@@ -217,7 +225,7 @@ class PackageService:
     def get_customer_package_detail(self, business_id: UUID, cp_id: UUID) -> CustomerPackage:
         cp = self.customer_package_repo.get_by_business(business_id, cp_id)
         if not cp:
-            raise NotFoundException("Customer package not found")
+            raise NotFoundException("Müşteri paketi bulunamadı.")
         
         sessions = self.session_repo.list_by_customer_package(cp.id)
         installments = self.installment_repo.list_by_customer_package(cp.id)
@@ -233,17 +241,19 @@ class PackageService:
     def complete_session(self, business_id: UUID, cp_id: UUID, session_id: UUID, data: SessionComplete) -> PackageSession:
         cp = self.customer_package_repo.get_by_business(business_id, cp_id)
         if not cp:
-            raise NotFoundException("Customer package not found")
+            raise NotFoundException("Müşteri paketi bulunamadı.")
             
         if cp.status not in [CustomerPackageStatus.ACTIVE]:
-            raise BadRequestException(f"Cannot complete session on package with status {cp.status}")
+            raise BadRequestException(
+                f"Bu paket {CUSTOMER_PACKAGE_STATUS_TR.get(cp.status, cp.status)} durumda, seans tamamlanamaz."
+            )
             
         session = self.session_repo.get(session_id)
         if not session or session.customer_package_id != cp.id:
-            raise NotFoundException("Session not found")
+            raise NotFoundException("Seans bulunamadı.")
             
         if session.status == SessionStatus.COMPLETED:
-            raise BadRequestException("Session is already completed")
+            raise BadRequestException("Seans zaten tamamlanmış.")
             
         with self.uow:
             session.status = SessionStatus.COMPLETED
@@ -266,14 +276,14 @@ class PackageService:
     def cancel_session(self, business_id: UUID, cp_id: UUID, session_id: UUID) -> PackageSession:
         cp = self.customer_package_repo.get_by_business(business_id, cp_id)
         if not cp:
-            raise NotFoundException("Customer package not found")
+            raise NotFoundException("Müşteri paketi bulunamadı.")
             
         session = self.session_repo.get(session_id)
         if not session or session.customer_package_id != cp.id:
-            raise NotFoundException("Session not found")
+            raise NotFoundException("Seans bulunamadı.")
             
         if session.status == SessionStatus.COMPLETED:
-            raise BadRequestException("Cannot cancel a completed session")
+            raise BadRequestException("Tamamlanmış seans iptal edilemez.")
             
         with self.uow:
             session.status = SessionStatus.CANCELLED
@@ -291,14 +301,14 @@ class PackageService:
     def pay_installment(self, business_id: UUID, installment_id: UUID, payment_method: Optional[PaymentMethod] = None) -> Installment:
         inst = self.installment_repo.get(installment_id)
         if not inst or inst.business_id != business_id:
-            raise NotFoundException("Installment not found")
+            raise NotFoundException("Taksit bulunamadı.")
             
         if inst.status == InstallmentStatus.PAID:
-            raise BadRequestException("Installment is already paid")
+            raise BadRequestException("Taksit zaten ödenmiş.")
             
         cp = self.customer_package_repo.get(inst.customer_package_id)
         if not cp:
-            raise NotFoundException("Customer package not found")
+            raise NotFoundException("Müşteri paketi bulunamadı.")
             
         with self.uow:
             inst.status = InstallmentStatus.PAID

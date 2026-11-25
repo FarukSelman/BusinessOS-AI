@@ -16,7 +16,7 @@ class BranchService:
     def get_branch(self, business_id: UUID, branch_id: UUID) -> Branch:
         branch = self.repository.get_by_business(business_id=business_id, branch_id=branch_id)
         if not branch:
-            raise NotFoundException("Branch not found")
+            raise NotFoundException("Şube bulunamadı.")
         return branch
         
     def create_branch(self, business_id: UUID, data: BranchCreate) -> Branch:

@@ -154,14 +154,14 @@ class DocumentChunkService:
         if chunk is None:
 
             raise NotFoundException(
-                "Chunk not found.",
+                "Belge parçası bulunamadı.",
             )
 
 
         if chunk.document_id != document_id:
 
             raise NotFoundException(
-                "Chunk does not belong to document.",
+                "Belge parçası bu belgeye ait değil.",
             )
 
 

@@ -121,7 +121,7 @@ class AppointmentService:
         if appointment is None:
 
             raise NotFoundException(
-                "Appointment not found.",
+                "Randevu bulunamadı.",
             )
 
         return appointment

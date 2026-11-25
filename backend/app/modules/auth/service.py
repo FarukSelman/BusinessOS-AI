@@ -70,7 +70,7 @@ class AuthService:
         ):
 
             raise ConflictException(
-                "Email is already registered.",
+                "Bu e-posta adresi zaten kayıtlı.",
             )
 
 
@@ -121,7 +121,7 @@ class AuthService:
         if user is None:
 
             raise BadRequestException(
-                "Invalid email or password.",
+                "E-posta veya şifre hatalı.",
             )
 
 
@@ -131,14 +131,14 @@ class AuthService:
         ):
 
             raise BadRequestException(
-                "Invalid email or password.",
+                "E-posta veya şifre hatalı.",
             )
 
 
         if user.status != UserStatus.ACTIVE:
 
             raise ForbiddenException(
-                "User account is not active.",
+                "Hesabınız aktif değil.",
             )
 
 
@@ -178,7 +178,7 @@ class AuthService:
         if user_id is None:
 
             raise BadRequestException(
-                "Invalid refresh token.",
+                "Oturum yenilenemedi, lütfen tekrar giriş yapın.",
             )
 
 
@@ -191,7 +191,7 @@ class AuthService:
         except ValueError:
 
             raise BadRequestException(
-                "Invalid user identifier.",
+                "Geçersiz oturum bilgisi.",
             )
 
 
@@ -203,14 +203,14 @@ class AuthService:
         if user is None:
 
             raise NotFoundException(
-                "User not found.",
+                "Kullanıcı bulunamadı.",
             )
 
 
         if user.status != UserStatus.ACTIVE:
 
             raise ForbiddenException(
-                "User account is not active.",
+                "Hesabınız aktif değil.",
             )
 
 

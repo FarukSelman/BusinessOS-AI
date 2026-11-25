@@ -33,7 +33,7 @@ class SurveyService:
     def get_survey(self, business_id: UUID, survey_id: UUID) -> Survey:
         survey = self.survey_repository.get_by_business(business_id, survey_id)
         if not survey:
-            raise NotFoundException("Survey not found")
+            raise NotFoundException("Anket bulunamadı.")
         return survey
 
     def update_survey(self, business_id: UUID, survey_id: UUID, data: SurveyUpdate) -> Survey:
@@ -65,7 +65,7 @@ class SurveyService:
     def get_public_survey(self, survey_id: UUID) -> Survey:
         survey = self.survey_repository.get_public_survey(survey_id)
         if not survey:
-            raise NotFoundException("Survey not found or not active")
+            raise NotFoundException("Anket bulunamadı veya aktif değil.")
         return survey
 
     def submit_response(self, survey_id: UUID, data: SurveySubmitResponse) -> SurveyResponseModel:

@@ -92,7 +92,7 @@ class ServiceService:
         if service is None:
 
             raise NotFoundException(
-                "Service not found.",
+                "Hizmet bulunamadı.",
             )
 
         return service

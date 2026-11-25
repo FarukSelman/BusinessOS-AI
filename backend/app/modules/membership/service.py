@@ -46,7 +46,7 @@ class MembershipService:
         ):
 
             raise ConflictException(
-                "User is already a member of this business.",
+                "Bu kullanıcı zaten işletmenin üyesi.",
             )
 
 
@@ -136,7 +136,7 @@ class MembershipService:
         if membership is None:
 
             raise NotFoundException(
-                "Membership not found.",
+                "Üyelik bulunamadı.",
             )
 
 
@@ -159,7 +159,7 @@ class MembershipService:
         if membership.business_id != business_id:
 
             raise NotFoundException(
-                "Membership not found.",
+                "Üyelik bulunamadı.",
             )
 
         if membership.role.name == "OWNER":
@@ -171,7 +171,7 @@ class MembershipService:
             if owner_count <= 1:
 
                 raise ConflictException(
-                    "Cannot remove the last owner.",
+                    "İşletmenin son sahibi çıkarılamaz.",
                 )
 
         with self.uow:
@@ -202,7 +202,7 @@ class MembershipService:
         if membership is None:
 
             raise NotFoundException(
-                "Membership not found.",
+                "Üyelik bulunamadı.",
             )
 
 

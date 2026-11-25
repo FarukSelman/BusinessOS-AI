@@ -142,7 +142,7 @@ class CustomerService:
         if customer is None:
 
             raise NotFoundException(
-                "Customer not found.",
+                "Müşteri bulunamadı.",
             )
 
         return customer

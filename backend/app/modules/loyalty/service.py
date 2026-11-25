@@ -44,7 +44,7 @@ class LoyaltyService:
 
     def earn_points(self, business_id: UUID, customer_id: UUID, points: int, description: Optional[str] = None, reference_type: Optional[str] = None, reference_id: Optional[UUID] = None) -> LoyaltyTransaction:
         if points <= 0:
-            raise BadRequestException("Points must be positive")
+            raise BadRequestException("Puan pozitif olmalı.")
         
         wallet = self.get_or_create_wallet(business_id, customer_id)
         
@@ -69,12 +69,12 @@ class LoyaltyService:
 
     def spend_points(self, business_id: UUID, customer_id: UUID, points: int, description: Optional[str] = None, reference_type: Optional[str] = None, reference_id: Optional[UUID] = None) -> LoyaltyTransaction:
         if points <= 0:
-            raise BadRequestException("Points must be positive")
+            raise BadRequestException("Puan pozitif olmalı.")
             
         wallet = self.get_or_create_wallet(business_id, customer_id)
         
         if wallet.balance < points:
-            raise BadRequestException("Insufficient balance")
+            raise BadRequestException("Yetersiz puan bakiyesi.")
             
         transaction = LoyaltyTransaction(
             wallet_id=wallet.id,

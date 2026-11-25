@@ -41,7 +41,7 @@ class ExpenseService:
     def update_expense(self, business_id: UUID, expense_id: UUID, data: ExpenseUpdate) -> Expense:
         obj = self.repository.get_by_business(business_id, expense_id)
         if not obj:
-            raise NotFoundException("Expense not found")
+            raise NotFoundException("Gider kaydı bulunamadı.")
         with self.uow:
             for k, v in data.model_dump(exclude_unset=True).items():
                 setattr(obj, k, v)
@@ -52,7 +52,7 @@ class ExpenseService:
     def delete_expense(self, business_id: UUID, expense_id: UUID) -> None:
         obj = self.repository.get_by_business(business_id, expense_id)
         if not obj:
-            raise NotFoundException("Expense not found")
+            raise NotFoundException("Gider kaydı bulunamadı.")
         with self.uow:
             self.repository.soft_delete(obj)
             self.uow.flush()

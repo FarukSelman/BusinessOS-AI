@@ -74,7 +74,7 @@ class InvoiceService:
         invoice = self.repository.get(invoice_id)
         # An invoice of another business is reported as "not found" (no ID probing).
         if not invoice or invoice.business_id != business_id:
-            raise NotFoundException("Invoice not found.")
+            raise NotFoundException("Fatura bulunamadı.")
         return invoice
 
     def update_invoice(self, business_id: UUID, invoice_id: UUID, payload: InvoiceUpdatePayload) -> Invoice:
@@ -122,7 +122,7 @@ class InvoiceService:
     def create_from_appointment(self, business_id: UUID, appointment_id: UUID) -> Invoice:
         appointment = self.appointment_repo.get_by_business(business_id, appointment_id)
         if not appointment:
-            raise NotFoundException("Appointment not found.")
+            raise NotFoundException("Randevu bulunamadı.")
 
         # For simplicity, default values for items and amounts are used
         payload = InvoiceCreatePayload(

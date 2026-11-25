@@ -60,7 +60,7 @@ class ExpenseCategoryService:
     def update(self, business_id: UUID, category_id: UUID, data: ExpenseCategoryUpdate) -> ExpenseCategory:
         obj = self.repository.get_by_business(business_id, category_id)
         if not obj:
-            raise NotFoundException("Category not found")
+            raise NotFoundException("Kategori bulunamadı.")
         with self.uow:
             if data.name is not None:
                 obj.name = data.name
@@ -75,7 +75,7 @@ class ExpenseCategoryService:
     def delete(self, business_id: UUID, category_id: UUID) -> None:
         obj = self.repository.get_by_business(business_id, category_id)
         if not obj:
-            raise NotFoundException("Category not found")
+            raise NotFoundException("Kategori bulunamadı.")
         with self.uow:
             self.repository.soft_delete(obj)
             self.uow.flush()
