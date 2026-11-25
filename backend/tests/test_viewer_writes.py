@@ -32,6 +32,8 @@ VIEWER_ALLOWED = {
     ("POST", f"{API}/businesses/{{business_id}}/chat"),
     ("DELETE", f"{API}/businesses/{{business_id}}/chat/sessions/{{session_id}}"),
     ("POST", f"{API}/businesses/{{business_id}}/rag/ask"),
+    # voice input: speech to text only; the text then goes through the normal chat (K7)
+    ("POST", f"{API}/businesses/{{business_id}}/chat/transcribe"),
 }
 
 
