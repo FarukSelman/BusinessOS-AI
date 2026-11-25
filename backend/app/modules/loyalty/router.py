@@ -9,7 +9,7 @@ from app.shared.security.dependencies import get_current_user
 from app.modules.loyalty.schemas import LoyaltyRuleUpdate, LoyaltyRuleResponse, LoyaltyWalletResponse, LoyaltyTransactionResponse, EarnPointsRequest, SpendPointsRequest, AdjustPointsRequest
 from app.modules.loyalty.repository import LoyaltyRuleRepository, LoyaltyWalletRepository, LoyaltyTransactionRepository
 from app.modules.loyalty.service import LoyaltyService
-from app.shared.security.business import require_business_member
+from app.shared.security.business import require_admin, require_business_member
 
 router = APIRouter(prefix="/businesses/{business_id}/loyalty", tags=["Loyalty"], dependencies=[Depends(require_business_member)])
 
@@ -28,7 +28,7 @@ def get_rules(
 ):
     return service.get_or_create_rule(business_id)
 
-@router.put("/rules", response_model=LoyaltyRuleResponse)
+@router.put("/rules", response_model=LoyaltyRuleResponse, dependencies=[Depends(require_admin)])
 def update_rules(
     business_id: UUID,
     data: LoyaltyRuleUpdate,
@@ -88,7 +88,7 @@ def spend_points(
         reference_id=data.reference_id
     )
 
-@router.post("/adjust", response_model=LoyaltyTransactionResponse)
+@router.post("/adjust", response_model=LoyaltyTransactionResponse, dependencies=[Depends(require_admin)])
 def adjust_points(
     business_id: UUID,
     data: AdjustPointsRequest,

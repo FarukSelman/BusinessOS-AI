@@ -8,7 +8,7 @@ from app.modules.branches.schemas import BranchCreate, BranchResponse, BranchUpd
 from app.modules.branches.service import BranchService
 from app.modules.user.models import User
 from app.shared.security.dependencies import get_current_user
-from app.shared.security.business import require_business_member
+from app.shared.security.business import require_admin, require_business_member
 
 router = APIRouter(prefix="/businesses/{business_id}/branches", tags=["Branches"], dependencies=[Depends(require_business_member)])
 
@@ -17,7 +17,7 @@ def get_service(db: Session = Depends(get_db)) -> BranchService:
     uow = UnitOfWork(db)
     return BranchService(repository=repository, uow=uow)
 
-@router.post("", response_model=BranchResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=BranchResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
 def create_branch(
     business_id: UUID,
     data: BranchCreate,
@@ -45,7 +45,7 @@ def get_branch(
 ):
     return service.get_branch(business_id=business_id, branch_id=branch_id)
 
-@router.patch("/{branch_id}", response_model=BranchResponse)
+@router.patch("/{branch_id}", response_model=BranchResponse, dependencies=[Depends(require_admin)])
 def update_branch(
     business_id: UUID,
     branch_id: UUID,
@@ -55,7 +55,7 @@ def update_branch(
 ):
     return service.update_branch(business_id=business_id, branch_id=branch_id, data=data)
 
-@router.delete("/{branch_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{branch_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
 def delete_branch(
     business_id: UUID,
     branch_id: UUID,
@@ -64,7 +64,7 @@ def delete_branch(
 ):
     service.delete_branch(business_id=business_id, branch_id=branch_id)
 
-@router.post("/{branch_id}/set-main", response_model=BranchResponse)
+@router.post("/{branch_id}/set-main", response_model=BranchResponse, dependencies=[Depends(require_admin)])
 def set_main_branch(
     business_id: UUID,
     branch_id: UUID,

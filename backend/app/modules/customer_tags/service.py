@@ -41,7 +41,7 @@ class CustomerTagService:
             raise NotFoundException("Etiket bulunamadı.")
             
         with self.uow:
-            self.tag_repository.soft_delete(tag_id)
+            self.tag_repository.soft_delete(tag)
             
     def assign_tag(self, business_id: UUID, customer_id: UUID, tag_id: UUID) -> None:
         tag = self.tag_repository.get_by_business(business_id, tag_id)

@@ -20,7 +20,7 @@ from app.modules.customers.service import CustomerService
 from app.modules.user.models import User
 
 from app.shared.security.dependencies import get_current_user
-from app.shared.security.business import require_business_member
+from app.shared.security.business import require_admin, require_business_member
 
 
 router = APIRouter(
@@ -229,6 +229,7 @@ def update_customer(
     "/{customer_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete customer",
+    dependencies=[Depends(require_admin)],
 )
 def delete_customer(
     business_id: UUID,

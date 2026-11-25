@@ -9,7 +9,7 @@ from app.modules.staff.schemas import StaffCreate, StaffUpdate, StaffResponse, S
 from app.modules.staff.service import StaffServiceDomain
 from app.modules.user.models import User
 from app.shared.security.dependencies import get_current_user
-from app.shared.security.business import require_business_member
+from app.shared.security.business import require_admin, require_business_member
 
 router = APIRouter(prefix="/businesses/{business_id}/staff", tags=["Staff"], dependencies=[Depends(require_business_member)])
 
@@ -44,7 +44,7 @@ def get_available_staff(
     )
     return [service._enrich_staff(s) for s in staff_list]
 
-@router.post("", response_model=StaffResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=StaffResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
 def create_staff(
     business_id: UUID,
     data: StaffCreate,
@@ -75,7 +75,7 @@ def get_staff(
 ):
     return service.get_staff(business_id=business_id, staff_id=staff_id)
 
-@router.patch("/{staff_id}", response_model=StaffResponse)
+@router.patch("/{staff_id}", response_model=StaffResponse, dependencies=[Depends(require_admin)])
 def update_staff(
     business_id: UUID,
     staff_id: UUID,
@@ -85,7 +85,7 @@ def update_staff(
 ):
     return service.update_staff(business_id=business_id, staff_id=staff_id, data=data)
 
-@router.delete("/{staff_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{staff_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
 def delete_staff(
     business_id: UUID,
     staff_id: UUID,
@@ -94,7 +94,7 @@ def delete_staff(
 ):
     service.delete_staff(business_id=business_id, staff_id=staff_id)
 
-@router.put("/{staff_id}/services", response_model=StaffResponse)
+@router.put("/{staff_id}/services", response_model=StaffResponse, dependencies=[Depends(require_admin)])
 def assign_services(
     business_id: UUID,
     staff_id: UUID,
@@ -113,7 +113,7 @@ def list_staff_services(
 ):
     return service.list_staff_services(staff_id=staff_id)
 
-@router.put("/{staff_id}/schedule", response_model=list[StaffScheduleResponse])
+@router.put("/{staff_id}/schedule", response_model=list[StaffScheduleResponse], dependencies=[Depends(require_admin)])
 def set_schedule(
     business_id: UUID,
     staff_id: UUID,

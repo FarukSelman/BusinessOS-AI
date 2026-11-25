@@ -9,7 +9,7 @@ from app.shared.security.dependencies import get_current_user
 from app.modules.surveys.schemas import SurveyCreate, SurveyUpdate, SurveyResponseSchema
 from app.modules.surveys.repository import SurveyRepository, SurveyResponseRepository
 from app.modules.surveys.service import SurveyService
-from app.shared.security.business import require_business_member
+from app.shared.security.business import require_admin, require_business_member
 
 router = APIRouter(prefix="/businesses/{business_id}/surveys", tags=["Surveys"], dependencies=[Depends(require_business_member)])
 
@@ -19,7 +19,7 @@ def get_service(db: Session = Depends(get_db)) -> SurveyService:
     uow = UnitOfWork(db)
     return SurveyService(survey_repo, response_repo, uow)
 
-@router.post("", response_model=SurveyResponseSchema, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=SurveyResponseSchema, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
 def create_survey(
     business_id: UUID,
     data: SurveyCreate,
@@ -47,7 +47,7 @@ def get_survey(
 ):
     return service.get_survey(business_id, survey_id)
 
-@router.patch("/{survey_id}", response_model=SurveyResponseSchema)
+@router.patch("/{survey_id}", response_model=SurveyResponseSchema, dependencies=[Depends(require_admin)])
 def update_survey(
     business_id: UUID,
     survey_id: UUID,
@@ -57,7 +57,7 @@ def update_survey(
 ):
     return service.update_survey(business_id, survey_id, data)
 
-@router.delete("/{survey_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{survey_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
 def delete_survey(
     business_id: UUID,
     survey_id: UUID,

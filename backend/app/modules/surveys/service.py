@@ -51,7 +51,7 @@ class SurveyService:
     def delete_survey(self, business_id: UUID, survey_id: UUID):
         survey = self.get_survey(business_id, survey_id)
         with self.uow:
-            self.survey_repository.soft_delete(survey_id)
+            self.survey_repository.soft_delete(survey)
 
     def list_responses(self, business_id: UUID, survey_id: UUID, page: int = 1, size: int = 20) -> List[SurveyResponseModel]:
         # Validate survey belongs to business

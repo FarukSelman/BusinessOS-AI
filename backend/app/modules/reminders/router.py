@@ -10,7 +10,7 @@ from app.modules.reminders.repository import ReminderConfigRepository, ReminderL
 from app.modules.reminders.service import ReminderService
 from app.modules.business.models import Business
 from app.modules.reminders.schemas import ReminderConfigCreate, ReminderConfigUpdate, ReminderConfigResponse, ReminderLogResponse, TestReminderResponse
-from app.shared.security.business import require_business_member
+from app.shared.security.business import require_admin, require_business_member
 
 router = APIRouter(prefix="/businesses/{business_id}/reminders", tags=["Reminders"], dependencies=[Depends(require_business_member)])
 
@@ -20,7 +20,7 @@ def get_service(db: Session = Depends(get_db)) -> ReminderService:
     uow = UnitOfWork(db)
     return ReminderService(config_repository=config_repo, log_repository=log_repo, uow=uow)
 
-@router.post("/configs", response_model=ReminderConfigResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/configs", response_model=ReminderConfigResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
 def create_config(
     business_id: UUID, 
     data: ReminderConfigCreate, 
@@ -39,7 +39,7 @@ def list_configs(
 ):
     return service.list_configs(business_id=business_id, page=page, size=size)
 
-@router.patch("/configs/{config_id}", response_model=ReminderConfigResponse)
+@router.patch("/configs/{config_id}", response_model=ReminderConfigResponse, dependencies=[Depends(require_admin)])
 def update_config(
     business_id: UUID, 
     config_id: UUID, 
@@ -49,7 +49,7 @@ def update_config(
 ):
     return service.update_config(business_id=business_id, config_id=config_id, data=data)
 
-@router.delete("/configs/{config_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/configs/{config_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
 def delete_config(
     business_id: UUID, 
     config_id: UUID, 
@@ -69,7 +69,7 @@ def list_logs(
 ):
     return service.list_logs(business_id=business_id, appointment_id=appointment_id, page=page, size=size)
 
-@router.post("/send-test/{config_id}", response_model=TestReminderResponse)
+@router.post("/send-test/{config_id}", response_model=TestReminderResponse, dependencies=[Depends(require_admin)])
 def send_test_reminder(
     business_id: UUID, 
     config_id: UUID, 

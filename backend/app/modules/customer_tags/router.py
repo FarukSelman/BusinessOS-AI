@@ -9,7 +9,7 @@ from app.shared.security.dependencies import get_current_user
 from app.modules.customer_tags.schemas import TagCreate, TagUpdate, TagResponse, TagAssignmentCreate
 from app.modules.customer_tags.repository import CustomerTagRepository, CustomerTagAssignmentRepository
 from app.modules.customer_tags.service import CustomerTagService
-from app.shared.security.business import require_business_member
+from app.shared.security.business import require_admin, require_business_member
 
 router = APIRouter(prefix="/businesses/{business_id}/customer-tags", tags=["Customer Tags"], dependencies=[Depends(require_business_member)])
 
@@ -19,7 +19,7 @@ def get_service(db: Session = Depends(get_db)) -> CustomerTagService:
     uow = UnitOfWork(db)
     return CustomerTagService(tag_repository=tag_repo, assignment_repository=assign_repo, uow=uow)
 
-@router.post("", response_model=TagResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=TagResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
 def create_tag(
     business_id: UUID,
     data: TagCreate,
@@ -36,7 +36,7 @@ def list_tags(
 ):
     return service.list_tags(business_id=business_id)
 
-@router.patch("/{tag_id}", response_model=TagResponse)
+@router.patch("/{tag_id}", response_model=TagResponse, dependencies=[Depends(require_admin)])
 def update_tag(
     business_id: UUID,
     tag_id: UUID,
@@ -46,7 +46,7 @@ def update_tag(
 ):
     return service.update_tag(business_id=business_id, tag_id=tag_id, data=data)
 
-@router.delete("/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{tag_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
 def delete_tag(
     business_id: UUID,
     tag_id: UUID,

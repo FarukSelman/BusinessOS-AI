@@ -11,7 +11,7 @@ from app.modules.reviews.repository import CustomerReviewRepository
 from app.modules.business.repository import BusinessRepository
 from app.modules.reviews.service import CustomerReviewService
 from app.shared.enums.review import ReviewStatus
-from app.shared.security.business import require_business_member
+from app.shared.security.business import require_admin, require_business_member
 
 router = APIRouter(prefix="/businesses/{business_id}/reviews", tags=["Reviews"], dependencies=[Depends(require_business_member)])
 
@@ -40,7 +40,7 @@ def get_stats(
 ):
     return service.get_stats(business_id)
 
-@router.patch("/{review_id}/approve", response_model=ReviewResponse)
+@router.patch("/{review_id}/approve", response_model=ReviewResponse, dependencies=[Depends(require_admin)])
 def approve_review(
     business_id: UUID,
     review_id: UUID,
@@ -49,7 +49,7 @@ def approve_review(
 ):
     return service.change_status(business_id, review_id, ReviewStatus.PUBLISHED)
 
-@router.patch("/{review_id}/reject", response_model=ReviewResponse)
+@router.patch("/{review_id}/reject", response_model=ReviewResponse, dependencies=[Depends(require_admin)])
 def reject_review(
     business_id: UUID,
     review_id: UUID,
@@ -58,7 +58,7 @@ def reject_review(
 ):
     return service.change_status(business_id, review_id, ReviewStatus.REJECTED)
 
-@router.patch("/{review_id}/reply", response_model=ReviewResponse)
+@router.patch("/{review_id}/reply", response_model=ReviewResponse, dependencies=[Depends(require_admin)])
 def reply_review(
     business_id: UUID,
     review_id: UUID,

@@ -17,7 +17,7 @@ from app.modules.services.service import ServiceService
 from app.modules.user.models import User
 
 from app.shared.security.dependencies import get_current_user
-from app.shared.security.business import require_business_member
+from app.shared.security.business import require_admin, require_business_member
 
 
 router = APIRouter(
@@ -58,6 +58,7 @@ def get_service(
     response_model=ServiceResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create service",
+    dependencies=[Depends(require_admin)],
 )
 def create_service(
     business_id: UUID,
@@ -149,6 +150,7 @@ def get_service_detail(
     "/{service_id}",
     response_model=ServiceResponse,
     summary="Update service",
+    dependencies=[Depends(require_admin)],
 )
 def update_service(
     business_id: UUID,
@@ -180,6 +182,7 @@ def update_service(
     "/{service_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete service",
+    dependencies=[Depends(require_admin)],
 )
 def delete_service(
     business_id: UUID,
