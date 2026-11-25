@@ -25,6 +25,18 @@ class Settings(BaseSettings):
     LLM_PROVIDER: str = "mock"
 
     # ==========================
+    # Voice input (speech to text for the AI chat)
+    # ==========================
+    # Checked against the API (models.retrieve + a short real call) on 2026-11-25.
+    OPENAI_TRANSCRIBE_MODEL: str = "gpt-transcribe"
+    TRANSCRIBE_LANGUAGE: str = "tr"
+    TRANSCRIBE_TIMEOUT_SECONDS: float = 30.0
+    TRANSCRIBE_MAX_BYTES: int = 5 * 1024 * 1024   # 60 s of browser audio is well under 1 MB
+    TRANSCRIBE_MAX_SECONDS: int = 60              # enforced by the recorder in the browser
+    TRANSCRIBE_LIMIT: int = 20                    # recordings per user and business ...
+    TRANSCRIBE_WINDOW_SECONDS: int = 600          # ... per 10 minutes
+
+    # ==========================
     # Mail
     # ==========================
 
