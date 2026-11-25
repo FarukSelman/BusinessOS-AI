@@ -1,86 +1,137 @@
+import json
+import uuid
+from types import SimpleNamespace
+
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
-@pytest.fixture
-def mock_agents():
-    with patch("app.ai.agents.orchestrator.OrchestratorAgent") as mock_orchestrator:
-        yield mock_orchestrator
+from app.ai.agents.schemas import AgentContext, AgentResponse
 
-def test_orchestrator_routes_to_customer_support():
-    """Test routing to customer support agent."""
-    # Assuming OrchestratorAgent evaluates intent and returns the correct agent name
-    try:
-        from app.ai.agents.orchestrator import OrchestratorAgent
-        agent = OrchestratorAgent()
-        agent._determine_intent = MagicMock(return_value="customer_support")
-        assert agent.route("I have a problem with my bill") == "customer_support"
-    except ImportError:
-        pass
 
-def test_orchestrator_routes_to_appointment():
-    """Test routing to appointment agent."""
-    try:
-        from app.ai.agents.orchestrator import OrchestratorAgent
-        agent = OrchestratorAgent()
-        agent._determine_intent = MagicMock(return_value="appointment")
-        assert agent.route("I want to book a meeting") == "appointment"
-    except ImportError:
-        pass
+# ---------------------------------------------------------------- routing
+# The LLM classifier is mocked (client.chat returns the intent) and every
+# specialist's execute() is replaced, so a test sees which agent got the question.
 
-def test_orchestrator_routes_to_sales():
-    """Test routing to sales agent."""
-    try:
-        from app.ai.agents.orchestrator import OrchestratorAgent
-        agent = OrchestratorAgent()
-        agent._determine_intent = MagicMock(return_value="sales")
-        assert agent.route("How much is the enterprise plan?") == "sales"
-    except ImportError:
-        pass
+def _routed(client, role="OWNER"):
+    orchestrator = _orchestrator(client)
+    for name, agent in orchestrator.agents.items():
+        agent.execute = MagicMock(return_value=AgentResponse(answer=f"{name} yanıtı", agent_name=name))
+    context = AgentContext(business_id=uuid.uuid4(), user_id=uuid.uuid4(), business_name="Kuaför", role=role)
+    return orchestrator, context
 
-def test_orchestrator_routes_to_analytics():
-    """Test routing to analytics agent."""
-    try:
-        from app.ai.agents.orchestrator import OrchestratorAgent
-        agent = OrchestratorAgent()
-        agent._determine_intent = MagicMock(return_value="analytics")
-        assert agent.route("Show me the report for last month") == "analytics"
-    except ImportError:
-        pass
 
-def test_orchestrator_routes_to_marketing():
-    """Test routing to marketing agent."""
-    try:
-        from app.ai.agents.orchestrator import OrchestratorAgent
-        agent = OrchestratorAgent()
-        agent._determine_intent = MagicMock(return_value="marketing")
-        assert agent.route("Help me write an email campaign") == "marketing"
-    except ImportError:
-        pass
+@pytest.mark.parametrize("intent, question", [
+    ("customer_support", "Faturamla ilgili bir sorunum var"),
+    ("appointment", "Yarın için randevu almak istiyorum"),
+    ("sales", "Kurumsal paketin fiyatı ne kadar?"),
+    ("analytics", "Geçen ayın raporunu göster"),
+    ("marketing", "Bir e-posta kampanyası yazmama yardım et"),
+    ("finance", "Bu ay ne kadar gelir elde ettik?"),
+])
+def test_orchestrator_routes_to_the_classified_agent(intent, question):
+    client = MagicMock()
+    client.chat.return_value = intent
+    orchestrator, context = _routed(client)
+
+    response = orchestrator.route(question=question, context=context)
+
+    assert response.agent_name == intent
+    orchestrator.agents[intent].execute.assert_called_once()
+    assert orchestrator.agents[intent].execute.call_args.kwargs["question"] == question
+    others = [a for name, a in orchestrator.agents.items() if name != intent]
+    assert not any(a.execute.called for a in others)
+
+
+def test_orchestrator_reads_the_agent_name_out_of_a_wordy_answer():
+    client = MagicMock()
+    client.chat.return_value = "Ajan: marketing."
+    orchestrator, context = _routed(client)
+    assert orchestrator.route(question="Kampanya hazırla", context=context).agent_name == "marketing"
+
 
 def test_orchestrator_fallback_to_customer_support():
-    """Test fallback to customer support if intent is unclear."""
-    try:
-        from app.ai.agents.orchestrator import OrchestratorAgent
-        agent = OrchestratorAgent()
-        agent._determine_intent = MagicMock(return_value="unknown")
-        assert agent.route("blah blah blah") == "customer_support"
-    except ImportError:
-        pass
+    """An answer that names no agent goes to customer support."""
+    client = MagicMock()
+    client.chat.return_value = "bilmiyorum"
+    orchestrator, context = _routed(client)
+    response = orchestrator.route(question="blah blah blah", context=context)
+    assert response.agent_name == "customer_support"
+    orchestrator.agents["customer_support"].execute.assert_called_once()
+
+
+@pytest.mark.parametrize("role", ["EMPLOYEE", "VIEWER"])
+def test_orchestrator_keeps_finance_from_non_finance_roles(role):
+    client = MagicMock()
+    client.chat.return_value = "finance"
+    orchestrator, context = _routed(client, role=role)
+    response = orchestrator.route(question="Bu ay ne kadar kâr ettik?", context=context)
+    assert response.metadata == {"access_denied": True}
+    assert not orchestrator.agents["finance"].execute.called
+
+
+# ---------------------------------------------------------------- base agent
+
+def _dummy_agent(client):
+    from app.ai.agents.base import BaseAgent
+    from app.ai.agents.tools.base import BaseTool, ToolResult
+
+    class EchoTool(BaseTool):
+        name = "echo"
+        description = "Verilen metni geri döndürür."
+        parameters = {"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]}
+
+        def execute(self, **kwargs) -> ToolResult:
+            return ToolResult(success=True, output=f"echo: {kwargs['text']}")
+
+    class DummyAgent(BaseAgent):
+        name = "dummy"
+        description = "Test ajanı"
+        system_prompt = "Sen bir test ajanısın."
+        tools = [EchoTool()]
+
+    return DummyAgent(client)
+
+
+def _llm_reply(content=None, tool_calls=None):
+    return SimpleNamespace(
+        content=content, tool_calls=tool_calls,
+        model_dump=lambda: {"role": "assistant", "content": content},
+    )
+
 
 def test_base_agent_tool_schema_generation():
-    """Test BaseAgent generates correct tool schema."""
-    try:
-        from app.ai.agents.base import BaseAgent
-        class DummyAgent(BaseAgent):
-            def my_tool(self, param1: str):
-                """A dummy tool."""
-                pass
-        
-        agent = DummyAgent()
-        schema = agent.get_tool_schema()
-        assert isinstance(schema, list)
-    except ImportError:
-        pass
+    """Every tool reaches the LLM in OpenAI function-calling format."""
+    client = MagicMock()
+    client.chat_with_tools.return_value = _llm_reply(content="tamam")
+    agent = _dummy_agent(client)
+
+    context = AgentContext(business_id=uuid.uuid4(), user_id=uuid.uuid4(), business_name="Kuaför")
+    response = agent.execute(question="merhaba", context=context)
+
+    assert response.answer == "tamam" and response.agent_name == "dummy"
+    schemas = client.chat_with_tools.call_args.kwargs["tools"]
+    assert schemas == [{
+        "type": "function",
+        "function": {
+            "name": "echo",
+            "description": "Verilen metni geri döndürür.",
+            "parameters": {"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]},
+        },
+    }]
+
+
+def test_base_agent_runs_the_tool_the_llm_asks_for():
+    call = SimpleNamespace(id="call-1", function=SimpleNamespace(name="echo", arguments=json.dumps({"text": "selam"})))
+    client = MagicMock()
+    client.chat_with_tools.side_effect = [_llm_reply(tool_calls=[call]), _llm_reply(content="bitti")]
+    agent = _dummy_agent(client)
+
+    context = AgentContext(business_id=uuid.uuid4(), user_id=uuid.uuid4(), business_name="Kuaför")
+    response = agent.execute(question="selam de", context=context)
+
+    assert response.answer == "bitti" and response.tools_used == ["echo"]
+    second_messages = client.chat_with_tools.call_args_list[1].kwargs["messages"]
+    assert second_messages[-1] == {"role": "tool", "tool_call_id": "call-1", "content": "echo: selam"}
 
 
 def test_current_date_note_uses_app_timezone():

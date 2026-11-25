@@ -1,16 +1,7 @@
 import pytest
 from app.modules.document.processing.chunker import TextChunker
-
-# Assuming cleaner is implemented, otherwise writing basic assertions for what it should do.
-# Using a dummy class if cleaner doesn't exist, but prompt implies it does.
-# We'll import it but if not exist, tests will guide the implementation.
-try:
-    from app.modules.document.processing.cleaner import TextCleaner
-except ImportError:
-    class TextCleaner:
-        @staticmethod
-        def clean(text):
-            return text.replace("\x00", "").replace("\n", " ").strip()
+from app.modules.document.processing.cleaner import TextCleaner
+from app.modules.document.processing.processor import DocumentProcessor
 
 def test_text_cleaner_removes_null_bytes():
     """Verify that null bytes are removed from the text."""
@@ -66,16 +57,16 @@ def test_text_chunker_short_text():
     assert len(chunks) == 1
     assert chunks[0] == "Short text"
 
+def test_text_chunker_never_exceeds_chunk_size():
+    """Sentences stay whole, but no chunk outgrows chunk_size, even with a long unpunctuated run."""
+    text = "Kısa giriş. " + "madde " * 60 + "Son cümle. " + "Orta uzunlukta bir cümle daha. " * 10
+    chunks = TextChunker.chunk(text, chunk_size=100, overlap=20)
+    assert len(chunks) > 1
+    assert all(len(chunk) <= 100 for chunk in chunks)
+    assert "Kısa giriş." in chunks[0]
+    assert any("Son cümle." in chunk for chunk in chunks)
+
 def test_document_processor_unsupported_format():
     """Should raise ValueError for unsupported format."""
-    try:
-        from app.modules.document.processing.processor import DocumentProcessor
-    except ImportError:
-        class DocumentProcessor:
-            @staticmethod
-            def process(file_path):
-                if not file_path.endswith(".txt"):
-                    raise ValueError("Unsupported format")
-                    
     with pytest.raises(ValueError):
         DocumentProcessor.process("test.invalid_ext")
