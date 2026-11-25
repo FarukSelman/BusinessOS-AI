@@ -52,3 +52,36 @@ export interface CustomerReport {
   top_customers: { name: string; total_spent: number; visit_count: number }[];
   customer_growth: CustomerGrowthPoint[];
 }
+
+// ---------------------------------------------------------------- finance report (/reports/finance)
+
+/** Gelir kaynakları ayrı: hiçbiri diğerini otomatik oluşturmuyor. Tutarlar TL. */
+export interface FinanceAmounts {
+  invoices: number;
+  product_sales: number;
+  installments: number;
+  /** Gelir-Gider'e elle girilen gelir. */
+  other_income: number;
+  income: number;
+  expense: number;
+  net: number;
+}
+
+export interface FinancePeriod extends FinanceAmounts {
+  /** Dönemin ilk yerel günü (YYYY-AA-GG): gün, hafta (pazartesi) ya da ay. */
+  period: string;
+}
+
+export type FinanceGroup = "day" | "week" | "month";
+
+export interface FinanceReport {
+  start_date: string;
+  end_date: string;
+  group_by: FinanceGroup;
+  series: FinancePeriod[];
+  totals: FinanceAmounts;
+  previous: FinanceAmounts & { start_date: string; end_date: string };
+  expense_by_category: { name: string; color: string | null; amount: number; count: number }[];
+  revenue_by_service: { name: string; amount: number; count: number }[];
+  revenue_by_product: { name: string; amount: number; quantity: number }[];
+}

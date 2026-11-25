@@ -1046,6 +1046,21 @@ export async function getRevenueReport(businessId: string, startDate: string, en
   return apiFetch<import("@/types/reports").RevenueDataPoint[]>(`/api/v1/businesses/${businessId}/reports/revenue?start_date=${startDate}&end_date=${endDate}&group_by=${groupBy}`);
 }
 
+/** Sahip/yönetici: kaynaklara göre gelir, gider, net, kırılımlar ve önceki dönem (yerel günler). */
+export async function getFinanceReport(
+  businessId: string,
+  startDate: string,
+  endDate: string,
+  groupBy: import("@/types/reports").FinanceGroup,
+  signal?: AbortSignal
+) {
+  const params = new URLSearchParams({ start_date: startDate, end_date: endDate, group_by: groupBy });
+  return apiFetch<import("@/types/reports").FinanceReport>(
+    `/api/v1/businesses/${businessId}/reports/finance?${params}`,
+    { signal }
+  );
+}
+
 export async function getAppointmentReport(businessId: string, startDate: string, endDate: string) {
   return apiFetch<import("@/types/reports").AppointmentReport>(`/api/v1/businesses/${businessId}/reports/appointments?start_date=${startDate}&end_date=${endDate}`);
 }

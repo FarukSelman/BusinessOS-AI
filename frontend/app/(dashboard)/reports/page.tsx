@@ -3,25 +3,24 @@
 import { useState, useEffect, useMemo } from "react";
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear } from "date-fns";
 import { tr } from "date-fns/locale";
-import { BarChart3, TrendingUp, TrendingDown, Users, CalendarCheck, CalendarClock, Clock, UserCog, Wallet } from "lucide-react";
+import { BarChart3, Users, CalendarCheck, CalendarClock, Clock, UserCog } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
-  AreaChart, Area, BarChart, Bar, LineChart, Line,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+  BarChart, Bar, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
 import { getActiveBusinessId } from "@/lib/business";
 import {
-  getRevenueReport,
   getAppointmentReport,
   getCustomerReport,
   getStaffPerformanceReport,
-  ApiError,
 } from "@/lib/api";
-import type { RevenueDataPoint, AppointmentReport, CustomerReport, StaffPerformance } from "@/types/reports";
+import type { AppointmentReport, CustomerReport, StaffPerformance } from "@/types/reports";
+import { FinanceReport } from "@/components/reports/finance-report";
+import { useMyAccess } from "@/lib/use-my-access";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -29,13 +28,12 @@ import { toast } from "sonner";
 const COLORS = {
   income: "var(--chart-2)",
   expense: "var(--chart-4)",
-  net: "var(--chart-7)",
   appointments: "var(--agent-appointments)",
   customers: "var(--accent)",
 };
 
 const TABS = [
-  { id: "revenue", label: "Gelir Raporu" },
+  { id: "revenue", label: "Finans" },
   { id: "appointments", label: "Randevu Raporu" },
   { id: "customers", label: "Müşteri Raporu" },
   { id: "staff", label: "Personel Performansı" },
@@ -53,17 +51,18 @@ export default function ReportsPage() {
   const businessId = getActiveBusinessId();
 
   const [activeTab, setActiveTab] = useState("revenue");
-  // Revenue report is owner / admin only; others get 403 and the tab is hidden.
-  const [financeAllowed, setFinanceAllowed] = useState(true);
-  const visibleTabs = financeAllowed ? TABS : TABS.filter((t) => t.id !== "revenue");
+  // Finans sekmesi yalnızca sahip/yöneticiye; rol yüklenene kadar sekme gizli.
+  const access = useMyAccess();
+  const canSeeFinance = access?.can_view_finance === true;
+  const visibleTabs = canSeeFinance ? TABS : TABS.filter((t) => t.id !== "revenue");
+  // Finans görmeyen rolde açılış sekmesi randevular olur.
+  const tab = activeTab === "revenue" && access !== null && !canSeeFinance ? "appointments" : activeTab;
   const [startDate, setStartDate] = useState(() => format(startOfMonth(new Date()), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(() => format(endOfMonth(new Date()), 'yyyy-MM-dd'));
-  const [groupBy, setGroupBy] = useState("day");
 
   const [loading, setLoading] = useState(false);
   
   // Data States
-  const [revenueData, setRevenueData] = useState<RevenueDataPoint[]>([]);
   const [appointmentData, setAppointmentData] = useState<AppointmentReport | null>(null);
   const [customerData, setCustomerData] = useState<CustomerReport | null>(null);
   const [staffData, setStaffData] = useState<StaffPerformance[]>([]);
@@ -71,31 +70,19 @@ export default function ReportsPage() {
   useEffect(() => {
     if (!businessId) return;
     fetchData();
-  }, [businessId, activeTab, startDate, endDate, groupBy]);
+  }, [businessId, tab, startDate, endDate]);
 
   const fetchData = async () => {
     if (!businessId) return;
     setLoading(true);
     try {
-      if (activeTab === "revenue") {
-        try {
-          const data = await getRevenueReport(businessId, startDate, endDate, groupBy);
-          setRevenueData(data);
-        } catch (err) {
-          if (err instanceof ApiError && err.status === 403) {
-            setFinanceAllowed(false);
-            setActiveTab("appointments");
-            return;
-          }
-          throw err;
-        }
-      } else if (activeTab === "appointments") {
+      if (tab === "appointments") {
         const data = await getAppointmentReport(businessId, startDate, endDate);
         setAppointmentData(data);
-      } else if (activeTab === "customers") {
+      } else if (tab === "customers") {
         const data = await getCustomerReport(businessId, startDate, endDate);
         setCustomerData(data);
-      } else if (activeTab === "staff") {
+      } else if (tab === "staff") {
         const data = await getStaffPerformanceReport(businessId, startDate, endDate);
         setStaffData(data);
       }
@@ -115,9 +102,6 @@ export default function ReportsPage() {
     }
   };
 
-  const totalIncome = revenueData.reduce((acc, curr) => acc + curr.income, 0);
-  const totalExpense = revenueData.reduce((acc, curr) => acc + curr.expense, 0);
-  const netIncome = totalIncome - totalExpense;
 
   return (
     <div className="flex flex-col gap-6">
@@ -158,104 +142,27 @@ export default function ReportsPage() {
       </div>
 
       <div className="flex overflow-x-auto border-b border-border">
-        {visibleTabs.map((tab) => (
+        {visibleTabs.map((t) => (
           <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            key={t.id}
+            onClick={() => setActiveTab(t.id)}
             className={`shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === tab.id 
+              tab === t.id 
                 ? "border-[var(--agent-finance)] text-ink" 
                 : "border-transparent text-ink-muted hover:text-ink hover:border-border"
             }`}
           >
-            {tab.label}
+            {t.label}
           </button>
         ))}
       </div>
 
       {loading && <p className="text-sm text-ink-muted">Rapor yükleniyor...</p>}
 
-      {!loading && activeTab === "revenue" && (
-        <div className="space-y-6">
-          <div className="flex items-center gap-4">
-            <Label>Gruplama:</Label>
-            <Select 
-              value={groupBy} 
-              onChange={(e) => setGroupBy(e.target.value)}
-              className="w-32 h-9"
-            >
-              <option value="day">Günlük</option>
-              <option value="week">Haftalık</option>
-              <option value="month">Aylık</option>
-            </Select>
-          </div>
+      {/* Finans: kendi yüklemesini ve gruplamasını yönetir; yalnızca sahip/yönetici */}
+      {tab === "revenue" && canSeeFinance && <FinanceReport startDate={startDate} endDate={endDate} />}
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Card className="border-l-2" style={{ borderLeftColor: COLORS.income }}>
-              <CardContent className="flex items-center gap-3 p-4">
-                <TrendingUp className="h-5 w-5" style={{ color: COLORS.income }} />
-                <div>
-                  <p className="text-xl font-semibold text-ink">{formatCurrency(totalIncome)}</p>
-                  <p className="text-xs text-ink-muted">Toplam Gelir</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-l-2" style={{ borderLeftColor: COLORS.expense }}>
-              <CardContent className="flex items-center gap-3 p-4">
-                <TrendingDown className="h-5 w-5" style={{ color: COLORS.expense }} />
-                <div>
-                  <p className="text-xl font-semibold text-ink">{formatCurrency(totalExpense)}</p>
-                  <p className="text-xs text-ink-muted">Toplam Gider</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-l-2" style={{ borderLeftColor: netIncome >= 0 ? COLORS.income : COLORS.expense }}>
-              <CardContent className="flex items-center gap-3 p-4">
-                <Wallet className="h-5 w-5" style={{ color: netIncome >= 0 ? COLORS.income : COLORS.expense }} />
-                <div>
-                  <p className="text-xl font-semibold text-ink">{formatCurrency(netIncome)}</p>
-                  <p className="text-xs text-ink-muted">Net Kâr</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card className="bg-surface-elevated/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-base">Gelir - Gider Özeti</CardTitle>
-            </CardHeader>
-            <CardContent className="h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={COLORS.income} stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor={COLORS.income} stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={COLORS.expense} stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor={COLORS.expense} stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.5} />
-                  <XAxis dataKey="period" stroke="var(--ink-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="var(--ink-muted)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `₺${val}`} />
-                  <Tooltip 
-                    formatter={(value: number, name: string) => [formatCurrency(value), name === 'income' ? 'Gelir' : 'Gider']}
-                    contentStyle={{ backgroundColor: 'var(--surface-elevated)', borderColor: 'var(--border)', borderRadius: '8px', color: 'var(--ink)' }}
-                  />
-                  {/* Etiket yazısı seri renginde değil metin renginde: açık zeminde de okunur */}
-                  <Legend wrapperStyle={{ fontSize: '12px' }} formatter={(value) => <span style={{ color: "var(--ink)" }}>{value}</span>} />
-                  <Area type="monotone" dataKey="income" name="Gelir" stroke={COLORS.income} fillOpacity={1} fill="url(#colorIncome)" />
-                  <Area type="monotone" dataKey="expense" name="Gider" stroke={COLORS.expense} fillOpacity={1} fill="url(#colorExpense)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {!loading && activeTab === "appointments" && appointmentData && (
+      {!loading && tab === "appointments" && appointmentData && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Card className="border-l-2" style={{ borderLeftColor: COLORS.appointments }}>
@@ -331,7 +238,7 @@ export default function ReportsPage() {
         </div>
       )}
 
-      {!loading && activeTab === "customers" && customerData && (
+      {!loading && tab === "customers" && customerData && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Card className="border-l-2" style={{ borderLeftColor: COLORS.customers }}>
@@ -410,7 +317,7 @@ export default function ReportsPage() {
         </div>
       )}
 
-      {!loading && activeTab === "staff" && (
+      {!loading && tab === "staff" && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Personel Performansı</CardTitle>
