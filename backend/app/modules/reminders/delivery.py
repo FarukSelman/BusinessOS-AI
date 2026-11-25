@@ -213,7 +213,9 @@ def _process_business(db, business_id, configs, now, mailer, report) -> None:
             report.failed += 1
             report.errors.append(f"{appt.id}: {exc}")
         else:
-            _finish(db, log_id, ReminderStatus.SENT, sent_at=local_now())
+            # The scan's own clock, not the wall clock: the "already sent inside this
+            # window" check above compares sent_at with times derived from `now`.
+            _finish(db, log_id, ReminderStatus.SENT, sent_at=now)
             report.sent += 1
 
 

@@ -6,7 +6,10 @@ class TextChunker:
     
     Splits text at sentence boundaries instead of
     arbitrary character positions, preserving semantic
-    coherence within each chunk.
+    coherence within each chunk. A single sentence longer
+    than chunk_size (a list or table with no punctuation)
+    is cut into chunk_size windows that share `overlap`
+    characters, so no chunk outgrows the embedding input.
     """
 
     SENTENCE_ENDINGS = re.compile(
@@ -21,7 +24,11 @@ class TextChunker:
     ) -> list[str]:
 
         sentences = TextChunker.SENTENCE_ENDINGS.split(text)
-        sentences = [s.strip() for s in sentences if s.strip()]
+        sentences = [
+            piece
+            for s in sentences if s.strip()
+            for piece in TextChunker._windows(s.strip(), chunk_size, overlap)
+        ]
 
         if not sentences:
             return [text] if text.strip() else []
@@ -50,6 +57,10 @@ class TextChunker:
                 current_chunk = overlap_chunk
                 current_length = overlap_length
 
+                # The overlap must not push the next chunk past chunk_size.
+                if current_length + sentence_length > chunk_size:
+                    current_chunk, current_length = [], 0
+
             current_chunk.append(sentence)
             current_length += sentence_length
 
@@ -58,3 +69,16 @@ class TextChunker:
             chunks.append(' '.join(current_chunk))
 
         return chunks
+
+    @staticmethod
+    def _windows(sentence: str, chunk_size: int, overlap: int) -> list[str]:
+        """The sentence itself, or chunk_size windows of it when it is too long."""
+        if len(sentence) <= chunk_size:
+            return [sentence]
+        step = chunk_size - overlap if 0 <= overlap < chunk_size else chunk_size
+        windows = []
+        for start in range(0, len(sentence), step):
+            windows.append(sentence[start:start + chunk_size])
+            if start + chunk_size >= len(sentence):
+                break
+        return windows
