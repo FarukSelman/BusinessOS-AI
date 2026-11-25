@@ -5,7 +5,7 @@ from sqlalchemy import select, func, and_
 from sqlalchemy.orm import Session
 from app.db.base_repository import BaseRepository
 from app.modules.expenses.models import Expense
-from app.shared.enums.expense import TransactionDirection
+from app.shared.enums.expense import ExpenseStatus, TransactionDirection
 
 class ExpenseRepository(BaseRepository[Expense]):
     def __init__(self, db: Session):
@@ -58,6 +58,8 @@ class ExpenseRepository(BaseRepository[Expense]):
             .where(
                 self.model.business_id == business_id,
                 self.model.direction == TransactionDirection.EXPENSE,
+                # Cancelled entries never count (same rule as the finance report)
+                self.model.status != ExpenseStatus.CANCELLED,
                 self.model.transaction_date >= start_date,
                 self.model.transaction_date <= end_date,
                 self.model.is_deleted.is_(False),
@@ -74,7 +76,9 @@ class ExpenseRepository(BaseRepository[Expense]):
             self.model.business_id == business_id,
             self.model.transaction_date >= start_date,
             self.model.transaction_date <= end_date,
-            self.model.is_deleted.is_(False)
+            self.model.is_deleted.is_(False),
+            # Cancelled entries never count (same rule as the finance report)
+            self.model.status != ExpenseStatus.CANCELLED,
         ).group_by(self.model.direction)
         
         results = self.db.execute(statement).all()

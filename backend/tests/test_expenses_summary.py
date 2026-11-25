@@ -15,7 +15,7 @@ from app.modules.business.models import Business
 from app.modules.expenses.models import Expense
 from app.modules.membership.models import Membership
 from app.modules.user.models import User
-from app.shared.enums.expense import TransactionDirection
+from app.shared.enums.expense import ExpenseStatus, TransactionDirection
 from app.shared.enums.membership import MembershipRole
 from app.shared.enums.user import UserStatus
 from tests.pg_support import API, auth, make_client, make_engine, release_client
@@ -57,14 +57,17 @@ def world(db):
     db.flush()
     db.add(Membership(user_id=owner.id, business_id=biz.id, role=MembershipRole.OWNER))
 
-    def add(day, direction, amount, deleted=False):
+    def add(day, direction, amount, deleted=False, status=ExpenseStatus.PAID):
         db.add(Expense(business_id=biz.id, direction=direction, title="x", amount=Decimal(amount),
-                       transaction_date=day, is_deleted=deleted))
+                       transaction_date=day, is_deleted=deleted, status=status))
 
     add(date(2026, 10, 31), INCOME, 1000)          # previous month's last day
     add(date(2026, 11, 1), INCOME, 200)            # first day
     add(date(2026, 11, 30), INCOME, 50)            # last day
     add(date(2026, 11, 10), EXPENSE, 999, deleted=True)
+    add(date(2026, 11, 12), EXPENSE, 777, status=ExpenseStatus.CANCELLED)   # cancelled: never counted
+    add(date(2026, 11, 13), INCOME, 333, status=ExpenseStatus.CANCELLED)
+    add(date(2026, 11, 14), EXPENSE, 6, status=ExpenseStatus.PENDING)       # not paid yet: still counted
     add(date(2026, 12, 1), EXPENSE, 5)             # next month
     for _ in range(25):                            # more than one default list page
         add(date(2026, 11, 15), EXPENSE, 4)
@@ -79,9 +82,9 @@ def test_month_summary_counts_every_transaction_of_the_month(client, world):
     assert res.status_code == 200
     body = res.json()
     assert body["total_income"] == 250.0
-    assert body["total_expense"] == 100.0
-    assert body["net_profit"] == 150.0
-    assert body["transaction_count"] == 27
+    assert body["total_expense"] == 106.0
+    assert body["net_profit"] == 144.0
+    assert body["transaction_count"] == 28
 
 
 def test_empty_month_has_zero_count(client, world):
@@ -90,3 +93,19 @@ def test_empty_month_has_zero_count(client, world):
                      params={"start_date": "2026-01-01", "end_date": "2026-01-31"}, headers=auth(owner))
     assert res.json()["transaction_count"] == 0
     assert res.json()["total_income"] == 0.0
+
+
+def test_cancelled_entries_are_not_counted(client, world):
+    """Same rule as the finance report: a cancelled income or expense is not part of the period."""
+    owner, biz = world
+    body = client.get(f"{API}/businesses/{biz.id}/expenses/summary",
+                      params={"start_date": "2026-11-12", "end_date": "2026-11-13"}, headers=auth(owner)).json()
+    assert body["total_income"] == 0.0 and body["total_expense"] == 0.0 and body["transaction_count"] == 0
+
+
+def test_category_breakdown_skips_cancelled_expenses(db, world):
+    from app.modules.expenses.repository import ExpenseRepository
+
+    _, biz = world
+    rows = ExpenseRepository(db).get_expense_breakdown_by_category(biz.id, date(2026, 11, 1), date(2026, 11, 30))
+    assert rows == [{"category": "Kategorisiz", "total": 106.0, "count": 26}]
