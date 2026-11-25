@@ -1,5 +1,6 @@
 import uuid
 from datetime import date, datetime, timedelta
+from app.modules.reports.finance import local_today
 from app.modules.reports.repository import ReportRepository
 
 class ReportService:
@@ -7,7 +8,7 @@ class ReportService:
         self.repository = repository
 
     def get_dashboard_stats(self, business_id: uuid.UUID) -> dict:
-        today = date.today()
+        today = local_today()
         month_start = today.replace(day=1)
         return self.repository.get_dashboard_stats(business_id, today, month_start)
 

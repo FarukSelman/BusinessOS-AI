@@ -15,13 +15,15 @@ from app.modules.reports.schemas import (
     AppointmentReport,
     CustomerReport,
     ServiceStats,
-    StaffPerformance
+    StaffPerformance,
+    FinanceReport,
 )
 from app.modules.reports.repository import ReportRepository
 from app.modules.reports.service import ReportService
 from app.ai.agents.tools.common import can_view_finance
 from app.modules.membership.models import Membership
-from app.shared.security.business import get_business_membership, require_business_member
+from app.shared.security.business import get_business_membership, require_business_member, require_finance
+from app.modules.reports.finance import finance_report, local_today
 
 router = APIRouter(prefix="/businesses/{business_id}/reports", tags=["Reports"], dependencies=[Depends(require_business_member)])
 
@@ -39,10 +41,10 @@ def _hide_money(rows: list[dict], *fields: str) -> list[dict]:
 
 
 def get_default_start_date():
-    return date.today() - timedelta(days=30)
+    return local_today() - timedelta(days=30)
 
 def get_default_end_date():
-    return date.today()
+    return local_today()
 
 @router.get("/dashboard-stats", response_model=DashboardStats)
 def get_dashboard_stats(
@@ -69,6 +71,18 @@ def get_revenue(
     if not can_view_finance(membership.role):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=FINANCE_ONLY)
     return service.get_revenue_report(business_id, start_date, end_date, group_by)
+
+
+@router.get("/finance", response_model=FinanceReport, dependencies=[Depends(require_finance)])
+def get_finance_report(
+    business_id: uuid.UUID,
+    start_date: date = Query(default_factory=get_default_start_date),
+    end_date: date = Query(default_factory=get_default_end_date),
+    group_by: str = Query("day", description="day | week | month"),
+    db: Session = Depends(get_db),
+):
+    """Owner/admin: income by source, expenses, net per period, breakdowns and the previous period."""
+    return finance_report(db, business_id, start_date, end_date, group_by)
 
 @router.get("/appointments", response_model=AppointmentReport)
 def get_appointments(

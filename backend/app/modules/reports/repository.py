@@ -1,6 +1,6 @@
 import uuid
 from datetime import date, datetime
-from sqlalchemy import select, func, case, extract, and_
+from sqlalchemy import Date, select, func, case, cast, extract, and_
 from sqlalchemy.orm import Session
 
 from app.modules.customers.models import Customer
@@ -14,6 +14,7 @@ from app.modules.branches.models import Branch
 from app.shared.enums.invoice import InvoiceStatus
 from app.shared.enums.expense import TransactionDirection
 from app.shared.enums.appointment import AppointmentStatus
+from app.modules.reports import finance
 
 class ReportRepository:
     def __init__(self, db: Session):
@@ -46,30 +47,11 @@ class ReportRepository:
             )
         ) or 0
 
-        # total_revenue_this_month
-        total_revenue_this_month = self.db.scalar(
-            select(func.sum(Invoice.total_amount))
-            .where(
-                Invoice.business_id == business_id,
-                Invoice.is_deleted.is_(False),
-                Invoice.status == InvoiceStatus.PAID,
-                func.date(Invoice.paid_at) >= month_start
-            )
-        ) or 0.0
-
-        # total_expenses_this_month
-        total_expenses_this_month = self.db.scalar(
-            select(func.sum(Expense.amount))
-            .where(
-                Expense.business_id == business_id,
-                Expense.is_deleted.is_(False),
-                Expense.direction == TransactionDirection.EXPENSE,
-                Expense.transaction_date >= month_start
-            )
-        ) or 0.0
-
-        # net_profit_this_month
-        net_profit_this_month = float(total_revenue_this_month) - float(total_expenses_this_month)
+        # Money this month: same local-day helper as the finance report, bounded to the month
+        month = finance.totals(self.db, business_id, *finance.month_range(today))
+        total_revenue_this_month = month["income"]
+        total_expenses_this_month = month["expense"]
+        net_profit_this_month = month["net"]
 
         # pending_appointments
         pending_appointments = self.db.scalar(
@@ -99,70 +81,22 @@ class ReportRepository:
         }
 
     def get_revenue_report(self, business_id: uuid.UUID, start_date: date, end_date: date, group_by: str) -> list[dict]:
-        # group_by 'daily', 'weekly', 'monthly'
-        if group_by == 'monthly':
-            trunc_str = 'month'
-        elif group_by == 'weekly':
-            trunc_str = 'week'
-        else:
-            trunc_str = 'day'
-
-        # Income query
-        income_query = (
-            select(
-                func.date_trunc(trunc_str, Invoice.paid_at).label('period'),
-                func.sum(Invoice.total_amount).label('income'),
-                func.count(Invoice.id).label('invoice_count')
-            )
-            .where(
-                Invoice.business_id == business_id,
-                Invoice.is_deleted.is_(False),
-                Invoice.status == InvoiceStatus.PAID,
-                func.date(Invoice.paid_at) >= start_date,
-                func.date(Invoice.paid_at) <= end_date
-            )
-            .group_by('period')
-            .subquery()
-        )
-
-        # Expense query
-        expense_query = (
-            select(
-                func.date_trunc(trunc_str, Expense.transaction_date).label('period'),
-                func.sum(Expense.amount).label('expense')
-            )
-            .where(
-                Expense.business_id == business_id,
-                Expense.is_deleted.is_(False),
-                Expense.direction == TransactionDirection.EXPENSE,
-                Expense.transaction_date >= start_date,
-                Expense.transaction_date <= end_date
-            )
-            .group_by('period')
-            .subquery()
-        )
-
-        # We can simulate FULL OUTER JOIN by getting all periods in Python or combine them.
-        # Given potential complexity with SQLAlchemy outer joins, let's fetch both and combine in memory for simplicity.
-        incomes = self.db.execute(select(income_query.c.period, income_query.c.income, income_query.c.invoice_count)).all()
-        expenses = self.db.execute(select(expense_query.c.period, expense_query.c.expense)).all()
-
-        combined = {}
-        for period, income, count in incomes:
-            if period:
-                p_str = str(period.date()) if isinstance(period, datetime) else str(period)
-                combined[p_str] = {"period": p_str, "income": float(income or 0), "expense": 0.0, "net": float(income or 0), "invoice_count": count or 0}
-
-        for period, expense in expenses:
-            if period:
-                p_str = str(period.date()) if isinstance(period, datetime) else str(period)
-                if p_str not in combined:
-                    combined[p_str] = {"period": p_str, "income": 0.0, "expense": float(expense or 0), "net": -float(expense or 0), "invoice_count": 0}
-                else:
-                    combined[p_str]["expense"] = float(expense or 0)
-                    combined[p_str]["net"] = combined[p_str]["income"] - combined[p_str]["expense"]
-
-        return list(combined.values())
+        """Income (all sources) and expenses per local period, zero-filled and in order (finance helpers)."""
+        group = finance.normalize_group(group_by)
+        finance.check_range(start_date, end_date, group)
+        day = finance.local_date(Invoice.paid_at)
+        bucket = cast(func.date_trunc(group, day), Date)
+        counts = dict(self.db.execute(
+            select(bucket.label("p"), func.count(Invoice.id))
+            .where(Invoice.business_id == business_id, Invoice.is_deleted.is_(False),
+                   Invoice.status == InvoiceStatus.PAID, day >= start_date, day <= end_date)
+            .group_by("p")
+        ).all())
+        return [
+            {"period": row["period"].isoformat(), "income": row["income"], "expense": row["expense"],
+             "net": row["net"], "invoice_count": counts.get(row["period"], 0)}
+            for row in finance.income_expense_series(self.db, business_id, start_date, end_date, group)
+        ]
 
     def get_appointment_report(self, business_id: uuid.UUID, start_date: date, end_date: date) -> dict:
         apps = self.db.scalars(
