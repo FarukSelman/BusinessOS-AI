@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
+from app.shared.security.business import viewer_allowed
 
 from app.ai.rag.factory import get_rag_service
 from app.ai.rag.schemas import (
@@ -36,6 +37,8 @@ router = APIRouter(
     response_model=RAGAnswerResponse,
     summary="Ask Business Knowledge Base",
 )
+# A question to the knowledge base reads documents only.
+@viewer_allowed
 def ask_question(
     business_id: UUID,
 

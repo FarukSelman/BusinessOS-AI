@@ -33,7 +33,7 @@ from app.ai.memory.service import ConversationMemoryService
 from app.modules.chat.service import ChatService
 from app.modules.business.models import Business
 from app.modules.membership.models import Membership
-from app.shared.security.business import get_business_membership, require_business_member
+from app.shared.security.business import get_business_membership, require_business_member, viewer_allowed
 
 
 router = APIRouter(
@@ -53,6 +53,8 @@ def _memory_service(db: Session) -> ConversationMemoryService:
     "",
     response_model=ChatResponse,
 )
+# Asking the AI is reading; the agents only draft actions, which viewers cannot approve.
+@viewer_allowed
 def chat(
     business_id: UUID,
     request: ChatRequest,
@@ -150,6 +152,8 @@ def get_session_messages(
     "/sessions/{session_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
+# Deletes the caller's own chat history only.
+@viewer_allowed
 def delete_session(
     business_id: UUID,
     session_id: UUID,
