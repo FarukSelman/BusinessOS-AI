@@ -6,6 +6,7 @@ import {
   Calendar, Clock, User, CheckCircle2, ChevronRight, ChevronLeft,
   Phone, Mail, Loader2, Sparkles, Star, Building2, MapPin
 } from "lucide-react";
+import { errorMessage } from "@/lib/api";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -52,7 +53,7 @@ function apiErrorMessage(body: { message?: string; detail?: string; errors?: str
     if (first.includes("customer_phone")) return "Geçerli bir telefon numarası girin (ör. 0532 123 45 67).";
     return "Lütfen bilgilerinizi kontrol edin.";
   }
-  return body.message || body.detail || "Randevu oluşturulamadı.";
+  return errorMessage(body, "Randevu oluşturulamadı.");
 }
 
 export default function PublicBookingPage() {

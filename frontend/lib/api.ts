@@ -85,7 +85,7 @@ export async function register(payload: RegisterPayload): Promise<RegisterRespon
 
   if (!res.ok) {
     const body = await safeJson(res);
-    throw new ApiError(res.status, body?.detail ?? "Kayıt işlemi başarısız oldu.");
+    throw new ApiError(res.status, errorMessage(body, "Kayıt işlemi başarısız oldu."));
   }
 
   return res.json();
@@ -106,7 +106,7 @@ export async function login(email: string, password: string): Promise<TokenRespo
 
   if (!res.ok) {
     const body = await safeJson(res);
-    throw new ApiError(res.status, body?.detail ?? "E-posta veya şifre hatalı.");
+    throw new ApiError(res.status, errorMessage(body, "E-posta veya şifre hatalı."));
   }
 
   const data: TokenResponse = await res.json();
@@ -164,6 +164,20 @@ export async function changePassword(payload: ChangePasswordPayload): Promise<{ 
 }
 
 
+/**
+ * Backend hata gövdesinden kullanıcıya gösterilecek mesaj: `message` varsa o (backend'in hata handler'ı),
+ * yoksa `detail` (FastAPI varsayılanı), yoksa çağıranın genel mesajı. Metin olmayan değerler atlanır.
+ */
+export function errorMessage(body: unknown, fallback: string): string {
+  if (body && typeof body === "object") {
+    const { message, detail } = body as { message?: unknown; detail?: unknown };
+    for (const candidate of [message, detail]) {
+      if (typeof candidate === "string" && candidate.trim()) return candidate;
+    }
+  }
+  return fallback;
+}
+
 async function safeJson(res: Response) {
   try {
     return await res.json();
@@ -209,7 +223,7 @@ async function apiRequest(path: string, options: RequestOptions = {}): Promise<R
 
   if (!res.ok) {
     const body = await safeJson(res);
-    throw new ApiError(res.status, body?.detail ?? `İstek başarısız oldu (${res.status})`);
+    throw new ApiError(res.status, errorMessage(body, `İstek başarısız oldu (${res.status})`));
   }
   return res;
 }
