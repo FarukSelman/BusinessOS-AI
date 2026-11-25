@@ -18,6 +18,7 @@ import {
   notifyAgentActionsChanged,
 } from "@/lib/api";
 import { PendingActionCard, type ActionOutcome } from "@/components/chat/pending-action-card";
+import { useVoiceInput, VoiceButton, VoiceStatusLine } from "@/components/chat/voice-input";
 import { getActiveBusinessId } from "@/lib/business";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -47,6 +48,12 @@ export function ChatWithHistory({ title, description, agentColor, examplePrompts
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionOutcomes, setActionOutcomes] = useState<Record<string, ActionOutcome>>({});
+  const inputRef = useRef<HTMLInputElement>(null);
+  // Sesli giriş: metin kutuya gelir, kullanıcı kontrol edip gönderir (otomatik gönderim yok).
+  const voice = useVoiceInput((text) => {
+    setInput((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
+    inputRef.current?.focus();
+  });
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const businessId = getActiveBusinessId();
@@ -183,10 +190,11 @@ export function ChatWithHistory({ title, description, agentColor, examplePrompts
     }
   }
 
+  // Dar ekranda sohbet listesi üstte ve kısa; mesaj alanı tam genişlik (md ve üstü: yan yana).
   return (
-    <div className="flex h-[calc(100vh-8rem)] gap-4">
+    <div className="flex h-[calc(100vh-8rem)] flex-col gap-4 md:flex-row">
       {/* Sidebar */}
-      <div className="flex w-64 shrink-0 flex-col overflow-hidden rounded-lg border border-border bg-surface-elevated/50 backdrop-blur-sm">
+      <div className="flex max-h-40 w-full shrink-0 flex-col overflow-hidden rounded-lg border border-border bg-surface-elevated/50 backdrop-blur-sm md:max-h-none md:w-64">
         <div className="p-3 border-b border-border">
           <Button onClick={startNewChat} className="w-full gap-2 justify-start" variant="outline">
             <MessageSquarePlus className="h-4 w-4" />
@@ -222,7 +230,7 @@ export function ChatWithHistory({ title, description, agentColor, examplePrompts
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="border-l-2 pl-3 mb-4 shrink-0" style={{ borderColor: agentColor }}>
           <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">
             {title}
@@ -319,16 +327,20 @@ export function ChatWithHistory({ title, description, agentColor, examplePrompts
 
           <form onSubmit={handleSend} className="flex gap-2 border-t border-border p-3">
             <Input
+              ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Bir soru yaz..."
+              placeholder="Bir soru yaz ya da mikrofona bas..."
+              aria-label="Mesaj"
               disabled={loading}
               className="bg-surface border-border"
             />
-            <Button type="submit" disabled={loading || !input.trim()} size="icon" className="shrink-0">
+            <VoiceButton voice={voice} disabled={loading} />
+            <Button type="submit" disabled={loading || !input.trim()} size="icon" className="shrink-0" aria-label="Gönder">
               <Send className="h-4 w-4" />
             </Button>
           </form>
+          <VoiceStatusLine voice={voice} />
 
           {error && <p className="px-4 pb-3 text-sm text-danger">{error}</p>}
         </div>

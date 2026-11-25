@@ -562,6 +562,32 @@ export async function uploadDocument(businessId: string, file: File): Promise<Bu
   });
 }
 
+// ---------- Sesli komut (konuşma -> metin) ----------
+export interface VoiceStatus {
+  enabled: boolean;
+  /** Kapalıysa nedeni (ör. yapay zekâ servisi yapılandırılmamış). */
+  reason: string | null;
+  max_seconds: number;
+  max_bytes: number;
+}
+
+export async function getVoiceStatus(businessId: string): Promise<VoiceStatus> {
+  return apiFetch<VoiceStatus>(`/api/v1/businesses/${businessId}/chat/voice`);
+}
+
+/** Kaydı metne çevirir; ses sunucuda saklanmaz. Metin sohbete normal mesaj olarak gönderilir. */
+export async function transcribeAudio(businessId: string, audio: Blob, signal?: AbortSignal): Promise<string> {
+  const ext = audio.type.includes("mp4") ? "m4a" : audio.type.includes("ogg") ? "ogg" : "webm";
+  const formData = new FormData();
+  formData.append("file", audio, `kayit.${ext}`);
+  const res = await apiFetch<{ text: string }>(`/api/v1/businesses/${businessId}/chat/transcribe`, {
+    method: "POST",
+    body: formData,
+    signal,
+  });
+  return res.text;
+}
+
 export async function getDocumentStatus(
   businessId: string,
   documentId: string
